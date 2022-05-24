@@ -71,6 +71,11 @@ impl Parser<'_> {
           _ => unreachable!(),
         }
       },
+      op @ Tok::Minus | op @ Tok::Bang => {
+        self.consume(op)?;
+        let right = self.parse_expr()?;
+        Ok(Expr::PrefixOp { op, right: Box::new(right) })
+      },
       tok => Err(ParseError::new(ParseErrorKind::ExpectedExpressionStart(tok), self.lexer.span())),
     }
   }
@@ -93,6 +98,14 @@ mod tests {
     assert_eq!(expr, Ok(Expr::String("foobar".to_string())));
     let expr = parse("foobar");
     assert_eq!(expr, Ok(Expr::Identifier("foobar".to_string())));
+
+    let expr = parse("-32");
+    assert_eq!(expr, Ok(Expr::PrefixOp { op: Tok::Minus, right: Box::new(Expr::Integer(32)) }));
+    let expr = parse("!   wrong");
+    assert_eq!(
+      expr,
+      Ok(Expr::PrefixOp { op: Tok::Bang, right: Box::new(Expr::Identifier("wrong".to_string())) })
+    );
 
     let expr = parse("-");
     assert!(expr.is_err());
