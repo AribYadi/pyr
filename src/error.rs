@@ -11,12 +11,12 @@ pub type ParseResult<T> = Result<T, ParseError>;
 #[allow(dead_code)]
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum ParseErrorKind {
+  #[error("unknown infix operator `{0}`")]
+  UnknownInfixOperator(TokenKind),
   #[error("`{0}` is not a start to any expression")]
   ExpectedExpressionStart(TokenKind),
   #[error("expected `{0}` but got `{1}`")]
   UnexpectedToken(TokenKind, TokenKind),
-  #[error("unknown token `{0}`")]
-  UnknownToken(char),
 }
 
 #[derive(Debug, PartialEq, Eq)]

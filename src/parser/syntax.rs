@@ -60,6 +60,28 @@ impl std::fmt::Display for TokenKind {
   }
 }
 
+pub trait Operator {
+  fn prefix_bp(&self) -> ((), u8);
+  fn infix_bp(&self) -> (u8, u8);
+}
+
+impl Operator for TokenKind {
+  fn prefix_bp(&self) -> ((), u8) {
+    match self {
+      TokenKind::Minus | TokenKind::Bang => ((), 51),
+      _ => unreachable!("{} is not a prefix operator", self),
+    }
+  }
+
+  fn infix_bp(&self) -> (u8, u8) {
+    match self {
+      TokenKind::Plus | TokenKind::Minus => (9, 10),
+      TokenKind::Star | TokenKind::Slash => (11, 12),
+      _ => unreachable!("{} is not an infix operator", self),
+    }
+  }
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {

@@ -11,6 +11,7 @@ use crate::error::{
 
 use self::syntax::{
   Expr,
+  Operator,
   TokenKind as Tok,
 };
 
@@ -53,7 +54,7 @@ impl Parser<'_> {
       if self.curr != Tok::Newline {
         todo!("Synchronize the parser");
       }
-      match self.parse_expr() {
+      match self.expression() {
         Ok(_) => todo!("Do something with the expr"),
         Err(err) => errors.push(err),
       };
@@ -61,8 +62,10 @@ impl Parser<'_> {
     todo!()
   }
 
-  pub(super) fn parse_expr(&mut self) -> Result<Expr> {
-    match self.peek {
+  pub(super) fn expression(&mut self) -> Result<Expr> { self.parse_expr(0) }
+
+  fn parse_expr(&mut self, bp: u8) -> Result<Expr> {
+    let mut lhs = match self.peek {
       literal @ Tok::String | literal @ Tok::Integer | literal @ Tok::Identifier => {
         let text = self.lexeme();
         self.consume(literal)?;
@@ -75,11 +78,35 @@ impl Parser<'_> {
       },
       op @ Tok::Minus | op @ Tok::Bang => {
         self.consume(op)?;
-        let right = self.parse_expr()?;
+        let ((), rbp) = op.prefix_bp();
+        let right = self.parse_expr(rbp)?;
         Ok(Expr::PrefixOp { op, right: Box::new(right) })
       },
       tok => Err(ParseError::new(ParseErrorKind::ExpectedExpressionStart(tok), self.lexer.span())),
+    }?;
+    while self.peek != Tok::Eof {
+      match self.peek {
+        op @ Tok::Plus | op @ Tok::Minus | op @ Tok::Star | op @ Tok::Slash => {
+          let (lbp, rbp) = op.infix_bp();
+          if lbp < bp {
+            break;
+          }
+
+          self.consume(op)?;
+          let right = self.parse_expr(rbp)?;
+          lhs = Expr::InfixOp { left: Box::new(lhs), op, right: Box::new(right) };
+        },
+        Tok::Newline => {
+          self.next();
+          break;
+        },
+        tok => {
+          return Err(ParseError::new(ParseErrorKind::UnknownInfixOperator(tok), self.lexer.span()))
+        },
+      }
     }
+
+    Ok(lhs)
   }
 }
 
@@ -91,7 +118,7 @@ mod tests {
   fn parse_expr() {
     fn parse(input: &str) -> Result<Expr> {
       let mut parser = Parser::new(input);
-      parser.parse_expr()
+      parser.expression()
     }
 
     let expr = parse("  32");
@@ -111,5 +138,41 @@ mod tests {
 
     let expr = parse("-");
     assert!(expr.is_err());
+  }
+
+  #[test]
+  fn parse_binary_expr() {
+    fn parse(input: &str) -> Result<Expr> {
+      let mut parser = Parser::new(input);
+      parser.expression()
+    }
+
+    fn check_precedence(expr: Result<Expr>, expected: &str) {
+      fn to_string(expr: Expr) -> String {
+        match expr {
+          Expr::Integer(i) => i.to_string(),
+          Expr::String(s) => format!("\"{s}\""),
+          Expr::Identifier(s) => s,
+          Expr::PrefixOp { op, right } => format!("({op} {})", to_string(*right)),
+          Expr::InfixOp { left, op, right } => {
+            format!("({} {op} {})", to_string(*left), to_string(*right))
+          },
+        }
+      }
+      assert!(expr.is_ok());
+      assert_eq!(to_string(expr.unwrap()), expected);
+    }
+
+    let expr = parse("4 + 3 * 2");
+    check_precedence(expr, "(4 + (3 * 2))");
+
+    let expr = parse("4 * 3 + 2");
+    check_precedence(expr, "((4 * 3) + 2)");
+
+    let expr = parse("4 - 3 - 2");
+    check_precedence(expr, "((4 - 3) - 2)");
+
+    let expr = parse("4 * 3 * 2");
+    check_precedence(expr, "((4 * 3) * 2)");
   }
 }
