@@ -1,0 +1,12 @@
+brace_style = "PreferSameLine"
+combine_control_expr = true
+imports_layout = "Vertical"
+match_block_trailing_comma = true
+normalize_doc_attributes = true
+reorder_impl_items = true
+tab_spaces = 2
+wrap_comments = true
+fn_single_line = true
+imports_granularity = "Module"
+enum_discrim_align_threshold = 100
+use_small_heuristics = "Max"
