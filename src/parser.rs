@@ -16,12 +16,14 @@ use self::syntax::{
 
 pub mod syntax;
 
+#[allow(dead_code)]
 pub struct Parser<'a> {
   lexer: Lexer<'a, Tok>,
   peek: Tok,
   curr: Tok,
 }
 
+#[allow(dead_code)]
 impl Parser<'_> {
   pub fn new(input: &str) -> Parser {
     let mut lexer = Tok::lexer(input);

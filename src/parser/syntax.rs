@@ -1,5 +1,6 @@
 use logos::Logos;
 
+#[allow(dead_code)]
 #[derive(Logos, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenKind {
   Eof,
@@ -59,6 +60,7 @@ impl std::fmt::Display for TokenKind {
   }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
   String(String),
