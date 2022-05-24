@@ -1,0 +1,13 @@
+[package]
+name = "pyr"
+version = "0.0.0"
+edition = "2021"
+authors = ["AribYadi <aribyadi@gmail.com>"]
+description = "Python but it is not python."
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/AribYadi/pyr.git"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
