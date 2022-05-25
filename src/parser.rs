@@ -90,13 +90,19 @@ impl Parser<'_> {
 
   fn parse_expr(&mut self, bp: u8) -> Result<Expr> {
     let mut lhs = match self.peek {
-      literal @ Tok::String | literal @ Tok::Integer | literal @ Tok::Identifier => {
+      literal @ Tok::String
+      | literal @ Tok::Integer
+      | literal @ Tok::Identifier
+      | literal @ Tok::True
+      | literal @ Tok::False => {
         let text = self.lexeme();
         self.consume(literal)?;
         match literal {
           Tok::String => Ok(Expr::String(text[1..text.len() - 1].to_string())),
           Tok::Integer => Ok(Expr::Integer(text.parse().unwrap())),
           Tok::Identifier => Ok(Expr::Identifier(text)),
+          Tok::True => Ok(Expr::Integer(1)),
+          Tok::False => Ok(Expr::Integer(0)),
           _ => unreachable!(),
         }
       },
@@ -154,6 +160,10 @@ mod tests {
     assert_eq!(expr, Ok(Expr::String("foobar".to_string())));
     let expr = parse("foobar");
     assert_eq!(expr, Ok(Expr::Identifier("foobar".to_string())));
+    let expr = parse("true");
+    assert_eq!(expr, Ok(Expr::Integer(1)));
+    let expr = parse("false");
+    assert_eq!(expr, Ok(Expr::Integer(0)));
 
     let expr = parse("-32");
     assert_eq!(expr, Ok(Expr::PrefixOp { op: Tok::Minus, right: Box::new(Expr::Integer(32)) }));

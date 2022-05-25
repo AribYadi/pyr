@@ -21,6 +21,10 @@ pub enum TokenKind {
   Integer,
   #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
   Identifier,
+  #[token("true")]
+  True,
+  #[token("false")]
+  False,
 
   // Operators
   #[token("+")]
@@ -56,6 +60,7 @@ impl std::fmt::Display for TokenKind {
       TokenKind::String => write!(f, "string"),
       TokenKind::Integer => write!(f, "integer"),
       TokenKind::Identifier => write!(f, "identifier"),
+      TokenKind::True | TokenKind::False => write!(f, "boolean"),
       TokenKind::Plus => write!(f, "+"),
       TokenKind::Minus => write!(f, "-"),
       TokenKind::Star => write!(f, "*"),
