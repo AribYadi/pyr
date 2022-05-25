@@ -42,18 +42,24 @@ pub enum TokenKind {
   // Currently `print` is a keyword rather than a builtin function.
   #[token("print")]
   Print,
+  #[token("if")]
+  If,
 
   // Delimiters
   #[token("(")]
   LeftParen,
   #[token(")")]
   RightParen,
+
+  // Syntax
+  #[token(":")]
+  Colon,
 }
 
 impl std::fmt::Display for TokenKind {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      TokenKind::Eof => write!(f, "EOF"),
+      TokenKind::Eof => write!(f, "end of file"),
       TokenKind::Error => write!(f, "error"),
       TokenKind::Newline => write!(f, "newline"),
       TokenKind::Indent => write!(f, "indent"),
@@ -67,8 +73,10 @@ impl std::fmt::Display for TokenKind {
       TokenKind::Slash => write!(f, "/"),
       TokenKind::Bang => write!(f, "!"),
       TokenKind::Print => write!(f, "print"),
+      TokenKind::If => write!(f, "if"),
       TokenKind::LeftParen => write!(f, "("),
       TokenKind::RightParen => write!(f, ")"),
+      TokenKind::Colon => write!(f, ":"),
     }
   }
 }
@@ -110,4 +118,5 @@ pub enum Expr {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
   Expression { expr: Expr },
+  If { condition: Expr, body: Vec<Stmt> },
 }

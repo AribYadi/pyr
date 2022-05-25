@@ -23,13 +23,14 @@ pub struct Parser<'a> {
   lexer: Lexer<'a, Tok>,
   peek: Tok,
   curr: Tok,
+  indent_level: usize,
 }
 
 #[allow(dead_code)]
 impl Parser<'_> {
   pub fn new(input: &str) -> Parser {
     let mut lexer = Tok::lexer(input);
-    Parser { peek: lexer.next().unwrap_or(Tok::Eof), curr: Tok::Eof, lexer }
+    Parser { peek: lexer.next().unwrap_or(Tok::Eof), curr: Tok::Eof, lexer, indent_level: 0 }
   }
 
   fn lexeme(&self) -> String { self.lexer.slice().to_string() }
@@ -58,16 +59,40 @@ impl Parser<'_> {
     }
   }
 
+  fn consume_indents(&mut self) -> Result<bool> {
+    if (0..self.indent_level - 1)
+      .rev()
+      .any(|i| self.lexer.clone().nth(i).unwrap_or(Tok::Eof) != Tok::Indent)
+      || self.peek != Tok::Indent
+    {
+      return Ok(false);
+    }
+    for _ in 0..self.indent_level {
+      self.consume(Tok::Indent)?;
+    }
+
+    Ok(true)
+  }
+
+  fn check_curr(&mut self, expected: Tok) -> Result<()> {
+    if self.curr == expected {
+      Ok(())
+    } else {
+      Err(ParseError::new(ParseErrorKind::UnexpectedToken(expected, self.curr), self.lexer.span()))
+    }
+  }
+
   pub fn parse(&mut self) -> Vec<Stmt> {
     let mut errors = Vec::new();
     while self.peek != Tok::Eof {
-      if self.curr != Tok::Newline {
-        todo!("Synchronize the parser");
-      }
       match self.statement() {
         Ok(_) => todo!("Do something with the stmt"),
         Err(err) => errors.push(err),
       };
+      if let Err(err) = self.consume(Tok::Newline) {
+        errors.push(err);
+        todo!("Synchronize the parser");
+      }
     }
     todo!()
   }
@@ -78,12 +103,42 @@ impl Parser<'_> {
         self.consume(Tok::Newline)?;
         self.statement()
       },
+      Tok::If => {
+        self.consume(Tok::If)?;
+        let condition = self.expression()?;
+        self.consume(Tok::Colon)?;
+        self.consume(Tok::Newline)?;
+        if self.peek != Tok::Indent {
+          return Err(ParseError::new(
+            ParseErrorKind::UnexpectedToken(Tok::Indent, self.peek),
+            self.lexer.span(),
+          ));
+        }
+
+        let body = self.parse_block()?;
+        self.check_curr(Tok::Newline)?;
+
+        Ok(Stmt::If { condition, body })
+      },
       _ => {
         let expr = self.expression()?;
         self.consume(Tok::Newline)?;
         Ok(Stmt::Expression { expr })
       },
     }
+  }
+
+  fn parse_block(&mut self) -> Result<Vec<Stmt>> {
+    self.indent_level += 1;
+    let mut stmts = Vec::new();
+    while self.peek != Tok::Eof {
+      if !self.consume_indents()? {
+        break;
+      };
+      stmts.push(self.statement()?);
+    }
+    self.indent_level -= 1;
+    Ok(stmts)
   }
 
   pub(super) fn expression(&mut self) -> Result<Expr> { self.parse_expr(0) }
@@ -132,7 +187,7 @@ impl Parser<'_> {
           let right = self.parse_expr(rbp)?;
           lhs = Expr::InfixOp { left: Box::new(lhs), op, right: Box::new(right) };
         },
-        Tok::Newline | Tok::RightParen => break,
+        Tok::Newline | Tok::Colon | Tok::RightParen => break,
         tok => {
           return Err(ParseError::new(ParseErrorKind::UnknownInfixOperator(tok), self.lexer.span()))
         },
@@ -145,6 +200,8 @@ impl Parser<'_> {
 
 #[cfg(test)]
 mod tests {
+  use unindent::unindent;
+
   use super::*;
 
   #[test]
@@ -230,6 +287,97 @@ mod tests {
           right: Box::new(Expr::Integer(2)),
         }
       })
+    );
+
+    let stmt = parse(&unindent(
+      "
+      if true:
+      \t1 + 2
+      \t3 + 4
+      ",
+    ));
+    assert_eq!(
+      stmt,
+      Ok(Stmt::If {
+        condition: Expr::Integer(1),
+        body: vec![
+          Stmt::Expression {
+            expr: Expr::InfixOp {
+              left: Box::new(Expr::Integer(1)),
+              op: Tok::Plus,
+              right: Box::new(Expr::Integer(2)),
+            },
+          },
+          Stmt::Expression {
+            expr: Expr::InfixOp {
+              left: Box::new(Expr::Integer(3)),
+              op: Tok::Plus,
+              right: Box::new(Expr::Integer(4)),
+            },
+          },
+        ],
+      })
+    );
+
+    let stmt = parse(&unindent(
+      "
+      if true:
+      \tif 1:
+      \t\t1 + 2
+      \tfoobar
+      ",
+    ));
+    assert_eq!(
+      stmt,
+      Ok(Stmt::If {
+        condition: Expr::Integer(1),
+        body: vec![
+          Stmt::If {
+            condition: Expr::Integer(1),
+            body: vec![Stmt::Expression {
+              expr: Expr::InfixOp {
+                left: Box::new(Expr::Integer(1)),
+                op: Tok::Plus,
+                right: Box::new(Expr::Integer(2)),
+              },
+            },],
+          },
+          Stmt::Expression { expr: Expr::Identifier("foobar".to_string()) },
+        ],
+      })
+    );
+  }
+
+  #[test]
+  fn parse_block() {
+    fn parse(input: &str) -> Result<Vec<Stmt>> {
+      let mut parser = Parser::new(input);
+      parser.parse_block()
+    }
+
+    let block = parse(
+      "\t1 + 2
+\t3 + 4
+",
+    );
+    assert_eq!(
+      block,
+      Ok(vec![
+        Stmt::Expression {
+          expr: Expr::InfixOp {
+            left: Box::new(Expr::Integer(1)),
+            op: Tok::Plus,
+            right: Box::new(Expr::Integer(2)),
+          }
+        },
+        Stmt::Expression {
+          expr: Expr::InfixOp {
+            left: Box::new(Expr::Integer(3)),
+            op: Tok::Plus,
+            right: Box::new(Expr::Integer(4)),
+          }
+        },
+      ])
     );
   }
 }
