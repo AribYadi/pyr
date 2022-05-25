@@ -115,7 +115,7 @@ impl Parser<'_> {
           self.next();
           break;
         },
-        Tok::LeftParen => break,
+        Tok::RightParen => break,
         tok => {
           return Err(ParseError::new(ParseErrorKind::UnknownInfixOperator(tok), self.lexer.span()))
         },
