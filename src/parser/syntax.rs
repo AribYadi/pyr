@@ -100,3 +100,9 @@ pub enum Expr {
   PrefixOp { op: TokenKind, right: Box<Expr> },
   InfixOp { op: TokenKind, left: Box<Expr>, right: Box<Expr> },
 }
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq)]
+pub enum Stmt {
+  Expression { expr: Expr },
+}

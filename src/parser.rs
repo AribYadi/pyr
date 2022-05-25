@@ -12,6 +12,7 @@ use crate::error::{
 use self::syntax::{
   Expr,
   Operator,
+  Stmt,
   TokenKind as Tok,
 };
 
@@ -57,18 +58,32 @@ impl Parser<'_> {
     }
   }
 
-  pub fn parse(&mut self) -> Expr {
+  pub fn parse(&mut self) -> Vec<Stmt> {
     let mut errors = Vec::new();
     while self.peek != Tok::Eof {
       if self.curr != Tok::Newline {
         todo!("Synchronize the parser");
       }
-      match self.expression() {
-        Ok(_) => todo!("Do something with the expr"),
+      match self.statement() {
+        Ok(_) => todo!("Do something with the stmt"),
         Err(err) => errors.push(err),
       };
     }
     todo!()
+  }
+
+  pub(super) fn statement(&mut self) -> Result<Stmt> {
+    match self.peek {
+      Tok::Newline => {
+        self.consume(Tok::Newline)?;
+        self.statement()
+      },
+      _ => {
+        let expr = self.expression()?;
+        self.consume(Tok::Newline)?;
+        Ok(Stmt::Expression { expr })
+      },
+    }
   }
 
   pub(super) fn expression(&mut self) -> Result<Expr> { self.parse_expr(0) }
@@ -111,11 +126,7 @@ impl Parser<'_> {
           let right = self.parse_expr(rbp)?;
           lhs = Expr::InfixOp { left: Box::new(lhs), op, right: Box::new(right) };
         },
-        Tok::Newline => {
-          self.next();
-          break;
-        },
-        Tok::RightParen => break,
+        Tok::Newline | Tok::RightParen => break,
         tok => {
           return Err(ParseError::new(ParseErrorKind::UnknownInfixOperator(tok), self.lexer.span()))
         },
@@ -190,5 +201,25 @@ mod tests {
 
     let expr = parse("4 * (3 * 2)");
     check_precedence(expr, "(4 * (3 * 2))");
+  }
+
+  #[test]
+  fn parse_stmt() {
+    fn parse(input: &str) -> Result<Stmt> {
+      let mut parser = Parser::new(input);
+      parser.statement()
+    }
+
+    let stmt = parse("1 + 2\n");
+    assert_eq!(
+      stmt,
+      Ok(Stmt::Expression {
+        expr: Expr::InfixOp {
+          left: Box::new(Expr::Integer(1)),
+          op: Tok::Plus,
+          right: Box::new(Expr::Integer(2)),
+        }
+      })
+    );
   }
 }
