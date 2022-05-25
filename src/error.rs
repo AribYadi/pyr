@@ -17,6 +17,8 @@ pub enum ParseErrorKind {
   ExpectedExpressionStart(TokenKind),
   #[error("expected `{0}` but got `{1}`")]
   UnexpectedToken(TokenKind, TokenKind),
+  #[error("unclosed delimiter `{0}`")]
+  UnclosedDelimiter(TokenKind),
 }
 
 #[derive(Debug, PartialEq, Eq)]

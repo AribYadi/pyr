@@ -38,6 +38,12 @@ pub enum TokenKind {
   // Currently `print` is a keyword rather than a builtin function.
   #[token("print")]
   Print,
+
+  // Delimiters
+  #[token("(")]
+  LeftParen,
+  #[token(")")]
+  RightParen,
 }
 
 impl std::fmt::Display for TokenKind {
@@ -56,6 +62,8 @@ impl std::fmt::Display for TokenKind {
       TokenKind::Slash => write!(f, "/"),
       TokenKind::Bang => write!(f, "!"),
       TokenKind::Print => write!(f, "print"),
+      TokenKind::LeftParen => write!(f, "("),
+      TokenKind::RightParen => write!(f, ")"),
     }
   }
 }
@@ -69,7 +77,7 @@ impl Operator for TokenKind {
   fn prefix_bp(&self) -> ((), u8) {
     match self {
       TokenKind::Minus | TokenKind::Bang => ((), 51),
-      _ => unreachable!("{} is not a prefix operator", self),
+      _ => unreachable!("{self} is not a prefix operator"),
     }
   }
 
@@ -77,7 +85,7 @@ impl Operator for TokenKind {
     match self {
       TokenKind::Plus | TokenKind::Minus => (9, 10),
       TokenKind::Star | TokenKind::Slash => (11, 12),
-      _ => unreachable!("{} is not an infix operator", self),
+      _ => unreachable!("{self} is not an infix operator"),
     }
   }
 }

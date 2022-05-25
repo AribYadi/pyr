@@ -48,6 +48,15 @@ impl Parser<'_> {
     }
   }
 
+  fn consume_delimiter(&mut self, expected: Tok) -> Result<()> {
+    if self.peek == expected {
+      self.next();
+      Ok(())
+    } else {
+      Err(ParseError::new(ParseErrorKind::UnclosedDelimiter(expected), self.lexer.span()))
+    }
+  }
+
   pub fn parse(&mut self) -> Expr {
     let mut errors = Vec::new();
     while self.peek != Tok::Eof {
@@ -76,6 +85,12 @@ impl Parser<'_> {
           _ => unreachable!(),
         }
       },
+      Tok::LeftParen => {
+        self.consume(Tok::LeftParen)?;
+        let expr = self.parse_expr(0)?;
+        self.consume_delimiter(Tok::RightParen)?;
+        Ok(expr)
+      },
       op @ Tok::Minus | op @ Tok::Bang => {
         self.consume(op)?;
         let ((), rbp) = op.prefix_bp();
@@ -100,6 +115,7 @@ impl Parser<'_> {
           self.next();
           break;
         },
+        Tok::LeftParen => break,
         tok => {
           return Err(ParseError::new(ParseErrorKind::UnknownInfixOperator(tok), self.lexer.span()))
         },
@@ -172,7 +188,7 @@ mod tests {
     let expr = parse("4 - 3 - 2");
     check_precedence(expr, "((4 - 3) - 2)");
 
-    let expr = parse("4 * 3 * 2");
-    check_precedence(expr, "((4 * 3) * 2)");
+    let expr = parse("4 * (3 * 2)");
+    check_precedence(expr, "(4 * (3 * 2))");
   }
 }
