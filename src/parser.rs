@@ -103,7 +103,7 @@ impl Parser<'_> {
     todo!()
   }
 
-  pub(super) fn statement(&mut self) -> Result<Stmt> {
+  pub(crate) fn statement(&mut self) -> Result<Stmt> {
     match self.peek {
       Tok::Newline => {
         self.consume(Tok::Newline)?;
@@ -209,7 +209,7 @@ impl Parser<'_> {
     Ok(())
   }
 
-  pub(super) fn expression(&mut self) -> Result<Expr> { self.parse_expr(0) }
+  pub(crate) fn expression(&mut self) -> Result<Expr> { self.parse_expr(0) }
 
   fn parse_expr(&mut self, bp: u8) -> Result<Expr> {
     let mut lhs = match self.peek {
