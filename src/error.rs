@@ -55,4 +55,6 @@ impl InterpretError {
   pub fn new_with_span(kind: InterpretErrorKind, span: Span) -> Self {
     Self { kind, span: Some(span) }
   }
+
+  pub fn with_location(self, span: Span) -> Self { Self { span: Some(span), ..self } }
 }

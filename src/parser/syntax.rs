@@ -1,5 +1,7 @@
 use logos::Logos;
 
+use crate::error::Span;
+
 #[derive(Logos, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenKind {
   Eof,
@@ -109,7 +111,7 @@ impl Operator for TokenKind {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Expr {
+pub enum ExprKind {
   String(String),
   Integer(i64),
   Identifier(String),
@@ -118,10 +120,42 @@ pub enum Expr {
   InfixOp { op: TokenKind, left: Box<Expr>, right: Box<Expr> },
 }
 
+#[derive(Debug, Clone)]
+pub struct Expr {
+  pub kind: ExprKind,
+  pub span: Span,
+}
+
+impl PartialEq for Expr {
+  fn eq(&self, other: &Self) -> bool { self.kind == other.kind }
+}
+
+impl Expr {
+  pub fn new(kind: ExprKind, span: Span) -> Self { Self { kind, span } }
+
+  pub fn new_without_span(kind: ExprKind) -> Self { Self { kind, span: 0..0 } }
+}
+
 #[derive(Debug, Clone, PartialEq)]
-pub enum Stmt {
+pub enum StmtKind {
   Expression { expr: Expr },
   If { condition: Expr, body: Vec<Stmt>, else_stmt: Vec<Stmt> },
   While { condition: Expr, body: Vec<Stmt> },
   Print { expr: Expr },
+}
+
+#[derive(Debug, Clone)]
+pub struct Stmt {
+  pub kind: StmtKind,
+  pub span: Span,
+}
+
+impl PartialEq for Stmt {
+  fn eq(&self, other: &Self) -> bool { self.kind == other.kind }
+}
+
+impl Stmt {
+  pub fn new(kind: StmtKind, span: Span) -> Self { Self { kind, span } }
+
+  pub fn new_without_span(kind: StmtKind) -> Self { Self { kind, span: 0..0 } }
 }

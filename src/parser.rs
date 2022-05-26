@@ -11,8 +11,10 @@ use crate::error::{
 
 use self::syntax::{
   Expr,
+  ExprKind,
   Operator,
   Stmt,
+  StmtKind,
   TokenKind as Tok,
 };
 
@@ -113,6 +115,8 @@ impl Parser<'_> {
         self.statement()
       },
       Tok::If => {
+        let span_start = self.lexer.span().start;
+
         self.consume(Tok::If)?;
         let condition = self.expression()?;
         self.consume(Tok::Colon)?;
@@ -136,9 +140,13 @@ impl Parser<'_> {
           self.parse_else(&mut else_stmt)?;
         }
 
-        Ok(Stmt::If { condition, body, else_stmt })
+        let span_end = self.lexer.span().end;
+
+        Ok(Stmt::new(StmtKind::If { condition, body, else_stmt }, span_start..span_end))
       },
       Tok::While => {
+        let span_start = self.lexer.span().start;
+
         self.consume(Tok::While)?;
         let condition = self.expression()?;
         self.consume(Tok::Colon)?;
@@ -153,22 +161,34 @@ impl Parser<'_> {
         let body = self.parse_block()?;
         self.check_curr(Tok::Newline)?;
 
-        Ok(Stmt::While { condition, body })
+        let span_end = self.lexer.span().end;
+
+        Ok(Stmt::new(StmtKind::While { condition, body }, span_start..span_end))
       },
       Tok::Print => {
+        let span_start = self.lexer.span().start;
+
         self.consume(Tok::Print)?;
         let expr = self.expression()?;
         self.consume(Tok::Newline)?;
-        Ok(Stmt::Print { expr })
+
+        let span_end = self.lexer.span().end;
+
+        Ok(Stmt::new(StmtKind::Print { expr }, span_start..span_end))
       },
 
       Tok::Indent => Err(ParseError::new(ParseErrorKind::UnexpectedIndentBlock, self.lexer.span())),
       Tok::Else => Err(ParseError::new(ParseErrorKind::UnmatchedElseStatement, self.lexer.span())),
 
       _ => {
+        let span_start = self.lexer.span().start;
+
         let expr = self.expression()?;
         self.consume(Tok::Newline)?;
-        Ok(Stmt::Expression { expr })
+
+        let span_end = self.lexer.span().end;
+
+        Ok(Stmt::new(StmtKind::Expression { expr }, span_start..span_end))
       },
     }
   }
@@ -219,13 +239,14 @@ impl Parser<'_> {
       | literal @ Tok::True
       | literal @ Tok::False => {
         let text = self.lexeme();
+        let span = self.lexer.span();
         self.consume(literal)?;
         match literal {
-          Tok::String => Ok(Expr::String(text[1..text.len() - 1].to_string())),
-          Tok::Integer => Ok(Expr::Integer(text.parse().unwrap())),
-          Tok::Identifier => Ok(Expr::Identifier(text)),
-          Tok::True => Ok(Expr::Integer(1)),
-          Tok::False => Ok(Expr::Integer(0)),
+          Tok::String => Ok(Expr::new(ExprKind::String(text[1..text.len() - 1].to_string()), span)),
+          Tok::Integer => Ok(Expr::new(ExprKind::Integer(text.parse().unwrap()), span)),
+          Tok::Identifier => Ok(Expr::new(ExprKind::Identifier(text), span)),
+          Tok::True => Ok(Expr::new(ExprKind::Integer(1), span)),
+          Tok::False => Ok(Expr::new(ExprKind::Integer(0), span)),
           _ => unreachable!(),
         }
       },
@@ -236,10 +257,15 @@ impl Parser<'_> {
         Ok(expr)
       },
       op @ Tok::Minus | op @ Tok::Bang => {
+        let span_start = self.lexer.span().start;
+
         self.consume(op)?;
         let ((), rbp) = op.prefix_bp();
         let right = self.parse_expr(rbp)?;
-        Ok(Expr::PrefixOp { op, right: Box::new(right) })
+
+        let span_end = self.lexer.span().end;
+
+        Ok(Expr::new(ExprKind::PrefixOp { op, right: Box::new(right) }, span_start..span_end))
       },
       tok => Err(ParseError::new(ParseErrorKind::ExpectedExpressionStart(tok), self.lexer.span())),
     }?;
@@ -253,7 +279,12 @@ impl Parser<'_> {
 
           self.consume(op)?;
           let right = self.parse_expr(rbp)?;
-          lhs = Expr::InfixOp { left: Box::new(lhs), op, right: Box::new(right) };
+          let span_start = lhs.span.start;
+          let span_end = right.span.end;
+          lhs = Expr::new(
+            ExprKind::InfixOp { left: Box::new(lhs), op, right: Box::new(right) },
+            span_start..span_end,
+          );
         },
         Tok::Newline | Tok::Colon | Tok::RightParen => break,
         tok => {

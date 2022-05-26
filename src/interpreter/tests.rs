@@ -12,10 +12,7 @@ fn interpret_expr() {
     let mut parser = Parser::new(input);
     let expr = parser.expression().unwrap();
     let interpreter = Interpreter::new(input);
-    interpreter.interpret_expr(&expr).map_err(|e| {
-      // Soon to be automatically mapped in `interpret`
-      InterpretError::new_with_span(e.kind, 0..interpreter.lines[interpreter.curr_line].len())
-    })
+    interpreter.interpret_expr(&expr)
   }
 
   let result = interpret("1");
@@ -62,4 +59,17 @@ fn interpret_expr() {
       0..4
     ))
   );
+}
+
+#[test]
+fn interpret_stmt() {
+  fn interpret(input: &str) -> Result<()> {
+    let mut parser = Parser::new(input);
+    let stmt = parser.statement().unwrap();
+    let interpreter = Interpreter::new(input);
+    interpreter.interpret_stmt(&stmt)
+  }
+
+  let result = interpret("1\n");
+  assert!(result.is_ok());
 }
