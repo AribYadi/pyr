@@ -194,6 +194,49 @@ fn parse_stmt() {
       }]
     })
   );
+
+  let stmt = parse(&unindent(
+    "
+      while false:
+      \t1 + 2
+      \tif true:
+      \t\t3 + 4
+      \telse:
+      \t\t5 + 6
+      ",
+  ));
+  assert_eq!(
+    stmt,
+    Ok(Stmt::While {
+      condition: Expr::Integer(0),
+      body: vec![
+        Stmt::Expression {
+          expr: Expr::InfixOp {
+            left: Box::new(Expr::Integer(1)),
+            op: Tok::Plus,
+            right: Box::new(Expr::Integer(2)),
+          },
+        },
+        Stmt::If {
+          condition: Expr::Integer(1),
+          body: vec![Stmt::Expression {
+            expr: Expr::InfixOp {
+              left: Box::new(Expr::Integer(3)),
+              op: Tok::Plus,
+              right: Box::new(Expr::Integer(4)),
+            },
+          },],
+          else_stmt: vec![Stmt::Expression {
+            expr: Expr::InfixOp {
+              left: Box::new(Expr::Integer(5)),
+              op: Tok::Plus,
+              right: Box::new(Expr::Integer(6)),
+            },
+          },]
+        },
+      ],
+    })
+  );
 }
 
 #[test]

@@ -45,6 +45,8 @@ pub enum TokenKind {
   If,
   #[token("else")]
   Else,
+  #[token("while")]
+  While,
 
   // Delimiters
   #[token("(")]
@@ -76,6 +78,7 @@ impl std::fmt::Display for TokenKind {
       TokenKind::Print => write!(f, "print"),
       TokenKind::If => write!(f, "if"),
       TokenKind::Else => write!(f, "else"),
+      TokenKind::While => write!(f, "while"),
       TokenKind::LeftParen => write!(f, "("),
       TokenKind::RightParen => write!(f, ")"),
       TokenKind::Colon => write!(f, ":"),
@@ -119,4 +122,5 @@ pub enum Expr {
 pub enum Stmt {
   Expression { expr: Expr },
   If { condition: Expr, body: Vec<Stmt>, else_stmt: Vec<Stmt> },
+  While { condition: Expr, body: Vec<Stmt> },
 }

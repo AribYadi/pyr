@@ -135,6 +135,23 @@ impl Parser<'_> {
 
         Ok(Stmt::If { condition, body, else_stmt })
       },
+      Tok::While => {
+        self.consume(Tok::While)?;
+        let condition = self.expression()?;
+        self.consume(Tok::Colon)?;
+        self.consume(Tok::Newline)?;
+        if self.peek != Tok::Indent {
+          return Err(ParseError::new(
+            ParseErrorKind::UnexpectedToken(Tok::Indent, self.peek),
+            self.lexer.span(),
+          ));
+        }
+
+        let body = self.parse_block()?;
+        self.check_curr(Tok::Newline)?;
+
+        Ok(Stmt::While { condition, body })
+      },
 
       Tok::Indent => Err(ParseError::new(ParseErrorKind::UnexpectedIndentBlock, self.lexer.span())),
       Tok::Else => Err(ParseError::new(ParseErrorKind::UnmatchedElseStatement, self.lexer.span())),
