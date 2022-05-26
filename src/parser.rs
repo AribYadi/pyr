@@ -107,6 +107,9 @@ impl Parser<'_> {
     match self.peek {
       Tok::Newline => {
         self.consume(Tok::Newline)?;
+        if self.indent_level > 0 {
+          self.consume_indents()?;
+        }
         self.statement()
       },
       Tok::If => {

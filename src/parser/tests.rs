@@ -305,4 +305,44 @@ fn parse_block() {
       },
     ])
   );
+
+  let block = parse(
+    "\t1 + 2
+\t
+\t
+\t3 + 4
+",
+  );
+  assert_eq!(
+    block,
+    Ok(vec![
+      Stmt::Expression {
+        expr: Expr::InfixOp {
+          left: Box::new(Expr::Integer(1)),
+          op: Tok::Plus,
+          right: Box::new(Expr::Integer(2)),
+        }
+      },
+      Stmt::Expression {
+        expr: Expr::InfixOp {
+          left: Box::new(Expr::Integer(3)),
+          op: Tok::Plus,
+          right: Box::new(Expr::Integer(4)),
+        }
+      },
+    ])
+  );
+
+  let block = parse(
+    "\t1
+
+\t3",
+  );
+  assert_ne!(
+    block,
+    Ok(vec![
+      Stmt::Expression { expr: Expr::Integer(1) },
+      Stmt::Expression { expr: Expr::Integer(3) },
+    ])
+  );
 }
