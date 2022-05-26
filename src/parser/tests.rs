@@ -237,6 +237,18 @@ fn parse_stmt() {
       ],
     })
   );
+
+  let stmt = parse("print 1 + 2\n");
+  assert_eq!(
+    stmt,
+    Ok(Stmt::Print {
+      expr: Expr::InfixOp {
+        left: Box::new(Expr::Integer(1)),
+        op: Tok::Plus,
+        right: Box::new(Expr::Integer(2)),
+      }
+    })
+  );
 }
 
 #[test]

@@ -123,4 +123,5 @@ pub enum Stmt {
   Expression { expr: Expr },
   If { condition: Expr, body: Vec<Stmt>, else_stmt: Vec<Stmt> },
   While { condition: Expr, body: Vec<Stmt> },
+  Print { expr: Expr },
 }

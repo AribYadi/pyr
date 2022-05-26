@@ -152,6 +152,12 @@ impl Parser<'_> {
 
         Ok(Stmt::While { condition, body })
       },
+      Tok::Print => {
+        self.consume(Tok::Print)?;
+        let expr = self.expression()?;
+        self.consume(Tok::Newline)?;
+        Ok(Stmt::Print { expr })
+      },
 
       Tok::Indent => Err(ParseError::new(ParseErrorKind::UnexpectedIndentBlock, self.lexer.span())),
       Tok::Else => Err(ParseError::new(ParseErrorKind::UnmatchedElseStatement, self.lexer.span())),
