@@ -137,6 +137,10 @@ impl Parser<'_> {
 
         Ok(Stmt::If { condition, body, else_stmt })
       },
+
+      Tok::Indent => Err(ParseError::new(ParseErrorKind::UnexpectedIndentBlock, self.lexer.span())),
+      Tok::Else => Err(ParseError::new(ParseErrorKind::UnmatchedElseStatement, self.lexer.span())),
+
       _ => {
         let expr = self.expression()?;
         self.consume(Tok::Newline)?;
@@ -436,6 +440,29 @@ mod tests {
         }]
       })
     );
+  }
+
+  #[test]
+  fn parse_stmt_errors() {
+    fn parse(input: &str) -> Result<Stmt> {
+      let mut parser = Parser::new(input);
+      parser.statement()
+    }
+
+    let stmt = parse("1 + 2");
+    assert_eq!(
+      stmt,
+      Err(ParseError::new(ParseErrorKind::UnexpectedToken(Tok::Newline, Tok::Eof), 5..5))
+    );
+    let stmt = parse("if 1: 1 + 2");
+    assert_eq!(
+      stmt,
+      Err(ParseError::new(ParseErrorKind::UnexpectedToken(Tok::Newline, Tok::Integer), 6..7))
+    );
+    let stmt = parse("\tblock");
+    assert_eq!(stmt, Err(ParseError::new(ParseErrorKind::UnexpectedIndentBlock, 0..1)));
+    let stmt = parse("else:\n\t1 + 2");
+    assert_eq!(stmt, Err(ParseError::new(ParseErrorKind::UnmatchedElseStatement, 0..4)));
   }
 
   #[test]

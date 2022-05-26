@@ -19,6 +19,10 @@ pub enum ParseErrorKind {
   UnexpectedToken(TokenKind, TokenKind),
   #[error("unclosed delimiter `{0}`")]
   UnclosedDelimiter(TokenKind),
+  #[error("unexpected indent block")]
+  UnexpectedIndentBlock,
+  #[error("unmatched else statement")]
+  UnmatchedElseStatement,
 }
 
 #[derive(Debug, PartialEq, Eq)]
