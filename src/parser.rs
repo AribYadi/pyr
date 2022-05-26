@@ -18,7 +18,6 @@ use self::syntax::{
 
 pub mod syntax;
 
-#[allow(dead_code)]
 pub struct Parser<'a> {
   lexer: Lexer<'a, Tok>,
   peek: Tok,
@@ -26,7 +25,6 @@ pub struct Parser<'a> {
   indent_level: usize,
 }
 
-#[allow(dead_code)]
 impl Parser<'_> {
   pub fn new(input: &str) -> Parser {
     let mut lexer = Tok::lexer(input);
