@@ -74,6 +74,14 @@ impl Parser<'_> {
     Ok(true)
   }
 
+  fn after_indents(&self) -> Tok {
+    if self.indent_level == 0 {
+      self.peek
+    } else {
+      self.lexer.clone().nth(self.indent_level - 1).unwrap_or(Tok::Eof)
+    }
+  }
+
   fn check_curr(&mut self, expected: Tok) -> Result<()> {
     if self.curr == expected {
       Ok(())
@@ -118,7 +126,16 @@ impl Parser<'_> {
         let body = self.parse_block()?;
         self.check_curr(Tok::Newline)?;
 
-        Ok(Stmt::If { condition, body })
+        let mut else_stmt = vec![];
+        if self.after_indents() == Tok::Else {
+          // In case of else statement inside a block
+          if self.indent_level > 0 {
+            self.consume_indents()?;
+          }
+          self.parse_else(&mut else_stmt)?;
+        }
+
+        Ok(Stmt::If { condition, body, else_stmt })
       },
       _ => {
         let expr = self.expression()?;
@@ -139,6 +156,29 @@ impl Parser<'_> {
     }
     self.indent_level -= 1;
     Ok(stmts)
+  }
+
+  fn parse_else(&mut self, else_stmt: &mut Vec<Stmt>) -> Result<()> {
+    self.consume(Tok::Else)?;
+    if self.peek == Tok::If {
+      else_stmt.push(self.statement()?);
+    } else {
+      self.consume(Tok::Colon)?;
+      self.consume(Tok::Newline)?;
+      if self.peek != Tok::Indent {
+        return Err(ParseError::new(
+          ParseErrorKind::UnexpectedToken(Tok::Indent, self.peek),
+          self.lexer.span(),
+        ));
+      }
+
+      let new_else_stmt = self.parse_block()?;
+      self.check_curr(Tok::Newline)?;
+
+      *else_stmt = new_else_stmt;
+    }
+
+    Ok(())
   }
 
   pub(super) fn expression(&mut self) -> Result<Expr> { self.parse_expr(0) }
@@ -316,6 +356,7 @@ mod tests {
             },
           },
         ],
+        else_stmt: vec![]
       })
     );
 
@@ -341,9 +382,58 @@ mod tests {
                 right: Box::new(Expr::Integer(2)),
               },
             },],
+            else_stmt: vec![]
           },
           Stmt::Expression { expr: Expr::Identifier("foobar".to_string()) },
         ],
+        else_stmt: vec![]
+      })
+    );
+
+    let stmt = parse(&unindent(
+      "
+
+      if true:
+      \tif 1:
+      \t\t1 + 2
+      \telse:
+      \t\t3 + 4
+      else if false:
+      \t5 + 6
+      ",
+    ));
+    assert_eq!(
+      stmt,
+      Ok(Stmt::If {
+        condition: Expr::Integer(1),
+        body: vec![Stmt::If {
+          condition: Expr::Integer(1),
+          body: vec![Stmt::Expression {
+            expr: Expr::InfixOp {
+              left: Box::new(Expr::Integer(1)),
+              op: Tok::Plus,
+              right: Box::new(Expr::Integer(2)),
+            },
+          },],
+          else_stmt: vec![Stmt::Expression {
+            expr: Expr::InfixOp {
+              left: Box::new(Expr::Integer(3)),
+              op: Tok::Plus,
+              right: Box::new(Expr::Integer(4)),
+            },
+          },]
+        },],
+        else_stmt: vec![Stmt::If {
+          condition: Expr::Integer(0),
+          body: vec![Stmt::Expression {
+            expr: Expr::InfixOp {
+              left: Box::new(Expr::Integer(5)),
+              op: Tok::Plus,
+              right: Box::new(Expr::Integer(6)),
+            },
+          },],
+          else_stmt: vec![]
+        }]
       })
     );
   }
