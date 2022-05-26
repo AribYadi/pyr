@@ -1,0 +1,34 @@
+use std::ops::Range;
+
+use thiserror::Error;
+
+use crate::parser::syntax::TokenKind;
+
+pub type Span = Range<usize>;
+pub type ParseResult<T> = Result<T, ParseError>;
+
+#[derive(Error, Debug, PartialEq, Eq)]
+pub enum ParseErrorKind {
+  #[error("unknown infix operator `{0}`")]
+  UnknownInfixOperator(TokenKind),
+  #[error("`{0}` is not a start to any expression")]
+  ExpectedExpressionStart(TokenKind),
+  #[error("expected `{0}` but got `{1}`")]
+  UnexpectedToken(TokenKind, TokenKind),
+  #[error("unclosed delimiter `{0}`")]
+  UnclosedDelimiter(TokenKind),
+  #[error("unexpected indent block")]
+  UnexpectedIndentBlock,
+  #[error("unmatched else statement")]
+  UnmatchedElseStatement,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseError {
+  pub kind: ParseErrorKind,
+  pub span: Span,
+}
+
+impl ParseError {
+  pub fn new(kind: ParseErrorKind, span: Span) -> Self { Self { kind, span } }
+}
