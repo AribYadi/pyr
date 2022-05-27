@@ -86,4 +86,12 @@ fn interpret_stmt() {
     ",
   ));
   assert_eq!(result, Ok(()));
+
+  let result = interpret(&unindent(
+    "
+    while false:
+    \t1
+    ",
+  ));
+  assert_eq!(result, Ok(()));
 }

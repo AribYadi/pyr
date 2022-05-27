@@ -34,6 +34,16 @@ impl Interpreter {
         }
         Ok(())
       },
+      StmtKind::While { condition, body } => {
+        let mut condition_lit = self.interpret_expr(condition)?;
+        while condition_lit.is_truthy() {
+          for stmt in body {
+            self.interpret_stmt(stmt)?;
+          }
+          condition_lit = self.interpret_expr(condition)?;
+        }
+        Ok(())
+      },
 
       _ => todo!(),
     })()
