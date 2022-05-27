@@ -1,10 +1,11 @@
 use unindent::unindent;
 
 use crate::error::{
-  InterpretError,
-  InterpretErrorKind,
+  RuntimeError,
+  RuntimeErrorKind,
 };
 use crate::parser::Parser;
+use crate::resolver::Resolver;
 
 use super::*;
 
@@ -13,6 +14,8 @@ fn interpret_expr() {
   fn interpret(input: &str) -> Result<Literal> {
     let mut parser = Parser::new(input);
     let expr = parser.expression().unwrap();
+    let resolver = Resolver::new();
+    resolver.resolve_expr(&expr)?;
     let interpreter = Interpreter::new(input);
     interpreter.interpret_expr(&expr)
   }
@@ -36,29 +39,24 @@ fn interpret_expr() {
   let result = interpret("-\"hello\"");
   assert_eq!(
     result,
-    Err(InterpretError::new_with_span(
-      InterpretErrorKind::CannotApplyPrefix(Literal::String("hello".to_string()), TokenKind::Minus),
+    Err(RuntimeError::new(
+      RuntimeErrorKind::CannotApplyPrefix(
+        Expr::new_without_span(ExprKind::String("hello".to_string())),
+        TokenKind::Minus
+      ),
       0..8
     ))
   );
   let result = interpret("\"hello\" - \"world\"");
   assert_eq!(
     result,
-    Err(InterpretError::new_with_span(
-      InterpretErrorKind::CannotApplyInfix(
-        Literal::String("hello".to_string()),
+    Err(RuntimeError::new(
+      RuntimeErrorKind::CannotApplyInfix(
+        Expr::new_without_span(ExprKind::String("hello".to_string())),
         TokenKind::Minus,
-        Literal::String("world".to_string())
+        Expr::new_without_span(ExprKind::String("world".to_string()))
       ),
       0..17
-    ))
-  );
-  let result = interpret("!256");
-  assert_eq!(
-    result,
-    Err(InterpretError::new_with_span(
-      InterpretErrorKind::CannotApplyPrefix(Literal::Integer(256), TokenKind::Bang),
-      0..4
     ))
   );
 }

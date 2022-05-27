@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::error::InterpretResult as Result;
+use crate::error::RuntimeResult as Result;
 use crate::parser::syntax::{
   Expr,
   ExprKind,
@@ -49,7 +49,6 @@ impl Interpreter {
       // Print statement is in a different function for testing purposes
       StmtKind::Print { expr } => self.interpret_print(expr, &mut io::stdout()),
     })()
-    .map_err(|e| e.with_location(stmt.span.clone()))
   }
 
   pub(crate) fn interpret_print(&self, expr: &Expr, output: &mut impl io::Write) -> Result<()> {
@@ -74,13 +73,12 @@ impl Interpreter {
         self.interpret_infix_op(op, left, right)
       },
     }
-    .map_err(|e| e.with_location(expr.span.clone()))
   }
 
   fn interpret_prefix_op(&self, op: &TokenKind, right: Literal) -> Result<Literal> {
     match op {
-      TokenKind::Minus => Ok((-right)?),
-      TokenKind::Bang => Ok((!right)?),
+      TokenKind::Minus => Ok(-right),
+      TokenKind::Bang => Ok(!right),
 
       _ => unreachable!("{op} is not a prefix operator"),
     }
@@ -88,10 +86,10 @@ impl Interpreter {
 
   fn interpret_infix_op(&self, op: &TokenKind, left: Literal, right: Literal) -> Result<Literal> {
     match op {
-      TokenKind::Plus => Ok((left + right)?),
-      TokenKind::Minus => Ok((left - right)?),
-      TokenKind::Star => Ok((left * right)?),
-      TokenKind::Slash => Ok((left / right)?),
+      TokenKind::Plus => Ok(left + right),
+      TokenKind::Minus => Ok(left - right),
+      TokenKind::Star => Ok(left * right),
+      TokenKind::Slash => Ok(left / right),
 
       _ => unreachable!("{op} is not an infix operator"),
     }

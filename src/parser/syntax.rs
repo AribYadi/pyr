@@ -126,6 +126,18 @@ pub struct Expr {
   pub span: Span,
 }
 
+impl std::fmt::Display for Expr {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match &self.kind {
+      ExprKind::String(s) => write!(f, "{s}"),
+      ExprKind::Integer(n) => write!(f, "{n}"),
+      ExprKind::Identifier(s) => write!(f, "{s}"),
+      ExprKind::PrefixOp { op, right } => write!(f, "{op}{right}"),
+      ExprKind::InfixOp { op, left, right } => write!(f, "{left} {op} {right}"),
+    }
+  }
+}
+
 impl PartialEq for Expr {
   fn eq(&self, other: &Self) -> bool { self.kind == other.kind }
 }

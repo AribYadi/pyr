@@ -4,6 +4,7 @@
 mod error;
 mod interpreter;
 mod parser;
+mod resolver;
 mod runtime;
 
 fn main() {}
