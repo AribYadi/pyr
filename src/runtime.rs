@@ -30,9 +30,9 @@ impl Literal {
     }
   }
 
-  fn is_truthy(&self) -> bool {
+  pub fn is_truthy(&self) -> bool {
     match self {
-      Literal::Integer(n) => *n != 0,
+      Literal::Integer(n) => *n == 1,
       Literal::String(s) => !s.is_empty(),
     }
   }

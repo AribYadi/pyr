@@ -19,11 +19,25 @@ impl Interpreter {
   }
 
   pub(crate) fn interpret_stmt(&self, stmt: &Stmt) -> Result<()> {
-    match &stmt.kind {
+    (|| match &stmt.kind {
       StmtKind::Expression { expr } => self.interpret_expr(expr).map(|_| ()),
+      StmtKind::If { condition, body, else_stmt } => {
+        let condition = self.interpret_expr(condition)?;
+        if condition.is_truthy() {
+          for stmt in body {
+            self.interpret_stmt(stmt)?;
+          }
+        } else {
+          for stmt in else_stmt {
+            self.interpret_stmt(stmt)?;
+          }
+        }
+        Ok(())
+      },
 
       _ => todo!(),
-    }
+    })()
+    .map_err(|e| e.with_location(stmt.span.clone()))
   }
 
   pub(crate) fn interpret_expr(&self, expr: &Expr) -> Result<Literal> {

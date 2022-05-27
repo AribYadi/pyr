@@ -1,3 +1,5 @@
+use unindent::unindent;
+
 use crate::error::{
   InterpretError,
   InterpretErrorKind,
@@ -71,5 +73,17 @@ fn interpret_stmt() {
   }
 
   let result = interpret("1\n");
-  assert!(result.is_ok());
+  assert_eq!(result, Ok(()));
+
+  let result = interpret(&unindent(
+    "
+    if true:
+    \t1
+    else if true:
+    \t2
+    else:
+    \t3
+    ",
+  ));
+  assert_eq!(result, Ok(()));
 }
