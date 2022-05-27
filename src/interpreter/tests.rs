@@ -95,3 +95,20 @@ fn interpret_stmt() {
   ));
   assert_eq!(result, Ok(()));
 }
+
+#[test]
+fn interpret_print() {
+  fn interpret_and_assert(input: &str, expected: &str) {
+    let mut buf = Vec::new();
+
+    let mut parser = Parser::new(input);
+    let expr = parser.expression().unwrap();
+    let interpreter = Interpreter::new(input);
+    interpreter.interpret_print(&expr, &mut buf).unwrap();
+    assert_eq!(buf, expected.as_bytes());
+  }
+
+  interpret_and_assert("1", "1");
+  interpret_and_assert("\"hello\"", "hello");
+  interpret_and_assert("true", "1");
+}

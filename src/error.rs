@@ -37,9 +37,9 @@ impl ParseError {
 
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum InterpretErrorKind {
-  #[error("cannot apply prefix operator `{1}` using `{0}`")]
+  #[error("cannot apply prefix operator `{1}` using `{0:?}`")]
   CannotApplyPrefix(Literal, TokenKind),
-  #[error("cannot apply infix operator `{1}` to {0} and {2}")]
+  #[error("cannot apply infix operator `{1}` to {0:?} and {2:?}")]
   CannotApplyInfix(Literal, TokenKind, Literal),
 }
 

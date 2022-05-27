@@ -1,3 +1,5 @@
+use std::io;
+
 use crate::error::InterpretResult as Result;
 use crate::parser::syntax::{
   Expr,
@@ -44,10 +46,16 @@ impl Interpreter {
         }
         Ok(())
       },
-
-      _ => todo!(),
+      // Print statement is in a different function for testing purposes
+      StmtKind::Print { expr } => self.interpret_print(expr, &mut io::stdout()),
     })()
     .map_err(|e| e.with_location(stmt.span.clone()))
+  }
+
+  pub(crate) fn interpret_print(&self, expr: &Expr, output: &mut impl io::Write) -> Result<()> {
+    let value = self.interpret_expr(expr)?;
+    let _ = write!(output, "{value}");
+    Ok(())
   }
 
   pub(crate) fn interpret_expr(&self, expr: &Expr) -> Result<Literal> {
