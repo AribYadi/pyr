@@ -27,6 +27,8 @@ pub enum ParseErrorKind {
   UnmatchedElseStatement,
   #[error("`{0}` cannot be assigned to")]
   InvalidAssignment(Expr),
+  #[error(transparent)]
+  Unescape(#[from] snailquote::UnescapeError),
 }
 
 #[derive(Debug, PartialEq)]
@@ -36,7 +38,9 @@ pub struct ParseError {
 }
 
 impl ParseError {
-  pub fn new(kind: ParseErrorKind, span: Span) -> Self { Self { kind, span } }
+  pub fn new(kind: impl Into<ParseErrorKind>, span: Span) -> Self {
+    Self { kind: kind.into(), span }
+  }
 }
 
 #[derive(Error, Debug, PartialEq)]

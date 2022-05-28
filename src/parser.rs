@@ -242,7 +242,10 @@ impl Parser<'_> {
         let span = self.lexer.span();
         self.consume(literal)?;
         match literal {
-          Tok::String => Ok(Expr::new(ExprKind::String(text[1..text.len() - 1].to_string()), span)),
+          Tok::String => {
+            let text = snailquote::unescape(&text).map_err(|e| ParseError::new(e, span.clone()))?;
+            Ok(Expr::new(ExprKind::String(text), span))
+          },
           Tok::Integer => Ok(Expr::new(ExprKind::Integer(text.parse().unwrap()), span)),
           Tok::Identifier => Ok(Expr::new(ExprKind::Identifier(text), span)),
           Tok::True => Ok(Expr::new(ExprKind::Integer(1), span)),

@@ -109,6 +109,7 @@ fn interpret_print() {
   interpret_and_assert("1", "1");
   interpret_and_assert("\"hello\"", "hello");
   interpret_and_assert("true", "1");
+  interpret_and_assert(r#""new\nline\"""#, "new\nline\"");
 }
 
 #[test]

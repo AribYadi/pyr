@@ -79,7 +79,7 @@ impl Interpreter {
 
   pub(crate) fn interpret_expr(&mut self, expr: &Expr) -> Result<Literal> {
     match &expr.kind {
-      ExprKind::String(s) => Ok(Literal::String(s.clone())),
+      ExprKind::String(s) => Ok(Literal::String(s.to_string())),
       ExprKind::Integer(n) => Ok(Literal::Integer(*n)),
       ExprKind::Identifier(name) => match self.variables.get(name) {
         Some((_, val)) => Ok(val.clone()),
