@@ -1,17 +1,74 @@
-use logos::Logos;
+use std::sync::Mutex;
+
+use logos::internal::LexerInternal;
+use logos::{
+  Lexer,
+  Logos,
+};
 
 use crate::error::Span;
+
+lazy_static::lazy_static! {
+  pub static ref INDENT_SIZE: Mutex<usize> = Mutex::new(0);
+}
+
+enum LexIndent {
+  Emit,
+  Skip,
+}
+
+impl<'s, T: Logos<'s>> logos::internal::CallbackResult<'s, (), T> for LexIndent {
+  #[inline]
+  fn construct<Constructor>(self, c: Constructor, lex: &mut Lexer<'s, T>)
+  where
+    Constructor: Fn(()) -> T, {
+    match self {
+      LexIndent::Emit => lex.set(c(())),
+      LexIndent::Skip => {
+        lex.trivia();
+        T::lex(lex);
+      },
+    }
+  }
+}
+
+fn parse_indent(lex: &mut Lexer<TokenKind>) -> LexIndent {
+  let mut spaces = " ".to_string();
+  for ch in lex.remainder().chars() {
+    if ch == ' ' {
+      spaces.push(ch);
+    } else {
+      break;
+    }
+  }
+
+  if spaces.len() <= 1 {
+    return LexIndent::Skip;
+  }
+
+  if *INDENT_SIZE.lock().unwrap() == 0 {
+    *INDENT_SIZE.lock().unwrap() = spaces.len();
+  }
+
+  if spaces.len() < *INDENT_SIZE.lock().unwrap() {
+    return LexIndent::Skip;
+  }
+
+  lex.bump(*INDENT_SIZE.lock().unwrap() - 1);
+  LexIndent::Emit
+}
 
 #[derive(Logos, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenKind {
   Eof,
   #[error]
-  #[regex(r"[ \r\f]+", logos::skip)]
+  #[regex(r"[\r\f]+", logos::skip)]
   Error,
 
   // Whitespace
   #[regex(r"\n")]
   Newline,
+  #[token(" ", parse_indent)]
   #[regex(r"\t")]
   Indent,
 
@@ -151,6 +208,7 @@ impl PartialEq for Expr {
 impl Expr {
   pub fn new(kind: ExprKind, span: Span) -> Self { Self { kind, span } }
 
+  #[cfg(test)]
   pub fn new_without_span(kind: ExprKind) -> Self { Self { kind, span: 0..0 } }
 }
 
@@ -175,5 +233,6 @@ impl PartialEq for Stmt {
 impl Stmt {
   pub fn new(kind: StmtKind, span: Span) -> Self { Self { kind, span } }
 
+  #[cfg(test)]
   pub fn new_without_span(kind: StmtKind) -> Self { Self { kind, span: 0..0 } }
 }
