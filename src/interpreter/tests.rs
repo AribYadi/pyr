@@ -14,9 +14,9 @@ fn interpret_expr() {
   fn interpret(input: &str) -> Result<Literal> {
     let mut parser = Parser::new(input);
     let expr = parser.expression().unwrap();
-    let resolver = Resolver::new();
+    let mut resolver = Resolver::new();
     resolver.resolve_expr(&expr)?;
-    let interpreter = Interpreter::new(input);
+    let mut interpreter = Interpreter::new(input);
     interpreter.interpret_expr(&expr)
   }
 
@@ -66,7 +66,7 @@ fn interpret_stmt() {
   fn interpret(input: &str) -> Result<()> {
     let mut parser = Parser::new(input);
     let stmt = parser.statement().unwrap();
-    let interpreter = Interpreter::new(input);
+    let mut interpreter = Interpreter::new(input);
     interpreter.interpret_stmt(&stmt)
   }
 
@@ -101,7 +101,7 @@ fn interpret_print() {
 
     let mut parser = Parser::new(input);
     let expr = parser.expression().unwrap();
-    let interpreter = Interpreter::new(input);
+    let mut interpreter = Interpreter::new(input);
     interpreter.interpret_print(&expr, &mut buf).unwrap();
     assert_eq!(buf, expected.as_bytes());
   }
@@ -109,4 +109,67 @@ fn interpret_print() {
   interpret_and_assert("1", "1");
   interpret_and_assert("\"hello\"", "hello");
   interpret_and_assert("true", "1");
+}
+
+#[test]
+fn interpret_variables() {
+  let mut resolver = Resolver::new();
+  let mut interpreter = Interpreter::new("");
+
+  macro_rules! interpret_expr {
+    ($input:expr) => {{
+      let input = $input;
+      let mut parser = Parser::new(&input);
+      let expr = parser.expression().unwrap();
+      if let Err(e) = resolver.resolve_expr(&expr) {
+        Err(e)
+      } else {
+        interpreter.interpret_expr(&expr)
+      }
+    }};
+  }
+
+  macro_rules! interpret_stmt {
+    ($input:expr) => {{
+      let input = $input;
+      let mut parser = Parser::new(&input);
+      let stmt = parser.statement().unwrap();
+      if let Err(e) = resolver.resolve_stmt(&stmt) {
+        Err(e)
+      } else {
+        interpreter.interpret_stmt(&stmt)
+      }
+    }};
+  }
+
+  let result = interpret_expr!("a");
+  assert_eq!(
+    result,
+    Err(RuntimeError::new(RuntimeErrorKind::UndefinedVariable("a".to_string()), 0..1))
+  );
+
+  let result = interpret_expr!("a = 1");
+  assert_eq!(result, Ok(Literal::Integer(1)));
+  let result = interpret_expr!("a");
+  assert_eq!(result, Ok(Literal::Integer(1)));
+
+  resolver = Resolver::new();
+  interpreter = Interpreter::new("");
+
+  let result = interpret_stmt!(unindent(
+    "
+    if false:
+    \ta = 1
+    \tprint a
+    else:
+    \ta = 2
+    \tprint a
+    ",
+  ));
+  assert_eq!(result, Ok(()));
+  let result = interpret_expr!("a");
+  assert_eq!(
+    result,
+    Err(RuntimeError::new(RuntimeErrorKind::UndefinedVariable("a".to_string()), 0..1))
+  );
 }

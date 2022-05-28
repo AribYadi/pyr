@@ -286,6 +286,26 @@ impl Parser<'_> {
             span_start..span_end,
           );
         },
+        op @ Tok::Equal => {
+          if let ExprKind::Identifier(ref name) = lhs.kind {
+            let (lbp, rbp) = op.infix_bp();
+            if lbp < bp {
+              break;
+            }
+
+            self.consume(op)?;
+            let right = self.parse_expr(rbp)?;
+            let span_start = lhs.span.start;
+            let span_end = right.span.end;
+            lhs = Expr::new(
+              ExprKind::VarAssign { name: name.to_string(), expr: Box::new(right) },
+              span_start..span_end,
+            );
+          } else {
+            return Err(ParseError::new(ParseErrorKind::InvalidAssignment(lhs.clone()), lhs.span));
+          }
+        },
+
         Tok::Newline | Tok::Colon | Tok::RightParen => break,
         tok => {
           return Err(ParseError::new(ParseErrorKind::UnknownInfixOperator(tok), self.lexer.span()))

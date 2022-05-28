@@ -11,7 +11,7 @@ pub type Span = Range<usize>;
 pub type ParseResult<T> = Result<T, ParseError>;
 pub type RuntimeResult<T> = Result<T, RuntimeError>;
 
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Error, Debug, PartialEq)]
 pub enum ParseErrorKind {
   #[error("unknown infix operator `{0}`")]
   UnknownInfixOperator(TokenKind),
@@ -25,9 +25,11 @@ pub enum ParseErrorKind {
   UnexpectedIndentBlock,
   #[error("unmatched else statement")]
   UnmatchedElseStatement,
+  #[error("`{0}` cannot be assigned to")]
+  InvalidAssignment(Expr),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub struct ParseError {
   pub kind: ParseErrorKind,
   pub span: Span,
@@ -39,10 +41,12 @@ impl ParseError {
 
 #[derive(Error, Debug, PartialEq)]
 pub enum RuntimeErrorKind {
-  #[error("cannot apply prefix operator `{1}` using `{0:?}`")]
+  #[error("cannot apply prefix operator `{1}` using `{0}`")]
   CannotApplyPrefix(Expr, TokenKind),
-  #[error("cannot apply infix operator `{1}` to {0:?} and {2:?}")]
+  #[error("cannot apply infix operator `{1}` to {0} and {2}")]
   CannotApplyInfix(Expr, TokenKind, Expr),
+  #[error("undefined variable `{0}` in the current scope")]
+  UndefinedVariable(String),
 }
 
 #[derive(Debug, PartialEq)]

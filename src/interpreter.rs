@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io;
 
 use crate::error::RuntimeResult as Result;
@@ -11,20 +12,36 @@ use crate::parser::syntax::{
 use crate::runtime::Literal;
 
 pub struct Interpreter {
+  variables: HashMap<String, (usize, Literal)>,
+  indent_level: usize,
+
   lines: Vec<String>,
   curr_line: usize,
 }
 
 impl Interpreter {
   pub fn new(source: &str) -> Self {
-    Self { lines: source.lines().map(str::to_string).collect(), curr_line: 0 }
+    Self {
+      variables: HashMap::new(),
+      indent_level: 0,
+      lines: source.lines().map(str::to_string).collect(),
+      curr_line: 0,
+    }
   }
 
-  pub(crate) fn interpret_stmt(&self, stmt: &Stmt) -> Result<()> {
-    (|| match &stmt.kind {
+  fn start_block(&mut self) { self.indent_level += 1; }
+
+  fn end_block(&mut self) {
+    self.variables.retain(|_, (level, _)| *level != self.indent_level);
+    self.indent_level -= 1;
+  }
+
+  pub(crate) fn interpret_stmt(&mut self, stmt: &Stmt) -> Result<()> {
+    match &stmt.kind {
       StmtKind::Expression { expr } => self.interpret_expr(expr).map(|_| ()),
       StmtKind::If { condition, body, else_stmt } => {
         let condition = self.interpret_expr(condition)?;
+        self.start_block();
         if condition.is_truthy() {
           for stmt in body {
             self.interpret_stmt(stmt)?;
@@ -34,34 +51,40 @@ impl Interpreter {
             self.interpret_stmt(stmt)?;
           }
         }
+        self.end_block();
         Ok(())
       },
       StmtKind::While { condition, body } => {
         let mut condition_lit = self.interpret_expr(condition)?;
         while condition_lit.is_truthy() {
+          self.start_block();
           for stmt in body {
             self.interpret_stmt(stmt)?;
           }
           condition_lit = self.interpret_expr(condition)?;
+          self.end_block();
         }
         Ok(())
       },
       // Print statement is in a different function for testing purposes
       StmtKind::Print { expr } => self.interpret_print(expr, &mut io::stdout()),
-    })()
+    }
   }
 
-  pub(crate) fn interpret_print(&self, expr: &Expr, output: &mut impl io::Write) -> Result<()> {
+  pub(crate) fn interpret_print(&mut self, expr: &Expr, output: &mut impl io::Write) -> Result<()> {
     let value = self.interpret_expr(expr)?;
     let _ = write!(output, "{value}");
     Ok(())
   }
 
-  pub(crate) fn interpret_expr(&self, expr: &Expr) -> Result<Literal> {
+  pub(crate) fn interpret_expr(&mut self, expr: &Expr) -> Result<Literal> {
     match &expr.kind {
       ExprKind::String(s) => Ok(Literal::String(s.clone())),
       ExprKind::Integer(n) => Ok(Literal::Integer(*n)),
-      ExprKind::Identifier(_) => unimplemented!("Variables not implemented yet"),
+      ExprKind::Identifier(name) => match self.variables.get(name) {
+        Some((_, val)) => Ok(val.clone()),
+        None => unreachable!("Resolver didn't resolve variable correctly"),
+      },
 
       ExprKind::PrefixOp { op, right } => {
         let right = self.interpret_expr(right)?;
@@ -71,6 +94,12 @@ impl Interpreter {
         let left = self.interpret_expr(left)?;
         let right = self.interpret_expr(right)?;
         self.interpret_infix_op(op, left, right)
+      },
+      ExprKind::VarAssign { name, expr } => {
+        let value = self.interpret_expr(expr)?;
+        self.variables.entry(name.to_string()).or_insert((self.indent_level, value.clone())).1 =
+          value.clone();
+        Ok(value)
       },
     }
   }

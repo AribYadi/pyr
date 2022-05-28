@@ -58,6 +58,7 @@ fn parse_binary_expr() {
         ExprKind::InfixOp { left, op, right } => {
           format!("({} {op} {})", to_string(*left), to_string(*right))
         },
+        ExprKind::VarAssign { name, expr } => format!("({} = {})", name, to_string(*expr)),
       }
     }
     assert!(expr.is_ok());
@@ -75,6 +76,9 @@ fn parse_binary_expr() {
 
   let expr = parse("4 * (3 * 2)");
   check_precedence(expr, "(4 * (3 * 2))");
+
+  let expr = parse("a = b = c");
+  check_precedence(expr, "(a = (b = c))");
 }
 
 #[test]

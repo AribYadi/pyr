@@ -59,6 +59,8 @@ pub enum TokenKind {
   // Syntax
   #[token(":")]
   Colon,
+  #[token("=")]
+  Equal,
 }
 
 impl std::fmt::Display for TokenKind {
@@ -84,6 +86,7 @@ impl std::fmt::Display for TokenKind {
       TokenKind::LeftParen => write!(f, "("),
       TokenKind::RightParen => write!(f, ")"),
       TokenKind::Colon => write!(f, ":"),
+      TokenKind::Equal => write!(f, "="),
     }
   }
 }
@@ -103,6 +106,7 @@ impl Operator for TokenKind {
 
   fn infix_bp(&self) -> (u8, u8) {
     match self {
+      TokenKind::Equal => (8, 7),
       TokenKind::Plus | TokenKind::Minus => (9, 10),
       TokenKind::Star | TokenKind::Slash => (11, 12),
       _ => unreachable!("{self} is not an infix operator"),
@@ -118,6 +122,7 @@ pub enum ExprKind {
 
   PrefixOp { op: TokenKind, right: Box<Expr> },
   InfixOp { op: TokenKind, left: Box<Expr>, right: Box<Expr> },
+  VarAssign { name: String, expr: Box<Expr> },
 }
 
 #[derive(Debug, Clone)]
@@ -134,6 +139,7 @@ impl std::fmt::Display for Expr {
       ExprKind::Identifier(s) => write!(f, "{s}"),
       ExprKind::PrefixOp { op, right } => write!(f, "{op}{right}"),
       ExprKind::InfixOp { op, left, right } => write!(f, "{left} {op} {right}"),
+      ExprKind::VarAssign { name, expr } => write!(f, "{name} = {expr}"),
     }
   }
 }
