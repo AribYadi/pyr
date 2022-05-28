@@ -38,6 +38,21 @@ impl Resolver {
     self.indent_level -= 1;
   }
 
+  pub fn resolve(&mut self, stmts: &[Stmt]) -> std::result::Result<(), Vec<RuntimeError>> {
+    let mut errors = Vec::new();
+    for stmt in stmts {
+      if let Err(err) = self.resolve_stmt(stmt) {
+        errors.push(err);
+      }
+    }
+
+    if !errors.is_empty() {
+      Err(errors)
+    } else {
+      Ok(())
+    }
+  }
+
   pub(crate) fn resolve_stmt(&mut self, stmt: &Stmt) -> Result<()> {
     match &stmt.kind {
       StmtKind::Expression { expr } => {

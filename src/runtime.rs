@@ -16,20 +16,6 @@ impl std::fmt::Display for Literal {
 }
 
 impl Literal {
-  pub fn as_string(&self) -> &str {
-    match self {
-      Literal::String(s) => s,
-      _ => unreachable!("{self} is not a string"),
-    }
-  }
-
-  pub fn as_integer(&self) -> i64 {
-    match self {
-      Literal::Integer(n) => *n,
-      _ => unreachable!("{self} is not an integer"),
-    }
-  }
-
   pub fn is_truthy(&self) -> bool {
     match self {
       Literal::Integer(n) => *n == 1,

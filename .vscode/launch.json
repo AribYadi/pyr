@@ -9,17 +9,13 @@
       "request": "launch",
       "name": "Debug executable 'pyr'",
       "cargo": {
-        "args": [
-          "build",
-          "--bin=pyr",
-          "--package=pyr"
-        ],
+        "args": ["build", "--bin=pyr", "--package=pyr"],
         "filter": {
           "name": "pyr",
           "kind": "bin"
         }
       },
-      "args": [],
+      "args": ["${workspaceFolder}/examples/arithmetics.pyr"],
       "cwd": "${workspaceFolder}"
     },
     {
@@ -27,12 +23,7 @@
       "request": "launch",
       "name": "Debug unit tests in executable 'pyr'",
       "cargo": {
-        "args": [
-          "test",
-          "--no-run",
-          "--bin=pyr",
-          "--package=pyr"
-        ],
+        "args": ["test", "--no-run", "--bin=pyr", "--package=pyr"],
         "filter": {
           "name": "pyr",
           "kind": "bin"

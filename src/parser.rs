@@ -30,6 +30,7 @@ pub struct Parser<'a> {
 impl Parser<'_> {
   pub fn new(input: &str) -> Parser {
     let mut lexer = Tok::lexer(input);
+
     Parser { peek: lexer.next().unwrap_or(Tok::Eof), curr: Tok::Eof, lexer, indent_level: 0 }
   }
 
@@ -90,19 +91,42 @@ impl Parser<'_> {
     }
   }
 
-  pub fn parse(&mut self) -> Vec<Stmt> {
+  fn synchronize(&mut self) {
+    while self.peek != Tok::Eof {
+      self.next();
+      if let Tok::Else | Tok::Indent = self.peek {
+        continue;
+      }
+      if self.curr == Tok::Newline {
+        return;
+      }
+    }
+  }
+
+  pub fn parse(&mut self) -> std::result::Result<Vec<Stmt>, Vec<ParseError>> {
+    let mut stmts = Vec::new();
     let mut errors = Vec::new();
     while self.peek != Tok::Eof {
       match self.statement() {
-        Ok(_) => todo!("Do something with the stmt"),
-        Err(err) => errors.push(err),
+        Ok(stmt) => stmts.push(stmt),
+        Err(err) => {
+          errors.push(err);
+          self.synchronize();
+        },
       };
-      if let Err(err) = self.consume(Tok::Newline) {
-        errors.push(err);
-        todo!("Synchronize the parser");
+      if self.peek != Tok::Eof {
+        if let Err(err) = self.check_curr(Tok::Newline) {
+          errors.push(err);
+          self.synchronize();
+        }
       }
     }
-    todo!()
+
+    if !errors.is_empty() {
+      Err(errors)
+    } else {
+      Ok(stmts)
+    }
   }
 
   pub(crate) fn statement(&mut self) -> Result<Stmt> {
@@ -270,7 +294,11 @@ impl Parser<'_> {
 
         Ok(Expr::new(ExprKind::PrefixOp { op, right: Box::new(right) }, span_start..span_end))
       },
-      tok => Err(ParseError::new(ParseErrorKind::ExpectedExpressionStart(tok), self.lexer.span())),
+
+      Tok::Error => {
+        Err(ParseError::new(ParseErrorKind::UnknownToken(self.lexeme()), self.lexer.span()))
+      },
+      _ => Err(ParseError::new(ParseErrorKind::ExpectedExpression, self.lexer.span())),
     }?;
     while self.peek != Tok::Eof {
       match self.peek {
@@ -310,6 +338,12 @@ impl Parser<'_> {
         },
 
         Tok::Newline | Tok::Colon | Tok::RightParen => break,
+        Tok::Error => {
+          return Err(ParseError::new(
+            ParseErrorKind::UnknownToken(self.lexeme()),
+            self.lexer.span(),
+          ));
+        },
         tok => {
           return Err(ParseError::new(ParseErrorKind::UnknownInfixOperator(tok), self.lexer.span()))
         },

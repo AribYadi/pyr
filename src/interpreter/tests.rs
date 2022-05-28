@@ -16,7 +16,7 @@ fn interpret_expr() {
     let expr = parser.expression().unwrap();
     let mut resolver = Resolver::new();
     resolver.resolve_expr(&expr)?;
-    let mut interpreter = Interpreter::new(input);
+    let mut interpreter = Interpreter::new();
     interpreter.interpret_expr(&expr)
   }
 
@@ -66,7 +66,7 @@ fn interpret_stmt() {
   fn interpret(input: &str) -> Result<()> {
     let mut parser = Parser::new(input);
     let stmt = parser.statement().unwrap();
-    let mut interpreter = Interpreter::new(input);
+    let mut interpreter = Interpreter::new();
     interpreter.interpret_stmt(&stmt)
   }
 
@@ -101,7 +101,7 @@ fn interpret_print() {
 
     let mut parser = Parser::new(input);
     let expr = parser.expression().unwrap();
-    let mut interpreter = Interpreter::new(input);
+    let mut interpreter = Interpreter::new();
     interpreter.interpret_print(&expr, &mut buf).unwrap();
     assert_eq!(buf, expected.as_bytes());
   }
@@ -115,7 +115,7 @@ fn interpret_print() {
 #[test]
 fn interpret_variables() {
   let mut resolver = Resolver::new();
-  let mut interpreter = Interpreter::new("");
+  let mut interpreter = Interpreter::new();
 
   macro_rules! interpret_expr {
     ($input:expr) => {{
@@ -155,7 +155,7 @@ fn interpret_variables() {
   assert_eq!(result, Ok(Literal::Integer(1)));
 
   resolver = Resolver::new();
-  interpreter = Interpreter::new("");
+  interpreter = Interpreter::new();
 
   let result = interpret_stmt!(unindent(
     "

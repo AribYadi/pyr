@@ -124,7 +124,7 @@ impl std::fmt::Display for TokenKind {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       TokenKind::Eof => write!(f, "end of file"),
-      TokenKind::Error => write!(f, "error"),
+      TokenKind::Error => write!(f, "unknown token"),
       TokenKind::Newline => write!(f, "newline"),
       TokenKind::Indent => write!(f, "indent"),
       TokenKind::String => write!(f, "string"),

@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 use std::io;
 
-use crate::error::RuntimeResult as Result;
+use crate::error::{
+  RuntimeError,
+  RuntimeResult as Result,
+};
 use crate::parser::syntax::{
   Expr,
   ExprKind,
@@ -14,26 +17,23 @@ use crate::runtime::Literal;
 pub struct Interpreter {
   variables: HashMap<String, (usize, Literal)>,
   indent_level: usize,
-
-  lines: Vec<String>,
-  curr_line: usize,
 }
 
 impl Interpreter {
-  pub fn new(source: &str) -> Self {
-    Self {
-      variables: HashMap::new(),
-      indent_level: 0,
-      lines: source.lines().map(str::to_string).collect(),
-      curr_line: 0,
-    }
-  }
+  pub fn new() -> Self { Self { variables: HashMap::new(), indent_level: 0 } }
 
   fn start_block(&mut self) { self.indent_level += 1; }
 
   fn end_block(&mut self) {
     self.variables.retain(|_, (level, _)| *level != self.indent_level);
     self.indent_level -= 1;
+  }
+
+  pub fn interpret(&mut self, stmts: &[Stmt]) -> std::result::Result<(), RuntimeError> {
+    for stmt in stmts {
+      self.interpret_stmt(stmt)?;
+    }
+    Ok(())
   }
 
   pub(crate) fn interpret_stmt(&mut self, stmt: &Stmt) -> Result<()> {

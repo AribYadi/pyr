@@ -1,0 +1,4 @@
+if true:
+  print "hello\n"
+else:
+  print "goodbye\n"

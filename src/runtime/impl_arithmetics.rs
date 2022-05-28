@@ -13,9 +13,10 @@ impl Add for Literal {
   type Output = Self;
 
   fn add(self, rhs: Self) -> Self::Output {
-    match (self, rhs.clone()) {
+    match (self.clone(), rhs.clone()) {
       (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l + r),
-      (Literal::String(s), _) | (_, Literal::String(s)) => Literal::String(format!("{s}{rhs}")),
+      (Literal::String(s), _) => Literal::String(format!("{s}{rhs}")),
+      (_, Literal::String(s)) => Literal::String(format!("{self}{s}")),
       #[allow(unreachable_patterns)]
       _ => {
         unreachable!("Resolver didn't type check infix operator `+`");

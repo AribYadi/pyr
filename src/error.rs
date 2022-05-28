@@ -15,8 +15,8 @@ pub type RuntimeResult<T> = Result<T, RuntimeError>;
 pub enum ParseErrorKind {
   #[error("unknown infix operator `{0}`")]
   UnknownInfixOperator(TokenKind),
-  #[error("`{0}` is not a start to any expression")]
-  ExpectedExpressionStart(TokenKind),
+  #[error("expected an expression")]
+  ExpectedExpression,
   #[error("expected `{0}` but got `{1}`")]
   UnexpectedToken(TokenKind, TokenKind),
   #[error("unclosed delimiter `{0}`")]
@@ -29,6 +29,8 @@ pub enum ParseErrorKind {
   InvalidAssignment(Expr),
   #[error(transparent)]
   Unescape(#[from] snailquote::UnescapeError),
+  #[error("unknown token `{0}`")]
+  UnknownToken(String),
 }
 
 #[derive(Debug, PartialEq)]
