@@ -9,7 +9,7 @@ fn parse_expr() {
     parser.expression()
   }
 
-  let expr = parse("  32");
+  let expr = parse(" 32");
   assert_eq!(expr, Ok(Expr::new_without_span(ExprKind::Integer(32))));
   let expr = parse("\"foobar\"");
   assert_eq!(expr, Ok(Expr::new_without_span(ExprKind::String("foobar".to_string()))));
@@ -28,7 +28,7 @@ fn parse_expr() {
       right: Box::new(Expr::new_without_span(ExprKind::Integer(32)))
     }))
   );
-  let expr = parse("!   wrong");
+  let expr = parse("! wrong");
   assert_eq!(
     expr,
     Ok(Expr::new_without_span(ExprKind::PrefixOp {
