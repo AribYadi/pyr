@@ -13,8 +13,25 @@ cargo build --release
 ## Usage
 
 ```bash
-$ pyr hello_world.pyr
-Hello World!
+$ pyr ./examples/hello.pyr
+Hello, World!
+```
+
+## Examples
+
+Hello, World:
+
+```python
+print "Hello, World"
+```
+
+If statements:
+
+```python
+if true:
+  print 123
+else:
+  print 456
 ```
 
 ## License
