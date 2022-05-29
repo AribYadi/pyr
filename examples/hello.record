@@ -1,6 +1,7 @@
-:code 0:
+:exitcode 0:
 :stdout 13:
 Hello, World!
+:end:
 :stderr 0:
 
-:end
+:end:

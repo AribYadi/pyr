@@ -1,7 +1,8 @@
-:code 0:
+:exitcode 0:
 :stdout 6:
 hello
 
+:end:
 :stderr 0:
 
-:end
+:end:

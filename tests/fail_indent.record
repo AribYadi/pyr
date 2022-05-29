@@ -1,9 +1,10 @@
-:code 1:
+:exitcode 1:
 :stdout 0:
 
+:end:
 :stderr 151:
 [1;31m[ERR][0m : A parsing error has been found!
 [1;31m[ERR][0m :  -> fail_indent.pyr:2:1
 [1;31m[ERR][0m :  -> expected `indent` but got `print`
 
-:end
+:end:
