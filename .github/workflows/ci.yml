@@ -73,9 +73,6 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
       - run: python ./test.py -d ./examples
         shell: sh
       - run: python ./test.py -d ./tests

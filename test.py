@@ -16,14 +16,31 @@ args = parser.parse_args()
 
 BASE_DIR = path.dirname(__file__)
 
-PYR_RELEASE_BINARY = path.join(BASE_DIR, "target", "debug", "pyr")
 PYR_DEBUG_BINARY = path.join(BASE_DIR, "target", "debug", "pyr")
+PYR_RELEASE_BINARY = path.join(BASE_DIR, "target", "release", "pyr")
 TEST_DIR = path.join(BASE_DIR, args.dir)
 
 PYR_EXT = ".pyr"
 RECORD_EXT = ".record"
 
 END_TAG = "\n:end:\n"
+
+def exe_exist(path: str) -> bool:
+  return os.path.exists(path) or os.path.exists(path + ".exe")
+
+def cargo_build():
+  print("\x1b[2;96m[INFO]\x1b[0m: Building pyr..")
+  extra_args = []
+  if args.release:
+    extra_args.append("--release")
+  output = subprocess.run(["cargo", "build", *extra_args], capture_output = True)
+  if output.returncode != 0:
+    print(f"\x1b[1;31m[ERR]\x1b[0m: Cargo build failed.", file = sys.stderr)
+
+    print(f"\x1b[1;31m[ERR]\x1b[0m: Stderr:", file = sys.stderr)
+    print(f"{output.stderr}", file = sys.stderr)
+    exit(1)
+  print("\x1b[2;96m[INFO]\x1b[0m: pyr built.")
 
 @dataclass
 class TestCase():
@@ -128,6 +145,15 @@ def test_file(path, results: TestResults):
       results.failed += 1
 
 if __name__ == "__main__":
+  if not args.release and not exe_exist(PYR_DEBUG_BINARY):
+    print(f"\x1b[33m[WARN]\x1b[0m: Couldn't find `{PYR_DEBUG_BINARY}`. Running `cargo build`", file = sys.stderr)
+    subprocess.run(["cargo", "build"], capture_output = True)
+  elif args.release and not exe_exist(PYR_RELEASE_BINARY):
+    print(f"\x1b[33m[WARN]\x1b[0m: Couldn't find `{PYR_RELEASE_BINARY}`. Running `cargo build --release`", file = sys.stderr)
+    subprocess.run(["cargo", "build", "--release"], capture_output = True)
+
+  print()
+
   os.chdir(BASE_DIR)
   results = TestResults()
   for entry in os.scandir(TEST_DIR):
