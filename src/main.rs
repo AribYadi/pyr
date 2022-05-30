@@ -1,10 +1,14 @@
+#![allow(dead_code)]
+
 use std::path::PathBuf;
 use std::process;
 
-use interpreter::Interpreter;
+use compiler::Compiler;
+// use interpreter::Interpreter;
 use line_col::LineColLookup;
 use parser::Parser;
 
+mod compiler;
 mod error;
 mod interpreter;
 mod parser;
@@ -81,19 +85,23 @@ fn main() {
       process::exit(1);
     },
   };
-  let mut interpreter = Interpreter::new();
-  match interpreter.interpret(&stmts) {
-    Ok(_) => (),
-    Err(error) => {
-      let (line, col) = lookup.get(error.span.start);
+  unsafe {
+    let mut compiler = Compiler::new(input_file);
+    compiler.compile(&stmts).unwrap();
+  }
+  // let mut interpreter = Interpreter::new();
+  // match interpreter.interpret(&stmts) {
+  //   Ok(_) => (),
+  //   Err(error) => {
+  //     let (line, col) = lookup.get(error.span.start);
 
-      info!(ERR, "A runtime error has been found!");
-      info!(ERR, " -> {input_file}:{line}:{col}");
-      info!(ERR, " -> {msg}", msg = error.kind);
+  //     info!(ERR, "A runtime error has been found!");
+  //     info!(ERR, " -> {input_file}:{line}:{col}");
+  //     info!(ERR, " -> {msg}", msg = error.kind);
 
-      process::exit(1);
-    },
-  };
+  //     process::exit(1);
+  //   },
+  // };
 }
 
 fn get_args() -> Args {
