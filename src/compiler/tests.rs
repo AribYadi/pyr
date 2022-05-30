@@ -27,4 +27,9 @@ fn compile_expr() {
   assert_eq!(compile("\"hello\""), r#"[6 x i8] c"hello\00""#);
   assert_eq!(compile("!\"hello\""), "i64 0");
   assert_eq!(compile("!\"\""), "i64 1");
+
+  assert_eq!(compile("1 + 2"), "i64 3");
+  assert_eq!(compile("1 - 2"), "i64 -1");
+  assert_eq!(compile("1 * 2"), "i64 2");
+  assert_eq!(compile("1 / 2"), "i64 0");
 }

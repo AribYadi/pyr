@@ -17,7 +17,48 @@ use crate::parser::syntax::{
   TokenKind,
 };
 
-// TODO: support other types
+mod utils {
+  use super::*;
+
+  pub fn string<'a>(ptr: *const i8, length: usize) -> Cow<'a, str> {
+    if length < 2 {
+      return "".into();
+    }
+    unsafe {
+      CStr::from_ptr(ptr).to_string_lossy()
+    }
+  }
+
+  pub fn is_const_integer(value: LLVMValueRef) -> bool {
+    unsafe {
+      !LLVMIsAConstantInt(value).is_null()
+    }
+  }
+
+  pub fn is_const_string(value: LLVMValueRef) -> bool {
+    unsafe {
+      LLVMIsConstantString(value) == 1
+    }
+  }
+
+    pub fn is_truthy(value: LLVMValueRef) -> bool {
+    unsafe {
+      if is_const_integer(value) {
+        let value = LLVMConstIntGetZExtValue(value);
+        return value == 1;
+      }
+      if is_const_string(value) {
+        let mut length = 0;
+        let ptr = LLVMGetAsString(value, &mut length);
+        let string = string(ptr, length);
+        return !string.is_empty();
+      }
+
+      unreachable!()
+    }
+  }
+}
+
 pub struct Compiler {
   pub ctx: LLVMContextRef,
   pub builder: LLVMBuilderRef,
@@ -38,15 +79,6 @@ impl Compiler {
     let ptr = cstring.as_ptr();
     self.cstring_cache.insert(s, cstring);
     ptr
-  }
-
-  fn string(&self, ptr: *const i8, length: usize) -> Cow<'_, str> {
-    if length < 2 {
-      return "".into();
-    }
-    unsafe {
-      CStr::from_ptr(ptr).to_string_lossy()
-    }
   }
 
   pub unsafe fn new(file_name: &str) -> Compiler {
@@ -93,25 +125,6 @@ impl Compiler {
     }
   }
 
-  fn is_truthy(&self, value: LLVMValueRef) -> bool {
-    unsafe {
-      let int_value = LLVMIsAConstantInt(value);
-      if !int_value.is_null() {
-        let value = LLVMConstIntGetZExtValue(int_value);
-        return value == 1;
-      }
-      let is_str = LLVMIsConstantString(value);
-      if is_str == 1 {
-        let mut length = 0;
-        let ptr = LLVMGetAsString(value, &mut length);
-        let string = self.string(ptr, length);
-        return !string.is_empty();
-      }
-
-      unreachable!()
-    }
-  }
-
   fn compile_expr(&mut self, expr: &Expr) -> LLVMValueRef {
     unsafe {
       match &expr.kind {
@@ -124,12 +137,18 @@ impl Compiler {
           let length = s.len() as u32;
           LLVMConstStringInContext(self.ctx, ptr, length, 0)
         },
+        ExprKind::Identifier(_name) => unimplemented!("Variables are not implemented yet"),
 
         ExprKind::PrefixOp { op, right } => {
           let right = self.compile_expr(right);
           self.compile_prefix_op(op, right)
         },
-        _ => todo!(),
+        ExprKind::InfixOp { op, left, right } => {
+          let left = self.compile_expr(left);
+          let right = self.compile_expr(right);
+          self.compile_infix_op(op, left, right)
+        },
+        ExprKind::VarAssign { .. } => unimplemented!("Variables are not implemented yet"),
       }
     }
   }
@@ -138,11 +157,28 @@ impl Compiler {
     unsafe {
       let int_type = LLVMInt64TypeInContext(self.ctx);
       match op {
-        TokenKind::Minus => LLVMBuildNeg(self.builder, right, self.cstring("sub")),
-        TokenKind::Bang if self.is_truthy(right) => LLVMConstInt(int_type, 0, 0),
+        TokenKind::Minus => LLVMConstNeg(right),
+        TokenKind::Bang if utils::is_truthy(right) => LLVMConstInt(int_type, 0, 0),
         TokenKind::Bang => LLVMConstInt(int_type, 1, 0),
 
         _ => unreachable!("{op} is not a prefix operator"),
+      }
+    }
+  }
+
+  fn compile_infix_op(&mut self, op: &TokenKind, left: LLVMValueRef, right: LLVMValueRef) -> LLVMValueRef {
+    unsafe {
+      if utils::is_const_string(left) || utils::is_const_string(right) {
+        unimplemented!("Infix operators with strings are not implemented yet");
+      }
+
+      match op {
+        TokenKind::Plus => LLVMConstAdd(left, right),
+        TokenKind::Minus => LLVMConstSub(left, right),
+        TokenKind::Star => LLVMConstMul(left, right),
+        TokenKind::Slash => LLVMConstSDiv(left, right),
+
+        _ => unreachable!("{op} is not an infix operator"),
       }
     }
   }
