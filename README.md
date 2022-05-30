@@ -4,6 +4,16 @@
 
 Pyr is a programming language similar to python (or in other words, python but not python).
 
+## Table of Contents
+
+- [Pyr](#pyr)
+  - [Table of Contents](#table-of-contents)
+  - [Building](#building)
+  - [Usage](#usage)
+  - [Examples](#examples)
+  - [Editor Support](#editor-support)
+  - [License](#license)
+
 ## Building
 
 ```bash
