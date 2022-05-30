@@ -34,6 +34,10 @@ else:
   print 456
 ```
 
+## Editor Support
+
+- VSCode: [vscode-pyr](https://github.com/AribYadi/vscode-pyr.git)
+
 ## License
 
 [Apache-2.0](LICENSE)
