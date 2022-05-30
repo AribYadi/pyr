@@ -11,6 +11,7 @@ Pyr is a programming language similar to python (or in other words, python but n
   - [Building](#building)
   - [Usage](#usage)
   - [Examples](#examples)
+  - [Testing](#testing)
   - [Editor Support](#editor-support)
   - [License](#license)
 
@@ -42,6 +43,21 @@ if true:
   print 123
 else:
   print 456
+```
+
+## Testing
+
+To test, you can either do
+
+```bash
+cargo test
+```
+
+or
+
+```bash
+python test.py -d tests
+python test.py -d examples
 ```
 
 ## Editor Support
