@@ -8,12 +8,17 @@ Pyr is a programming language similar to python (or in other words, python but n
 
 - [Pyr](#pyr)
   - [Table of Contents](#table-of-contents)
+  - [Requirements](#requirements)
   - [Building](#building)
   - [Usage](#usage)
   - [Examples](#examples)
   - [Testing](#testing)
   - [Editor Support](#editor-support)
   - [License](#license)
+
+## Requirements
+
+- [LLVM](https://llvm.org/releases) == 14.0.x
 
 ## Building
 
