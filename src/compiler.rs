@@ -20,41 +20,88 @@ use crate::parser::syntax::{
 mod utils {
   use super::*;
 
-  pub fn string<'a>(ptr: *const i8, length: usize) -> Cow<'a, str> {
+  pub fn ptr_to_str<'a>(ptr: *const i8, length: usize) -> Cow<'a, str> {
     if length < 2 {
       return "".into();
     }
-    unsafe {
-      CStr::from_ptr(ptr).to_string_lossy()
-    }
+    unsafe { CStr::from_ptr(ptr).to_string_lossy() }
+  }
+
+  pub fn get_str<'a>(value: LLVMValueRef) -> Cow<'a, str> {
+    let mut length = 0;
+    let ptr = unsafe { LLVMGetAsString(value, &mut length) };
+    ptr_to_str(ptr, length)
   }
 
   pub fn is_const_integer(value: LLVMValueRef) -> bool {
-    unsafe {
-      !LLVMIsAConstantInt(value).is_null()
-    }
+    unsafe { !LLVMIsAConstantInt(value).is_null() }
   }
 
   pub fn is_const_string(value: LLVMValueRef) -> bool {
-    unsafe {
-      LLVMIsConstantString(value) == 1
-    }
+    unsafe { LLVMIsConstantString(value) == 1 }
   }
 
-    pub fn is_truthy(value: LLVMValueRef) -> bool {
+  pub fn is_truthy(value: LLVMValueRef) -> bool {
     unsafe {
       if is_const_integer(value) {
         let value = LLVMConstIntGetZExtValue(value);
         return value == 1;
       }
       if is_const_string(value) {
-        let mut length = 0;
-        let ptr = LLVMGetAsString(value, &mut length);
-        let string = string(ptr, length);
+        let string = get_str(value);
         return !string.is_empty();
       }
 
       unreachable!()
+    }
+  }
+
+  pub fn const_string(self_: &mut Compiler, s: &str) -> LLVMValueRef {
+    unsafe {
+      let ptr = self_.cstring(s);
+      let length = s.len() as u32;
+      LLVMConstStringInContext(self_.ctx, ptr, length, 0)
+    }
+  }
+
+  pub fn get_to_string_of(value: LLVMValueRef) -> String {
+    if is_const_integer(value) {
+      unsafe {
+        let value = LLVMConstIntGetZExtValue(value);
+        return value.to_string();
+      }
+    }
+    if is_const_string(value) {
+      let s2 = get_str(value);
+      return s2.to_string();
+    }
+
+    unreachable!("Exhaustive match in `get_to_string_of`");
+  }
+
+  pub fn add_to_string(
+    self_: &mut Compiler,
+    left: LLVMValueRef,
+    right: LLVMValueRef,
+  ) -> LLVMValueRef {
+    assert!(is_const_string(left));
+    let mut s = get_str(left).to_string();
+    s.push_str(&get_to_string_of(right));
+
+    const_string(self_, &s)
+  }
+
+  pub fn mul_string(self_: &mut Compiler, left: LLVMValueRef, right: LLVMValueRef) -> LLVMValueRef {
+    assert!(is_const_string(left));
+    assert!(is_const_integer(right));
+    unsafe {
+      let mut s = get_str(left).to_string();
+      let n = LLVMConstIntGetZExtValue(right) - 1;
+      for _ in 0..n {
+        s.push_str(&get_to_string_of(left));
+      }
+
+      const_string(self_, &s)
     }
   }
 }
@@ -132,11 +179,7 @@ impl Compiler {
           let int_type = LLVMInt64TypeInContext(self.ctx);
           LLVMConstInt(int_type, *n as u64, 0)
         },
-        ExprKind::String(s) => {
-          let ptr = self.cstring(s);
-          let length = s.len() as u32;
-          LLVMConstStringInContext(self.ctx, ptr, length, 0)
-        },
+        ExprKind::String(s) => utils::const_string(self, s),
         ExprKind::Identifier(_name) => unimplemented!("Variables are not implemented yet"),
 
         ExprKind::PrefixOp { op, right } => {
@@ -166,15 +209,23 @@ impl Compiler {
     }
   }
 
-  fn compile_infix_op(&mut self, op: &TokenKind, left: LLVMValueRef, right: LLVMValueRef) -> LLVMValueRef {
+  fn compile_infix_op(
+    &mut self,
+    op: &TokenKind,
+    left: LLVMValueRef,
+    right: LLVMValueRef,
+  ) -> LLVMValueRef {
     unsafe {
-      if utils::is_const_string(left) || utils::is_const_string(right) {
-        unimplemented!("Infix operators with strings are not implemented yet");
-      }
-
       match op {
-        TokenKind::Plus => LLVMConstAdd(left, right),
+        TokenKind::Plus if utils::is_const_integer(left) && utils::is_const_integer(right) => {
+          LLVMConstAdd(left, right)
+        },
+        TokenKind::Plus if utils::is_const_string(left) => utils::add_to_string(self, left, right),
+        TokenKind::Plus if utils::is_const_string(right) => utils::add_to_string(self, right, left),
+        TokenKind::Plus => unreachable!("Resolver didn't check `{op}` thoroughly"),
         TokenKind::Minus => LLVMConstSub(left, right),
+        TokenKind::Star if utils::is_const_string(left) => utils::mul_string(self, left, right),
+        TokenKind::Star if utils::is_const_string(right) => utils::mul_string(self, right, left),
         TokenKind::Star => LLVMConstMul(left, right),
         TokenKind::Slash => LLVMConstSDiv(left, right),
 

@@ -32,4 +32,10 @@ fn compile_expr() {
   assert_eq!(compile("1 - 2"), "i64 -1");
   assert_eq!(compile("1 * 2"), "i64 2");
   assert_eq!(compile("1 / 2"), "i64 0");
+
+  assert_eq!(compile("\"1\" + 2"), r#"[3 x i8] c"12\00""#);
+  assert_eq!(compile("1 + \"1\""), r#"[3 x i8] c"11\00""#);
+  assert_eq!(compile("\"Hello\" + \" \" + \"World\""), r#"[12 x i8] c"Hello World\00""#);
+  assert_eq!(compile("3 * \"triple\""), r#"[19 x i8] c"tripletripletriple\00""#);
+  assert_eq!(compile("\"double\" * 2 + \"one\""), r#"[16 x i8] c"doubledoubleone\00""#);
 }
