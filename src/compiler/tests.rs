@@ -14,7 +14,7 @@ fn compile_expr() {
       let mut compiler = Compiler::new("");
       let value = compiler.compile_expr(&expr);
 
-      let ptr = LLVMPrintValueToString(value);
+      let ptr = LLVMPrintValueToString(value.v);
       CStr::from_ptr(ptr).to_str().unwrap()
     }
   }
