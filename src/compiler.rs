@@ -14,6 +14,7 @@ use crate::parser::syntax::{
   Expr,
   ExprKind,
   Stmt,
+  StmtKind,
   TokenKind,
 };
 use crate::runtime::{
@@ -103,6 +104,8 @@ pub struct Compiler {
   pub module: LLVMModuleRef,
 
   cstring_cache: HashMap<String, CString>,
+  main_func: LLVMValueRef,
+
   variables: Variables<ValueWrapper>,
   indent_level: IndentLevel,
 }
@@ -120,6 +123,18 @@ impl Compiler {
     ptr
   }
 
+  fn declare_libc_functions(&mut self) {
+    unsafe {
+      let printf_type = LLVMFunctionType(
+        LLVMInt32TypeInContext(self.ctx),
+        [LLVMPointerType(LLVMInt8TypeInContext(self.ctx), 0)].as_mut_ptr(),
+        1,
+        1,
+      );
+      LLVMAddFunction(self.module, self.cstring("printf"), printf_type);
+    }
+  }
+
   pub unsafe fn new(file_name: &str) -> Compiler {
     let mut cstring_cache = HashMap::new();
     let cstring = CString::new(file_name).unwrap();
@@ -130,39 +145,100 @@ impl Compiler {
     let builder = LLVMCreateBuilderInContext(ctx);
     let module = LLVMModuleCreateWithNameInContext(ptr, ctx);
 
-    Compiler { ctx, builder, module, cstring_cache, variables: Variables::new(), indent_level: 0 }
+    let func_ty = LLVMFunctionType(LLVMVoidTypeInContext(ctx), std::ptr::null_mut(), 0, 0);
+    let cstring = CString::new("main").unwrap();
+    let ptr = cstring.as_ptr();
+    cstring_cache.insert("main".to_string(), cstring);
+    let func = LLVMAddFunction(module, ptr, func_ty);
+
+    let cstring = CString::new("entry").unwrap();
+    let ptr = cstring.as_ptr();
+    cstring_cache.insert("entry".to_string(), cstring);
+    let bb = LLVMAppendBasicBlockInContext(ctx, func, ptr);
+    LLVMPositionBuilderAtEnd(builder, bb);
+
+    let mut self_ = Compiler {
+      ctx,
+      builder,
+      module,
+      cstring_cache,
+      variables: Variables::new(),
+      indent_level: 0,
+      main_func: func,
+    };
+
+    self_.declare_libc_functions();
+
+    self_
   }
 
-  // fn get_func(&mut self, name: &str) -> Option<LLVMValueRef> {
-  //   unsafe {
-  //     let name = self.cstring(name);
-  //     let func = LLVMGetNamedFunction(self.module, name);
-  //     if func.is_null() {
-  //       None
-  //     } else {
-  //       Some(func)
-  //     }
-  //   }
-  // }
+  fn get_func(&mut self, name: &str) -> Option<(LLVMValueRef, LLVMTypeRef)> {
+    unsafe {
+      let name = self.cstring(name);
+      let func = LLVMGetNamedFunction(self.module, name);
+      if func.is_null() {
+        None
+      } else {
+        let ty = LLVMTypeOf(func);
+        Some((func, ty))
+      }
+    }
+  }
 
-  // fn curr_func(&self) -> LLVMValueRef { self.curr_func.unwrap() }
+  fn alloca_string_at_entry(&mut self, value: LLVMValueRef) -> LLVMValueRef {
+    unsafe {
+      let builder = LLVMCreateBuilderInContext(self.ctx);
+      let entry = LLVMGetFirstBasicBlock(self.main_func);
 
-  // fn alloca_at_entry(&mut self, name: &str) -> LLVMValueRef {
-  //   unsafe {
-  //     let builder = LLVMCreateBuilderInContext(self.ctx);
-  //     let entry = LLVMGetFirstBasicBlock(self.curr_func());
+      let first_instr = LLVMGetFirstInstruction(entry);
+      if !first_instr.is_null() {
+        LLVMPositionBuilderBefore(builder, first_instr);
+      } else {
+        LLVMPositionBuilderAtEnd(builder, entry);
+      }
 
-  //     let first_instr = LLVMGetFirstInstruction(entry);
-  //     if !first_instr.is_null() {
-  //       LLVMPositionBuilderBefore(builder, first_instr);
-  //     } else {
-  //       LLVMPositionBuilderAtEnd(builder, entry);
-  //     }
+      let name = self.cstring("str");
+      let value_ptr = LLVMBuildAlloca(builder, LLVMTypeOf(value), name);
+      LLVMBuildStore(self.builder, value, value_ptr);
+      value_ptr
+    }
+  }
 
-  //     let name = self.cstring(name);
-  //     LLVMBuildAlloca(builder, LLVMInt64TypeInContext(self.ctx), name)
-  //   }
-  // }
+  fn compile_stmt(&mut self, stmt: &Stmt) {
+    unsafe {
+      match &stmt.kind {
+        StmtKind::Expression { expr } => {
+          self.compile_expr(expr);
+        },
+        StmtKind::Print { expr } => {
+          let zero = LLVMConstInt(LLVMInt64TypeInContext(self.ctx), 0, 0);
+
+          let value = self.compile_expr(expr);
+          let value = ValueWrapper::new_string(self, &value.to_string()).v;
+          let value_ptr = self.alloca_string_at_entry(value);
+          let value = LLVMBuildGEP2(
+            self.builder,
+            LLVMTypeOf(value),
+            value_ptr,
+            [zero, zero].as_mut_ptr(),
+            2,
+            self.cstring(""),
+          );
+
+          let (printf_func, printf_ty) = self.get_func("printf").unwrap();
+          LLVMBuildCall2(
+            self.builder,
+            printf_ty,
+            printf_func,
+            [value].as_mut_ptr(),
+            1,
+            self.cstring(""),
+          );
+        },
+        _ => todo!(),
+      }
+    }
+  }
 
   fn compile_expr(&mut self, expr: &Expr) -> ValueWrapper {
     unsafe {
@@ -218,7 +294,17 @@ impl Compiler {
     }
   }
 
-  pub unsafe fn compile(&mut self, _stmts: &[Stmt]) -> Result<(), ()> {
+  pub unsafe fn compile(mut self, stmts: &[Stmt]) {
+    for stmt in stmts {
+      self.compile_stmt(stmt);
+    }
+
+    LLVMBuildRetVoid(self.builder);
+
+    LLVMDisposeBuilder(self.builder);
+    LLVMDisposeModule(self.module);
+    LLVMContextDispose(self.ctx);
+
     todo!();
   }
 }

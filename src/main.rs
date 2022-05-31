@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use std::process;
 
 use compiler::Compiler;
-use interpreter::Interpreter;
 // use interpreter::Interpreter;
 use line_col::LineColLookup;
 use parser::Parser;
@@ -87,22 +86,22 @@ fn main() {
     },
   };
   unsafe {
-    let mut compiler = Compiler::new(input_file);
-    compiler.compile(&stmts).unwrap();
+    let compiler = Compiler::new(input_file);
+    compiler.compile(&stmts);
   }
-  let mut interpreter = Interpreter::new();
-  match interpreter.interpret(&stmts) {
-    Ok(_) => (),
-    Err(error) => {
-      let (line, col) = lookup.get(error.span.start);
+  // let mut interpreter = Interpreter::new();
+  // match interpreter.interpret(&stmts) {
+  //   Ok(_) => (),
+  //   Err(error) => {
+  //     let (line, col) = lookup.get(error.span.start);
 
-      info!(ERR, "A runtime error has been found!");
-      info!(ERR, " -> {input_file}:{line}:{col}");
-      info!(ERR, " -> {msg}", msg = error.kind);
+  //     info!(ERR, "A runtime error has been found!");
+  //     info!(ERR, " -> {input_file}:{line}:{col}");
+  //     info!(ERR, " -> {msg}", msg = error.kind);
 
-      process::exit(1);
-    },
-  };
+  //     process::exit(1);
+  //   },
+  // };
 }
 
 fn get_args() -> Args {
