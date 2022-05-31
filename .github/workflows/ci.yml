@@ -27,6 +27,7 @@ jobs:
         with:
           version: "14.0"
           cached: ${{ steps.cache-llvm.outputs.cache-hit }}
+      - uses: Swatinem/rust-cache@v1
       - name: cargo check
         uses: actions-rs/cargo@v1
         with:
@@ -45,7 +46,6 @@ jobs:
           python ./test.py -d ./tests
           python ./test.py -d ./examples
         shell: sh
-      - uses: Swatinem/rust-cache@v1
 
   fmt:
     name: cargo fmt
@@ -58,8 +58,8 @@ jobs:
           toolchain: nightly
           override: true
           components: rustfmt
+      - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
-      - uses: Swatinem/rust-cache@v1
