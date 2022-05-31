@@ -116,6 +116,8 @@ def test_file(path, results: TestResults):
   
   if args.update:
     print(f"\x1b[2;96m[INFO]\x1b[0m: Updating `{tc_path}`..")
+    if test_case.exitcode != 0:
+      print(f"\x1b[33m[WARN]\x1b[0m: Test `{tc_path}` returned an abnormal exit code {test_case.exitcode}.", file = sys.stderr)
     if test_case.write(tc_path):
       print(f"\x1b[2;96m[INFO]\x1b[0m: {tc_path} updated.")
       results.updated += 1
