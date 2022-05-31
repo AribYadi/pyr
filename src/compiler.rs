@@ -16,6 +16,10 @@ use crate::parser::syntax::{
   Stmt,
   TokenKind,
 };
+use crate::runtime::{
+  IndentLevel,
+  Variables,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ValueType {
@@ -23,6 +27,7 @@ enum ValueType {
   String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct ValueWrapper {
   v: LLVMValueRef,
   ty: ValueType,
@@ -98,6 +103,8 @@ pub struct Compiler {
   pub module: LLVMModuleRef,
 
   cstring_cache: HashMap<String, CString>,
+  variables: Variables<ValueWrapper>,
+  indent_level: IndentLevel,
 }
 
 impl Compiler {
@@ -123,7 +130,7 @@ impl Compiler {
     let builder = LLVMCreateBuilderInContext(ctx);
     let module = LLVMModuleCreateWithNameInContext(ptr, ctx);
 
-    Compiler { ctx, builder, module, cstring_cache }
+    Compiler { ctx, builder, module, cstring_cache, variables: Variables::new(), indent_level: 0 }
   }
 
   // fn get_func(&mut self, name: &str) -> Option<LLVMValueRef> {
@@ -162,7 +169,11 @@ impl Compiler {
       match &expr.kind {
         ExprKind::Integer(n) => ValueWrapper::new_integer(self, *n),
         ExprKind::String(s) => ValueWrapper::new_string(self, s),
-        ExprKind::Identifier(_name) => unimplemented!("Variables are not implemented yet"),
+        ExprKind::Identifier(name) => self
+          .variables
+          .get(name)
+          .map(|(_, v)| v.clone())
+          .unwrap_or_else(|| unreachable!("Resolver didn't report undefined variable {name}")),
 
         ExprKind::PrefixOp { op, right } => {
           let right = self.compile_expr(right);
@@ -173,7 +184,11 @@ impl Compiler {
           let right = self.compile_expr(right);
           self.compile_infix_op(op, left, right)
         },
-        ExprKind::VarAssign { .. } => unimplemented!("Variables are not implemented yet"),
+        ExprKind::VarAssign { name, expr } => {
+          let expr = self.compile_expr(expr);
+          self.variables.insert(name.to_string(), (self.indent_level, expr.clone()));
+          expr
+        },
       }
     }
   }
