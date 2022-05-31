@@ -1,15 +1,48 @@
+mod impl_arithmetics;
+
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::ffi::{
   CStr,
   CString,
 };
+use std::{
+  process,
+  ptr,
+};
 
+use llvm::analysis::{
+  LLVMVerifierFailureAction,
+  LLVMVerifyFunction,
+  LLVMVerifyModule,
+};
+use llvm::target::*;
+use llvm::target_machine::{
+  LLVMCodeGenFileType,
+  LLVMCodeGenOptLevel,
+  LLVMCodeModel,
+  LLVMCreateTargetDataLayout,
+  LLVMCreateTargetMachine,
+  LLVMGetDefaultTargetTriple,
+  LLVMGetTargetFromTriple,
+  LLVMRelocMode,
+  LLVMTargetMachineEmitToFile,
+};
+use llvm::transforms::instcombine::LLVMAddInstructionCombiningPass;
+use llvm::transforms::scalar::{
+  LLVMAddBasicAliasAnalysisPass,
+  LLVMAddCFGSimplificationPass,
+  LLVMAddGVNPass,
+  LLVMAddReassociatePass,
+};
+use llvm::transforms::util::LLVMAddPromoteMemoryToRegisterPass;
+use llvm::LLVMCallConv;
 use llvm_sys as llvm;
 
 use llvm::core::*;
 use llvm::prelude::*;
 
+use crate::info;
 use crate::parser::syntax::{
   Expr,
   ExprKind,
@@ -100,8 +133,9 @@ mod utils {
 
 pub struct Compiler {
   pub ctx: LLVMContextRef,
-  pub builder: LLVMBuilderRef,
   pub module: LLVMModuleRef,
+  pub builder: LLVMBuilderRef,
+  pub fpm: LLVMPassManagerRef,
 
   cstring_cache: HashMap<String, CString>,
   main_func: LLVMValueRef,
@@ -131,7 +165,8 @@ impl Compiler {
         1,
         1,
       );
-      LLVMAddFunction(self.module, self.cstring("printf"), printf_type);
+      let printf_func = LLVMAddFunction(self.module, self.cstring("printf"), printf_type);
+      LLVMSetFunctionCallConv(printf_func, LLVMCallConv::LLVMCCallConv as u32);
     }
   }
 
@@ -142,8 +177,19 @@ impl Compiler {
     cstring_cache.insert(file_name.to_string(), cstring);
 
     let ctx = LLVMContextCreate();
-    let builder = LLVMCreateBuilderInContext(ctx);
     let module = LLVMModuleCreateWithNameInContext(ptr, ctx);
+    let builder = LLVMCreateBuilderInContext(ctx);
+
+    let fpm = LLVMCreateFunctionPassManagerForModule(module);
+
+    LLVMAddInstructionCombiningPass(fpm);
+    LLVMAddReassociatePass(fpm);
+    LLVMAddGVNPass(fpm);
+    LLVMAddCFGSimplificationPass(fpm);
+    LLVMAddBasicAliasAnalysisPass(fpm);
+    LLVMAddPromoteMemoryToRegisterPass(fpm);
+
+    LLVMInitializeFunctionPassManager(fpm);
 
     let func_ty = LLVMFunctionType(LLVMVoidTypeInContext(ctx), std::ptr::null_mut(), 0, 0);
     let cstring = CString::new("main").unwrap();
@@ -159,8 +205,9 @@ impl Compiler {
 
     let mut self_ = Compiler {
       ctx,
-      builder,
       module,
+      builder,
+      fpm,
       cstring_cache,
       variables: Variables::new(),
       indent_level: 0,
@@ -180,6 +227,7 @@ impl Compiler {
         None
       } else {
         let ty = LLVMTypeOf(func);
+        let ty = LLVMGetElementType(ty);
         Some((func, ty))
       }
     }
@@ -294,21 +342,86 @@ impl Compiler {
     }
   }
 
-  pub unsafe fn compile(mut self, stmts: &[Stmt]) {
+  unsafe fn finish(&mut self, stmts: &[Stmt]) {
     for stmt in stmts {
       self.compile_stmt(stmt);
     }
 
     LLVMBuildRetVoid(self.builder);
+    LLVMVerifyFunction(self.main_func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
+    LLVMRunFunctionPassManager(self.fpm, self.main_func);
 
-    LLVMDisposeBuilder(self.builder);
-    LLVMDisposeModule(self.module);
-    LLVMContextDispose(self.ctx);
+    LLVMVerifyModule(
+      self.module,
+      LLVMVerifierFailureAction::LLVMAbortProcessAction,
+      ptr::null_mut(),
+    );
+  }
 
-    todo!();
+  pub unsafe fn compile_to_obj(mut self, output_file: &str, stmts: &[Stmt]) {
+    self.finish(stmts);
+
+    let target_triple = LLVMGetDefaultTargetTriple();
+
+    LLVM_InitializeAllTargetInfos();
+    LLVM_InitializeAllTargets();
+    LLVM_InitializeAllTargetMCs();
+    LLVM_InitializeAllAsmParsers();
+    LLVM_InitializeAllAsmPrinters();
+
+    let mut error = ptr::null_mut();
+
+    let mut target = ptr::null_mut();
+    if LLVMGetTargetFromTriple(target_triple as *const _, &mut target, &mut error) != 0 {
+      info!(
+        ERR,
+        "Failed to get target from triple:\n {error}",
+        error = CStr::from_ptr(error).to_string_lossy()
+      );
+      process::exit(1);
+    }
+
+    let cpu = self.cstring("generic");
+    let feats = self.cstring("");
+
+    let opt = LLVMCodeGenOptLevel::LLVMCodeGenLevelNone;
+    let rm = LLVMRelocMode::LLVMRelocDefault;
+    let cm = LLVMCodeModel::LLVMCodeModelDefault;
+    let target_machine =
+      LLVMCreateTargetMachine(target, target_triple as *const _, cpu, feats, opt, rm, cm);
+
+    LLVMSetModuleDataLayout(self.module, LLVMCreateTargetDataLayout(target_machine));
+    LLVMSetTarget(self.module, target_triple as *const _);
+
+    let pass = LLVMCreatePassManager();
+
+    let file_type = LLVMCodeGenFileType::LLVMObjectFile;
+    let filename = self.cstring(output_file) as *mut _;
+
+    if LLVMTargetMachineEmitToFile(target_machine, self.module, filename, file_type, &mut error)
+      != 0
+    {
+      info!(
+        ERR,
+        "Failed to emit to file:\n {error}",
+        error = CStr::from_ptr(error).to_string_lossy()
+      );
+      process::exit(1);
+    }
+
+    LLVMRunPassManager(pass, self.module);
   }
 }
 
-mod impl_arithmetics;
+impl Drop for Compiler {
+  fn drop(&mut self) {
+    unsafe {
+      LLVMDisposeBuilder(self.builder);
+      LLVMDisposeModule(self.module);
+      LLVMContextDispose(self.ctx);
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests;

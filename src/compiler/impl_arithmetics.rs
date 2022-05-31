@@ -7,8 +7,9 @@ impl ValueWrapper {
         (ValueType::Integer, ValueType::Integer) => {
           ValueWrapper::new_integer(compiler, self.get_as_integer() + other.get_as_integer())
         },
-        (ValueType::String, _) => ValueWrapper::new_string(compiler, &format!("{}{}", self, other)),
-        (_, ValueType::String) => ValueWrapper::new_string(compiler, &format!("{}{}", other, self)),
+        (ValueType::String, _) | (_, ValueType::String) => {
+          ValueWrapper::new_string(compiler, &format!("{self}{other}"))
+        },
         #[allow(unreachable_patterns)]
         _ => unreachable!("Resolver didn't type check infix operator `+`"),
       }
