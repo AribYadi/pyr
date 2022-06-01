@@ -139,6 +139,7 @@ pub struct Compiler {
 
   cstring_cache: HashMap<String, CString>,
   main_func: LLVMValueRef,
+  curr_func: LLVMValueRef,
 
   variables: Variables<ValueWrapper>,
   indent_level: IndentLevel,
@@ -212,6 +213,7 @@ impl Compiler {
       variables: Variables::new(),
       indent_level: 0,
       main_func: func,
+      curr_func: func,
     };
 
     self_.declare_libc_functions();
@@ -236,7 +238,7 @@ impl Compiler {
   fn alloca_string_at_entry(&mut self, value: LLVMValueRef) -> LLVMValueRef {
     unsafe {
       let builder = LLVMCreateBuilderInContext(self.ctx);
-      let entry = LLVMGetFirstBasicBlock(self.main_func);
+      let entry = LLVMGetFirstBasicBlock(self.curr_func);
 
       let first_instr = LLVMGetFirstInstruction(entry);
       if !first_instr.is_null() {
@@ -254,13 +256,13 @@ impl Compiler {
 
   fn compile_stmt(&mut self, stmt: &Stmt) {
     unsafe {
+      let zero = LLVMConstInt(LLVMInt64TypeInContext(self.ctx), 0, 0);
+
       match &stmt.kind {
         StmtKind::Expression { expr } => {
           self.compile_expr(expr);
         },
         StmtKind::Print { expr } => {
-          let zero = LLVMConstInt(LLVMInt64TypeInContext(self.ctx), 0, 0);
-
           let value = self.compile_expr(expr);
           let value = ValueWrapper::new_string(self, &value.to_string()).v;
           let value_ptr = self.alloca_string_at_entry(value);
@@ -283,7 +285,45 @@ impl Compiler {
             self.cstring(""),
           );
         },
-        _ => todo!(),
+        StmtKind::If { condition, body, else_stmt } => {
+          let condition = self.compile_expr(condition).not(self).not(self);
+          let condition = LLVMBuildICmp(
+            self.builder,
+            llvm::LLVMIntPredicate::LLVMIntNE,
+            condition.v,
+            zero,
+            self.cstring(""),
+          );
+
+          let mut then_bb =
+            LLVMAppendBasicBlockInContext(self.ctx, self.curr_func, self.cstring("then"));
+          let mut else_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("else"));
+          let continue_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("continue"));
+
+          LLVMBuildCondBr(self.builder, condition, then_bb, else_bb);
+          LLVMPositionBuilderAtEnd(self.builder, then_bb);
+
+          for stmt in body {
+            self.compile_stmt(stmt);
+          }
+
+          LLVMBuildBr(self.builder, continue_bb);
+          then_bb = LLVMGetInsertBlock(self.builder);
+
+          LLVMAppendExistingBasicBlock(self.curr_func, else_bb);
+          LLVMPositionBuilderAtEnd(self.builder, else_bb);
+
+          for stmt in else_stmt {
+            self.compile_stmt(stmt);
+          }
+
+          LLVMBuildBr(self.builder, continue_bb);
+          else_bb = LLVMGetInsertBlock(self.builder);
+
+          LLVMAppendExistingBasicBlock(self.curr_func, continue_bb);
+          LLVMPositionBuilderAtEnd(self.builder, continue_bb);
+        },
+        StmtKind::While { condition, body } => {},
       }
     }
   }

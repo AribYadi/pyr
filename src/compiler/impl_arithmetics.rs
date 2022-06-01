@@ -1,7 +1,7 @@
 use super::*;
 
 impl ValueWrapper {
-  pub fn add(&self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
+  pub fn add(self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
     unsafe {
       match (self.ty, other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
@@ -16,7 +16,7 @@ impl ValueWrapper {
     }
   }
 
-  pub fn sub(&self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
+  pub fn sub(self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
     unsafe {
       match (self.ty, other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
@@ -27,7 +27,7 @@ impl ValueWrapper {
     }
   }
 
-  pub fn mul(&self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
+  pub fn mul(self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
     unsafe {
       match (self.ty, other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
@@ -51,7 +51,7 @@ impl ValueWrapper {
     }
   }
 
-  pub fn div(&self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
+  pub fn div(self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
     unsafe {
       match (self.ty, other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
@@ -62,7 +62,7 @@ impl ValueWrapper {
     }
   }
 
-  pub fn neg(&self, compiler: &mut Compiler) -> ValueWrapper {
+  pub fn neg(self, compiler: &mut Compiler) -> ValueWrapper {
     unsafe {
       match self.ty {
         ValueType::Integer => ValueWrapper::new_integer(compiler, -self.get_as_integer()),
@@ -71,7 +71,7 @@ impl ValueWrapper {
     }
   }
 
-  pub fn not(&self, compiler: &mut Compiler) -> ValueWrapper {
+  pub fn not(self, compiler: &mut Compiler) -> ValueWrapper {
     unsafe { ValueWrapper::new_integer(compiler, !self.is_truthy() as i64) }
   }
 }
