@@ -221,6 +221,13 @@ impl Compiler {
     self_
   }
 
+  fn start_block(&mut self) { self.indent_level += 1; }
+
+  fn end_block(&mut self) {
+    self.variables.retain(|_, (level, _)| *level != self.indent_level);
+    self.indent_level -= 1;
+  }
+
   fn get_func(&mut self, name: &str) -> Option<(LLVMValueRef, LLVMTypeRef)> {
     unsafe {
       let name = self.cstring(name);
@@ -235,7 +242,7 @@ impl Compiler {
     }
   }
 
-  fn alloca_string_at_entry(&mut self, value: LLVMValueRef) -> LLVMValueRef {
+  fn alloca_at_entry(&mut self, value: LLVMValueRef) -> LLVMValueRef {
     unsafe {
       let builder = LLVMCreateBuilderInContext(self.ctx);
       let entry = LLVMGetFirstBasicBlock(self.curr_func);
@@ -265,7 +272,7 @@ impl Compiler {
         StmtKind::Print { expr } => {
           let value = self.compile_expr(expr);
           let value = ValueWrapper::new_string(self, &value.to_string()).v;
-          let value_ptr = self.alloca_string_at_entry(value);
+          let value_ptr = self.alloca_at_entry(value);
           let value = LLVMBuildGEP2(
             self.builder,
             LLVMTypeOf(value),
@@ -303,9 +310,11 @@ impl Compiler {
           LLVMBuildCondBr(self.builder, condition, then_bb, else_bb);
           LLVMPositionBuilderAtEnd(self.builder, then_bb);
 
+          self.start_block();
           for stmt in body {
             self.compile_stmt(stmt);
           }
+          self.end_block();
 
           LLVMBuildBr(self.builder, continue_bb);
           // then_bb = LLVMGetInsertBlock(self.builder);
@@ -313,9 +322,11 @@ impl Compiler {
           LLVMAppendExistingBasicBlock(self.curr_func, else_bb);
           LLVMPositionBuilderAtEnd(self.builder, else_bb);
 
+          self.start_block();
           for stmt in else_stmt {
             self.compile_stmt(stmt);
           }
+          self.end_block();
 
           LLVMBuildBr(self.builder, continue_bb);
           // else_bb = LLVMGetInsertBlock(self.builder);
@@ -340,6 +351,7 @@ impl Compiler {
           LLVMBuildCondBr(self.builder, loop_cond, loop_bb, continue_bb);
           LLVMPositionBuilderAtEnd(self.builder, loop_bb);
 
+          self.start_block();
           for stmt in body {
             self.compile_stmt(stmt);
           }
@@ -352,6 +364,7 @@ impl Compiler {
             zero,
             self.cstring(""),
           );
+          self.end_block();
 
           LLVMBuildCondBr(self.builder, loop_cond, loop_bb, continue_bb);
 
@@ -367,11 +380,10 @@ impl Compiler {
       match &expr.kind {
         ExprKind::Integer(n) => ValueWrapper::new_integer(self, *n),
         ExprKind::String(s) => ValueWrapper::new_string(self, s),
-        ExprKind::Identifier(name) => self
-          .variables
-          .get(name)
-          .map(|(_, v)| v.clone())
-          .unwrap_or_else(|| unreachable!("Resolver didn't report undefined variable {name}")),
+        ExprKind::Identifier(name) => match self.variables.get(name) {
+          Some((_, val)) => val.clone(),
+          None => unreachable!("Resolver didn't resolve variable correctly"),
+        },
 
         ExprKind::PrefixOp { op, right } => {
           let right = self.compile_expr(right);
@@ -411,6 +423,12 @@ impl Compiler {
       TokenKind::Minus => left.sub(self, right),
       TokenKind::Star => left.mul(self, right),
       TokenKind::Slash => left.div(self, right),
+      TokenKind::Less => left.lt(self, right),
+      TokenKind::LessEqual => left.le(self, right),
+      TokenKind::Greater => left.gt(self, right),
+      TokenKind::GreaterEqual => left.ge(self, right),
+      TokenKind::EqualEqual => left.eq(self, right),
+      TokenKind::BangEqual => left.ne(self, right),
 
       _ => unreachable!("{op} is not an infix operator"),
     }
@@ -423,6 +441,7 @@ impl Compiler {
 
     LLVMBuildRet(self.builder, LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 0, 0));
     LLVMVerifyFunction(self.main_func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
+    LLVMDumpModule(self.module);
     LLVMRunFunctionPassManager(self.fpm, self.main_func);
 
     LLVMVerifyModule(
@@ -472,8 +491,8 @@ impl Compiler {
     let file_type = LLVMCodeGenFileType::LLVMObjectFile;
     let filename = self.cstring(output_file) as *mut _;
 
-    if LLVMTargetMachineEmitToFile(target_machine, self.module, filename, file_type, &mut error)
-      != 0
+    if LLVMTargetMachineEmitToFile(target_machine, self.module, filename, file_type, &mut error) !=
+      0
     {
       info!(
         ERR,

@@ -63,8 +63,8 @@ impl Parser<'_> {
   fn consume_indents(&mut self) -> Result<bool> {
     if (0..self.indent_level - 1)
       .rev()
-      .any(|i| self.lexer.clone().nth(i).unwrap_or(Tok::Eof) != Tok::Indent)
-      || self.peek != Tok::Indent
+      .any(|i| self.lexer.clone().nth(i).unwrap_or(Tok::Eof) != Tok::Indent) ||
+      self.peek != Tok::Indent
     {
       return Ok(false);
     }
@@ -243,15 +243,15 @@ impl Parser<'_> {
     Ok(())
   }
 
-  pub(crate) fn expression(&mut self) -> Result<Expr> { self.parse_expr(0) }
+  pub(crate) fn expression(&mut self) -> Result<Expr> { self.parse_expr(0, Tok::Eof) }
 
-  fn parse_expr(&mut self, bp: u8) -> Result<Expr> {
+  fn parse_expr(&mut self, bp: u8, last_op: Tok) -> Result<Expr> {
     let mut lhs = match self.peek {
-      literal @ Tok::String
-      | literal @ Tok::Integer
-      | literal @ Tok::Identifier
-      | literal @ Tok::True
-      | literal @ Tok::False => {
+      literal @ Tok::String |
+      literal @ Tok::Integer |
+      literal @ Tok::Identifier |
+      literal @ Tok::True |
+      literal @ Tok::False => {
         let text = self.lexeme();
         let span = self.lexer.span();
         self.consume(literal)?;
@@ -269,7 +269,7 @@ impl Parser<'_> {
       },
       Tok::LeftParen => {
         self.consume(Tok::LeftParen)?;
-        let expr = self.parse_expr(0)?;
+        let expr = self.parse_expr(0, Tok::Eof)?;
         self.consume_delimiter(Tok::RightParen)?;
         Ok(expr)
       },
@@ -278,7 +278,7 @@ impl Parser<'_> {
 
         self.consume(op)?;
         let ((), rbp) = op.prefix_bp();
-        let right = self.parse_expr(rbp)?;
+        let right = self.parse_expr(rbp, op)?;
 
         let span_end = self.lexer.span().end;
 
@@ -292,14 +292,29 @@ impl Parser<'_> {
     }?;
     while self.peek != Tok::Eof {
       match self.peek {
-        op @ Tok::Plus | op @ Tok::Minus | op @ Tok::Star | op @ Tok::Slash => {
+        op @ Tok::Plus |
+        op @ Tok::Minus |
+        op @ Tok::Star |
+        op @ Tok::Slash |
+        op @ Tok::Less |
+        op @ Tok::Greater |
+        op @ Tok::LessEqual |
+        op @ Tok::GreaterEqual |
+        op @ Tok::EqualEqual |
+        op @ Tok::BangEqual => {
           let (lbp, rbp) = op.infix_bp();
           if lbp < bp {
             break;
           }
+          if lbp == bp || rbp == bp {
+            return Err(ParseError::new(
+              ParseErrorKind::InvalidChainOperator(op, last_op),
+              self.lexer.span(),
+            ));
+          }
 
           self.consume(op)?;
-          let right = self.parse_expr(rbp)?;
+          let right = self.parse_expr(rbp, op)?;
           let span_start = lhs.span.start;
           let span_end = right.span.end;
           lhs = Expr::new(
@@ -315,7 +330,7 @@ impl Parser<'_> {
             }
 
             self.consume(op)?;
-            let right = self.parse_expr(rbp)?;
+            let right = self.parse_expr(rbp, op)?;
             let span_start = lhs.span.start;
             let span_end = right.span.end;
             lhs = Expr::new(

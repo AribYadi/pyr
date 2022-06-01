@@ -79,6 +79,21 @@ fn parse_binary_expr() {
 
   let expr = parse("a = b = c");
   check_precedence(expr, "(a = (b = c))");
+
+  let expr = parse("1 > 0 < 2");
+  assert_eq!(
+    expr,
+    Err(ParseError::new(ParseErrorKind::InvalidChainOperator(Tok::Less, Tok::Greater), 6..7))
+  );
+
+  let expr = parse("1 == true != 0");
+  assert_eq!(
+    expr,
+    Err(ParseError::new(
+      ParseErrorKind::InvalidChainOperator(Tok::BangEqual, Tok::EqualEqual),
+      10..12
+    ))
+  );
 }
 
 #[test]

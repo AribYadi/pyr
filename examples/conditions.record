@@ -1,5 +1,6 @@
 :exitcode 0:
-:stdout 6:
+:stdout 13:
+hello2
 hello
 
 :end:

@@ -1,0 +1,10 @@
+:exitcode 1:
+:stdout 0:
+
+:end:
+:stderr 164:
+[1;31m[ERR][0m : A parsing error has been found!
+[1;31m[ERR][0m :  -> chain_unchainable_ops.pyr:1:13
+[1;31m[ERR][0m :  -> cannot chain operator `<=` with `>`
+
+:end:

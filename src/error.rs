@@ -31,6 +31,8 @@ pub enum ParseErrorKind {
   Unescape(#[from] snailquote::UnescapeError),
   #[error("unknown token `{0}`")]
   UnknownToken(String),
+  #[error("cannot chain operator `{0}` with `{1}`")]
+  InvalidChainOperator(TokenKind, TokenKind),
 }
 
 #[derive(Debug, PartialEq)]

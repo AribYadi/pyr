@@ -3,7 +3,7 @@ use super::*;
 impl ValueWrapper {
   pub fn add(self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
     unsafe {
-      match (self.ty, other.ty) {
+      match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
           ValueWrapper::new_integer(compiler, self.get_as_integer() + other.get_as_integer())
         },
@@ -18,7 +18,7 @@ impl ValueWrapper {
 
   pub fn sub(self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
     unsafe {
-      match (self.ty, other.ty) {
+      match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
           ValueWrapper::new_integer(compiler, self.get_as_integer() - other.get_as_integer())
         },
@@ -29,7 +29,7 @@ impl ValueWrapper {
 
   pub fn mul(self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
     unsafe {
-      match (self.ty, other.ty) {
+      match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
           ValueWrapper::new_integer(compiler, self.get_as_integer() * other.get_as_integer())
         },
@@ -53,7 +53,7 @@ impl ValueWrapper {
 
   pub fn div(self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
     unsafe {
-      match (self.ty, other.ty) {
+      match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
           ValueWrapper::new_integer(compiler, self.get_as_integer() / other.get_as_integer())
         },
@@ -73,5 +73,85 @@ impl ValueWrapper {
 
   pub fn not(self, compiler: &mut Compiler) -> ValueWrapper {
     unsafe { ValueWrapper::new_integer(compiler, !self.is_truthy() as i64) }
+  }
+
+  pub fn lt(self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
+    unsafe {
+      match (&self.ty, &other.ty) {
+        (ValueType::Integer, ValueType::Integer) => ValueWrapper::new_integer(
+          compiler,
+          (self.get_as_integer() < other.get_as_integer()) as i64,
+        ),
+        _ => unreachable!("Resolver didn't type check infix operator `<`"),
+      }
+    }
+  }
+
+  pub fn le(self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
+    unsafe {
+      match (&self.ty, &other.ty) {
+        (ValueType::Integer, ValueType::Integer) => ValueWrapper::new_integer(
+          compiler,
+          (self.get_as_integer() <= other.get_as_integer()) as i64,
+        ),
+        _ => unreachable!("Resolver didn't type check infix operator `<=`"),
+      }
+    }
+  }
+
+  pub fn gt(self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
+    unsafe {
+      match (&self.ty, &other.ty) {
+        (ValueType::Integer, ValueType::Integer) => ValueWrapper::new_integer(
+          compiler,
+          (self.get_as_integer() > other.get_as_integer()) as i64,
+        ),
+        _ => unreachable!("Resolver didn't type check infix operator `>`"),
+      }
+    }
+  }
+
+  pub fn ge(self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
+    unsafe {
+      match (&self.ty, &other.ty) {
+        (ValueType::Integer, ValueType::Integer) => ValueWrapper::new_integer(
+          compiler,
+          (self.get_as_integer() >= other.get_as_integer()) as i64,
+        ),
+        _ => unreachable!("Resolver didn't type check infix operator `>=`"),
+      }
+    }
+  }
+
+  pub fn eq(self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
+    unsafe {
+      match (&self.ty, &other.ty) {
+        (ValueType::Integer, ValueType::Integer) => ValueWrapper::new_integer(
+          compiler,
+          (self.get_as_integer() == other.get_as_integer()) as i64,
+        ),
+        (ValueType::String, ValueType::String) => ValueWrapper::new_integer(
+          compiler,
+          (self.get_as_string() == other.get_as_string()) as i64,
+        ),
+        _ => ValueWrapper::new_integer(compiler, 0),
+      }
+    }
+  }
+
+  pub fn ne(self, compiler: &mut Compiler, other: ValueWrapper) -> ValueWrapper {
+    unsafe {
+      match (&self.ty, &other.ty) {
+        (ValueType::Integer, ValueType::Integer) => ValueWrapper::new_integer(
+          compiler,
+          (self.get_as_integer() != other.get_as_integer()) as i64,
+        ),
+        (ValueType::String, ValueType::String) => ValueWrapper::new_integer(
+          compiler,
+          (self.get_as_string() != other.get_as_string()) as i64,
+        ),
+        _ => ValueWrapper::new_integer(compiler, 1),
+      }
+    }
   }
 }

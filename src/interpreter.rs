@@ -122,6 +122,12 @@ impl Interpreter {
       TokenKind::Minus => Ok(left - right),
       TokenKind::Star => Ok(left * right),
       TokenKind::Slash => Ok(left / right),
+      TokenKind::Less => Ok(left.lt(right)),
+      TokenKind::LessEqual => Ok(left.le(right)),
+      TokenKind::Greater => Ok(left.gt(right)),
+      TokenKind::GreaterEqual => Ok(left.ge(right)),
+      TokenKind::EqualEqual => Ok(left.eq(right)),
+      TokenKind::BangEqual => Ok(left.ne(right)),
 
       _ => unreachable!("{op} is not an infix operator"),
     }
