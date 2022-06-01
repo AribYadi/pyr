@@ -1,4 +1,6 @@
 if true:
+  if false:
+    print "hello2\n"
   print "hello\n"
 else:
   print "goodbye\n"

@@ -1,10 +1,12 @@
 use std::path::PathBuf;
 use std::process;
 
+use compiler::Compiler;
 use interpreter::Interpreter;
 use line_col::LineColLookup;
 use parser::Parser;
 
+mod compiler;
 mod error;
 mod interpreter;
 mod parser;
@@ -28,7 +30,13 @@ macro_rules! info {
 }
 
 struct Args {
+  subcommand: ArgsSubcommand,
   source_path: String,
+}
+
+enum ArgsSubcommand {
+  Compile { out: Option<String> },
+  Run,
 }
 
 fn main() {
@@ -81,27 +89,42 @@ fn main() {
       process::exit(1);
     },
   };
-  let mut interpreter = Interpreter::new();
-  match interpreter.interpret(&stmts) {
-    Ok(_) => (),
-    Err(error) => {
-      let (line, col) = lookup.get(error.span.start);
-
-      info!(ERR, "A runtime error has been found!");
-      info!(ERR, " -> {input_file}:{line}:{col}");
-      info!(ERR, " -> {msg}", msg = error.kind);
-
-      process::exit(1);
+  match args.subcommand {
+    ArgsSubcommand::Compile { out } => {
+      let output_file =
+        out.unwrap_or_else(|| source_path.with_extension("o").to_string_lossy().to_string());
+      unsafe {
+        let compiler = Compiler::new(input_file);
+        compiler.compile_to_obj(&output_file, &stmts);
+        info!(INFO, "Compiled to: {}", output_file);
+      }
     },
-  };
+    ArgsSubcommand::Run => {
+      let mut interpreter = Interpreter::new();
+      match interpreter.interpret(&stmts) {
+        Ok(_) => (),
+        Err(error) => {
+          let (line, col) = lookup.get(error.span.start);
+
+          info!(ERR, "A runtime error has been found!");
+          info!(ERR, " -> {input_file}:{line}:{col}");
+          info!(ERR, " -> {msg}", msg = error.kind);
+
+          process::exit(1);
+        },
+      };
+    },
+  }
 }
 
 fn get_args() -> Args {
-  let args = std::env::args().skip(1);
+  let mut args = std::env::args().skip(1);
+  let mut arg_pos = 0;
 
+  let mut subcommand = None;
   let mut source_path = None;
 
-  for (arg_pos, arg) in args.enumerate() {
+  while let Some(arg) = args.next() {
     if arg.starts_with('-') {
       let text = arg.strip_prefix("--").unwrap_or_else(|| arg.strip_prefix('-').unwrap());
       match text {
@@ -110,6 +133,22 @@ fn get_args() -> Args {
           process::exit(0);
         },
         _ => {
+          if let Some(ArgsSubcommand::Compile { ref mut out }) = subcommand {
+            match text {
+              "o" | "out" => {
+                if args.len() < 1 {
+                  print_help();
+                  info!(ERR, "Missing argument for option: `{arg}`.");
+
+                  process::exit(1);
+                }
+                *out = Some(args.next().unwrap());
+                continue;
+              },
+              _ => (),
+            }
+          }
+
           print_help();
           info!(ERR, "Unknown argument: `{arg}`.");
 
@@ -119,11 +158,29 @@ fn get_args() -> Args {
     }
 
     match arg_pos {
-      0 => source_path = Some(arg),
+      0 => match arg.as_str() {
+        "run" => subcommand = Some(ArgsSubcommand::Run),
+        "compile" => subcommand = Some(ArgsSubcommand::Compile { out: None }),
+        _ => {
+          print_help();
+          info!(ERR, "Unknown subcommand: `{arg}`.");
+
+          process::exit(1);
+        },
+      },
+      1 => source_path = Some(arg),
       _ => {
         info!(WARN, "Unused leftover argument: `{arg}`.");
       },
     }
+    arg_pos += 1;
+  }
+
+  if subcommand.is_none() {
+    print_help();
+    info!(ERR, "No subcommand specified.");
+
+    process::exit(1);
   }
 
   if source_path.is_none() {
@@ -133,12 +190,19 @@ fn get_args() -> Args {
     process::exit(1);
   }
 
-  Args { source_path: source_path.unwrap() }
+  Args { subcommand: subcommand.unwrap(), source_path: source_path.unwrap() }
 }
 
 fn print_help() {
-  info!(INFO, "\x1b[1;32mUsage\x1b[0m: `pyr [OPTIONS] <source_file>`");
+  info!(
+    INFO,
+    "\x1b[1;32mUsage\x1b[0m: `pyr [OPTIONS] <SUBCOMMAND> [SUBCOMMAND_OPTIONS] <source_file>`"
+  );
   info!(INFO, "");
+  info!(INFO, "\x1b[1;32mSUBCOMMAND\x1b[0m:");
+  info!(INFO, "  `compile` : Compiles the source file to an object file.");
+  info!(INFO, "    --out, -o: Specifies the output file name.");
+  info!(INFO, "  `run`     : Interprets the source file line by line.");
   info!(INFO, "\x1b[1;32mOptions\x1b[0m:");
   info!(INFO, "  --help, -h: Print this help message.");
 }

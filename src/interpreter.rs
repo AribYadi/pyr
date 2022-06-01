@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::io;
 
 use crate::error::{
@@ -12,15 +11,19 @@ use crate::parser::syntax::{
   StmtKind,
   TokenKind,
 };
-use crate::runtime::Literal;
+use crate::runtime::{
+  IndentLevel,
+  Literal,
+  Variables,
+};
 
 pub struct Interpreter {
-  variables: HashMap<String, (usize, Literal)>,
-  indent_level: usize,
+  variables: Variables<Literal>,
+  indent_level: IndentLevel,
 }
 
 impl Interpreter {
-  pub fn new() -> Self { Self { variables: HashMap::new(), indent_level: 0 } }
+  pub fn new() -> Self { Self { variables: Variables::new(), indent_level: 0 } }
 
   fn start_block(&mut self) { self.indent_level += 1; }
 

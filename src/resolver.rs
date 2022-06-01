@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::error::{
   RuntimeError,
   RuntimeErrorKind,
@@ -12,6 +10,10 @@ use crate::parser::syntax::{
   StmtKind,
   TokenKind,
 };
+use crate::runtime::{
+  IndentLevel,
+  Variables,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ValType {
@@ -21,12 +23,12 @@ pub enum ValType {
 
 // Resolves variables and type checks before interpreting.
 pub struct Resolver {
-  variables: HashMap<String, (usize, ValType)>,
-  indent_level: usize,
+  variables: Variables<ValType>,
+  indent_level: IndentLevel,
 }
 
 impl Resolver {
-  pub fn new() -> Self { Self { variables: HashMap::new(), indent_level: 0 } }
+  pub fn new() -> Self { Self { variables: Variables::new(), indent_level: 0 } }
 
   fn start_block(&mut self) { self.indent_level += 1 }
 

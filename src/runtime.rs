@@ -1,4 +1,9 @@
+use std::collections::HashMap;
+
 mod impl_arithmetics;
+
+pub type IndentLevel = usize;
+pub type Variables<T> = HashMap<String, (IndentLevel, T)>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Literal {
