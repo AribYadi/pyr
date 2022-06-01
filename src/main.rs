@@ -91,12 +91,12 @@ fn main() {
   };
   match args.subcommand {
     ArgsSubcommand::Compile { out } => {
-      let output_file = out.unwrap_or_else(|| {
-        source_path.with_extension("o").file_name().unwrap().to_string_lossy().to_string()
-      });
+      let output_file =
+        out.unwrap_or_else(|| source_path.with_extension("o").to_string_lossy().to_string());
       unsafe {
         let compiler = Compiler::new(input_file);
         compiler.compile_to_obj(&output_file, &stmts);
+        info!(INFO, "Compiled to: {}", output_file);
       }
     },
     ArgsSubcommand::Run => {
