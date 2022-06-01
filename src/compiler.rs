@@ -191,7 +191,7 @@ impl Compiler {
 
     LLVMInitializeFunctionPassManager(fpm);
 
-    let func_ty = LLVMFunctionType(LLVMVoidTypeInContext(ctx), std::ptr::null_mut(), 0, 0);
+    let func_ty = LLVMFunctionType(LLVMInt32TypeInContext(ctx), std::ptr::null_mut(), 0, 0);
     let cstring = CString::new("main").unwrap();
     let ptr = cstring.as_ptr();
     cstring_cache.insert("main".to_string(), cstring);
@@ -347,7 +347,7 @@ impl Compiler {
       self.compile_stmt(stmt);
     }
 
-    LLVMBuildRetVoid(self.builder);
+    LLVMBuildRet(self.builder, LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 0, 0));
     LLVMVerifyFunction(self.main_func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
     LLVMRunFunctionPassManager(self.fpm, self.main_func);
 
