@@ -6,6 +6,7 @@ use std::ffi::{
   CStr,
   CString,
 };
+  use std::os::raw::c_char;
 use std::{
   process,
   ptr,
@@ -121,13 +122,13 @@ impl std::fmt::Display for ValueWrapper {
 }
 
 mod utils {
-  use super::*;
+use super::*;
 
-  pub fn ptr_to_str<'a>(ptr: *const u8, length: usize) -> Cow<'a, str> {
+  pub fn ptr_to_str<'a>(ptr: *const c_char, length: usize) -> Cow<'a, str> {
     if length < 2 {
       return "".into();
     }
-    unsafe { CStr::from_ptr(ptr).to_string_lossy() }
+    unsafe { CStr::from_ptr(ptr as *const c_char).to_string_lossy() }
   }
 }
 
@@ -146,14 +147,14 @@ pub struct Compiler {
 }
 
 impl Compiler {
-  fn cstring(&mut self, s: &str) -> *const u8 {
+  fn cstring(&mut self, s: &str) -> *const c_char {
     let s = s.to_string();
     if let Some(cstring) = self.cstring_cache.get(&s) {
-      return cstring.as_ptr();
+      return cstring.as_ptr() as *const c_char;
     }
 
     let cstring = CString::new(s.as_bytes()).unwrap();
-    let ptr = cstring.as_ptr();
+    let ptr = cstring.as_ptr() as *const c_char;
     self.cstring_cache.insert(s, cstring);
     ptr
   }
