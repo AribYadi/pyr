@@ -144,13 +144,6 @@ impl Parser<'_> {
         self.consume(Tok::If)?;
         let condition = self.expression()?;
         self.consume(Tok::Colon)?;
-        self.consume(Tok::Newline)?;
-        if self.peek != Tok::Indent {
-          return Err(ParseError::new(
-            ParseErrorKind::UnexpectedToken(Tok::Indent, self.peek),
-            self.lexer.span(),
-          ));
-        }
 
         let body = self.parse_block()?;
         self.check_curr(Tok::Newline)?;
@@ -174,13 +167,6 @@ impl Parser<'_> {
         self.consume(Tok::While)?;
         let condition = self.expression()?;
         self.consume(Tok::Colon)?;
-        self.consume(Tok::Newline)?;
-        if self.peek != Tok::Indent {
-          return Err(ParseError::new(
-            ParseErrorKind::UnexpectedToken(Tok::Indent, self.peek),
-            self.lexer.span(),
-          ));
-        }
 
         let body = self.parse_block()?;
         self.check_curr(Tok::Newline)?;
@@ -220,6 +206,17 @@ impl Parser<'_> {
   fn parse_block(&mut self) -> Result<Vec<Stmt>> {
     self.indent_level += 1;
     let mut stmts = Vec::new();
+    if self.consume(Tok::Newline).is_err() {
+      stmts.push(self.statement()?);
+      self.indent_level -= 1;
+      return Ok(stmts);
+    }
+    if self.peek != Tok::Indent {
+      return Err(ParseError::new(
+        ParseErrorKind::UnexpectedToken(Tok::Indent, self.peek),
+        self.lexer.span(),
+      ));
+    }
     while self.peek != Tok::Eof {
       if !self.consume_indents()? {
         break;
@@ -236,13 +233,6 @@ impl Parser<'_> {
       else_stmt.push(self.statement()?);
     } else {
       self.consume(Tok::Colon)?;
-      self.consume(Tok::Newline)?;
-      if self.peek != Tok::Indent {
-        return Err(ParseError::new(
-          ParseErrorKind::UnexpectedToken(Tok::Indent, self.peek),
-          self.lexer.span(),
-        ));
-      }
 
       let new_else_stmt = self.parse_block()?;
       self.check_curr(Tok::Newline)?;

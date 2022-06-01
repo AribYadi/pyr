@@ -264,6 +264,22 @@ fn parse_stmt() {
       }),
     }))
   );
+
+  let stmt = parse("if 1: 1 + 2\n");
+  assert_eq!(
+    stmt,
+    Ok(Stmt::new_without_span(StmtKind::If {
+      condition: Expr::new_without_span(ExprKind::Integer(1)),
+      body: vec![Stmt::new_without_span(StmtKind::Expression {
+        expr: Expr::new_without_span(ExprKind::InfixOp {
+          left: Box::new(Expr::new_without_span(ExprKind::Integer(1))),
+          op: Tok::Plus,
+          right: Box::new(Expr::new_without_span(ExprKind::Integer(2))),
+        }),
+      }),],
+      else_stmt: vec![],
+    }))
+  );
 }
 
 #[test]
@@ -277,11 +293,6 @@ fn parse_stmt_errors() {
   assert_eq!(
     stmt,
     Err(ParseError::new(ParseErrorKind::UnexpectedToken(Tok::Newline, Tok::Eof), 5..5))
-  );
-  let stmt = parse("if 1: 1 + 2");
-  assert_eq!(
-    stmt,
-    Err(ParseError::new(ParseErrorKind::UnexpectedToken(Tok::Newline, Tok::Integer), 6..7))
   );
   let stmt = parse("\tblock");
   assert_eq!(stmt, Err(ParseError::new(ParseErrorKind::UnexpectedIndentBlock, 0..1)));
@@ -297,7 +308,7 @@ fn parse_block() {
   }
 
   let block = parse(
-    "\t1 + 2
+    "\n\t1 + 2
 \t3 + 4
 ",
   );
@@ -322,7 +333,7 @@ fn parse_block() {
   );
 
   let block = parse(
-    "\t1 + 2
+    "\n\t1 + 2
 \t
 \t
 \t3 + 4
@@ -349,7 +360,7 @@ fn parse_block() {
   );
 
   let block = parse(
-    "\t1
+    "\n\t1
 
 \t3",
   );
