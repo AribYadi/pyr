@@ -442,7 +442,6 @@ impl Compiler {
 
     LLVMBuildRet(self.builder, LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 0, 0));
     LLVMVerifyFunction(self.main_func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
-    LLVMDumpModule(self.module);
     LLVMRunFunctionPassManager(self.fpm, self.main_func);
 
     LLVMVerifyModule(
