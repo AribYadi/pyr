@@ -6,7 +6,7 @@ use std::ffi::{
   CStr,
   CString,
 };
-  use std::os::raw::c_char;
+use std::os::raw::c_char;
 use std::{
   process,
   ptr,
@@ -122,7 +122,7 @@ impl std::fmt::Display for ValueWrapper {
 }
 
 mod utils {
-use super::*;
+  use super::*;
 
   pub fn ptr_to_str<'a>(ptr: *const c_char, length: usize) -> Cow<'a, str> {
     if length < 2 {
