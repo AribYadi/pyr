@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
 from dataclasses import dataclass
+import dataclasses
+from enum import Enum
 from os import path
 import os
 import subprocess
 import argparse
 import sys
-from typing import BinaryIO
+from typing import BinaryIO, List
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-u", "--update", help = "Update the tests outputs", action = "store_true")
@@ -103,13 +105,44 @@ class TestResults():
   failed: int = 0
   skipped: int = 0
   updated: int = 0
+  to_be_deleted: List[str] = dataclasses.field(default_factory = list)
+
+class Subcommand(Enum):
+  Run = 1
+  Compile = 2
+
+  def __str__(self) -> str:
+    match self:
+      case Subcommand.Run:
+        return "run"
+      case Subcommand.Compile:
+        return "compile"
 
 def relative_path(path):
   return str(path).replace(BASE_DIR, ".")
 
-def test_file(path, results: TestResults):
-  output = subprocess.run([PYR_DEBUG_BINARY, path], capture_output = True)
-  test_case = TestCase(output.returncode, output.stdout, output.stderr)
+def test_file(path, subcommand: Subcommand, results: TestResults):
+  assert path.endswith(PYR_EXT), f"{relative_path(path)} is not a pyr file."
+
+  pyr_output = subprocess.run([PYR_DEBUG_BINARY, subcommand.__str__(), path], capture_output = True)
+  output = []
+  if pyr_output.returncode == 0 and subcommand == Subcommand.Compile:
+    object_file = path[:-len(PYR_EXT)] + ".o"
+    exe_file = path[:-len(PYR_EXT)] + ".exe"
+    clang_output = subprocess.run(["clang", object_file, "-o", exe_file], capture_output = True)
+    if clang_output.returncode != 0:
+      print(f"\x1b[1;31m[ERR]\x1b[0m: Clang failed to link `{object_file}`.", file = sys.stderr)
+      print(f"\x1b[1;31m[ERR]\x1b[0m: Stderr:", file = sys.stderr)
+      print(f"{clang_output.stderr.decode()}", file = sys.stderr)
+      exit(1)
+    results.to_be_deleted.append(object_file)
+    results.to_be_deleted.append(exe_file)
+    output.append(subprocess.run([exe_file], capture_output = True))
+  else:
+    output.append(pyr_output)
+
+  output = output[0]
+  test_case = TestCase(output.returncode, output.stdout.replace(b'\r\n', b'\n'), output.stderr.replace(b'\r\n', b'\n'))
 
   tc_path = path[:-len(PYR_EXT)] + RECORD_EXT
   tc_path = relative_path(tc_path)
@@ -128,14 +161,14 @@ def test_file(path, results: TestResults):
     print(f"\x1b[33m[WARN]\x1b[0m: Couldn't find record file for {tc_path}. Skipping.")
     results.skipped += 1
   else:
-    print(f"\x1b[2;96m[INFO]\x1b[0m: Testing `{tc_path}`..")
+    print(f"\x1b[2;96m[INFO]\x1b[0m: Testing `{tc_path}` with subcommand `{subcommand.__str__()}`..")
     expected_test_case = TestCase.read(tc_path)
 
     if test_case == expected_test_case:
       print(f"\x1b[2;96m[INFO]\x1b[0m: {tc_path} passed.")
       results.passed += 1
     else:
-      print(f"\x1b[1;31m[ERR]\x1b[0m: {tc_path} failed.", file = sys.stderr)
+      print(f"\x1b[1;31m[ERR]\x1b[0m: {tc_path} failed with subcommand `{subcommand.__str__()}`.", file = sys.stderr)
       print(f"\x1b[1;31m[ERR]\x1b[0m: Expected:", file = sys.stderr)
       print(f"  exit code: {expected_test_case.exitcode}", file = sys.stderr)
       print(f"  stdout: {expected_test_case.stdout}", file = sys.stderr)
@@ -160,7 +193,10 @@ if __name__ == "__main__":
   results = TestResults()
   for entry in os.scandir(TEST_DIR):
     if entry.is_file() and entry.path.endswith(PYR_EXT):
-      test_file(entry.path, results)
+      test_file(entry.path, Subcommand.Run, results)
+      if not args.update:
+        test_file(entry.path, Subcommand.Compile, results)
+
 
   if args.update:
     print()
@@ -172,3 +208,5 @@ if __name__ == "__main__":
     print(f"\x1b[2;96m[INFO]\x1b[0m: {results.passed} passed.")
     print(f"\x1b[2;96m[INFO]\x1b[0m: {results.failed} failed.")
     print(f"\x1b[2;96m[INFO]\x1b[0m: {results.skipped} skipped.")
+    for file in results.to_be_deleted:
+      os.remove(file)
