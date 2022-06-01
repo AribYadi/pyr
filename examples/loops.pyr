@@ -1,0 +1,4 @@
+run = true
+while run:
+  print "hello\n"
+  run = false

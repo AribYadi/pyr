@@ -295,9 +295,9 @@ impl Compiler {
             self.cstring(""),
           );
 
-          let mut then_bb =
+          let then_bb =
             LLVMAppendBasicBlockInContext(self.ctx, self.curr_func, self.cstring("then"));
-          let mut else_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("else"));
+          let else_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("else"));
           let continue_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("continue"));
 
           LLVMBuildCondBr(self.builder, condition, then_bb, else_bb);
@@ -308,7 +308,7 @@ impl Compiler {
           }
 
           LLVMBuildBr(self.builder, continue_bb);
-          then_bb = LLVMGetInsertBlock(self.builder);
+          // then_bb = LLVMGetInsertBlock(self.builder);
 
           LLVMAppendExistingBasicBlock(self.curr_func, else_bb);
           LLVMPositionBuilderAtEnd(self.builder, else_bb);
@@ -318,12 +318,46 @@ impl Compiler {
           }
 
           LLVMBuildBr(self.builder, continue_bb);
-          else_bb = LLVMGetInsertBlock(self.builder);
+          // else_bb = LLVMGetInsertBlock(self.builder);
 
           LLVMAppendExistingBasicBlock(self.curr_func, continue_bb);
           LLVMPositionBuilderAtEnd(self.builder, continue_bb);
         },
-        StmtKind::While { condition, body } => {},
+        StmtKind::While { condition, body } => {
+          let loop_cond = self.compile_expr(condition).not(self).not(self);
+          let loop_cond = LLVMBuildICmp(
+            self.builder,
+            llvm::LLVMIntPredicate::LLVMIntNE,
+            loop_cond.v,
+            zero,
+            self.cstring(""),
+          );
+
+          let loop_bb =
+            LLVMAppendBasicBlockInContext(self.ctx, self.curr_func, self.cstring("loop"));
+          let continue_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("continue"));
+
+          LLVMBuildCondBr(self.builder, loop_cond, loop_bb, continue_bb);
+          LLVMPositionBuilderAtEnd(self.builder, loop_bb);
+
+          for stmt in body {
+            self.compile_stmt(stmt);
+          }
+
+          let loop_cond = self.compile_expr(condition).not(self).not(self);
+          let loop_cond = LLVMBuildICmp(
+            self.builder,
+            llvm::LLVMIntPredicate::LLVMIntNE,
+            loop_cond.v,
+            zero,
+            self.cstring(""),
+          );
+
+          LLVMBuildCondBr(self.builder, loop_cond, loop_bb, continue_bb);
+
+          LLVMAppendExistingBasicBlock(self.curr_func, continue_bb);
+          LLVMPositionBuilderAtEnd(self.builder, continue_bb);
+        },
       }
     }
   }
