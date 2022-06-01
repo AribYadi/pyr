@@ -28,8 +28,19 @@ cargo build --release
 
 ## Usage
 
+To interpret the source code, run the following command:
+
 ```bash
-$ pyr ./examples/hello.pyr
+$ pyr run ./examples/hello.pyr
+Hello, World!
+```
+
+To compile the source code, run the following command:
+
+```bash
+$ pyr build ./examples/hello.pyr
+$ clang -o hello hello.o
+$ ./hello
 Hello, World!
 ```
 
