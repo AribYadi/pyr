@@ -8,10 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install Python
+      - name: Install Pypy
         uses: actions/setup-python@v3
         with:
-          python-version: "pypy3.8"
+          python-version: "pypy-3.9"
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
