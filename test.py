@@ -112,11 +112,10 @@ class Subcommand(Enum):
   Compile = 2
 
   def __str__(self) -> str:
-    match self:
-      case Subcommand.Run:
-        return "run"
-      case Subcommand.Compile:
-        return "compile"
+    if self == Subcommand.Run:
+      return "run"
+    elif self == Subcommand.Compile:
+      return "compile"
 
 def relative_path(path):
   return str(path).replace(BASE_DIR, ".")
