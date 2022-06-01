@@ -87,3 +87,57 @@ impl Not for Literal {
 
   fn not(self) -> Self::Output { Literal::Integer(!self.is_truthy() as i64) }
 }
+
+impl Literal {
+  pub fn lt(self, rhs: Self) -> Self {
+    match (self, rhs) {
+      (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer((l < r) as i64),
+      _ => {
+        unreachable!("Resolver didn't type check infix operator `<`");
+      },
+    }
+  }
+
+  pub fn le(self, rhs: Self) -> Self {
+    match (self, rhs) {
+      (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer((l <= r) as i64),
+      _ => {
+        unreachable!("Resolver didn't type check infix operator `<=`");
+      },
+    }
+  }
+
+  pub fn gt(self, rhs: Self) -> Self {
+    match (self, rhs) {
+      (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer((l > r) as i64),
+      _ => {
+        unreachable!("Resolver didn't type check infix operator `>`");
+      },
+    }
+  }
+
+  pub fn ge(self, rhs: Self) -> Self {
+    match (self, rhs) {
+      (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer((l >= r) as i64),
+      _ => {
+        unreachable!("Resolver didn't type check infix operator `>=`");
+      },
+    }
+  }
+
+  pub fn eq(self, rhs: Self) -> Self {
+    match (self, rhs) {
+      (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer((l == r) as i64),
+      (Literal::String(l), Literal::String(r)) => Literal::Integer((l == r) as i64),
+      _ => Literal::Integer(0),
+    }
+  }
+
+  pub fn ne(self, rhs: Self) -> Self {
+    match (self, rhs) {
+      (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer((l != r) as i64),
+      (Literal::String(l), Literal::String(r)) => Literal::Integer((l != r) as i64),
+      _ => Literal::Integer(1),
+    }
+  }
+}

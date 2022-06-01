@@ -143,14 +143,20 @@ impl Resolver {
         Ok(ValType::Integer)
       },
       TokenKind::Star
-        if (left_type == ValType::String && right_type == ValType::Integer)
-          || (right_type == ValType::String && left_type == ValType::Integer) =>
+        if (left_type == ValType::String && right_type == ValType::Integer) ||
+          (right_type == ValType::String && left_type == ValType::Integer) =>
       {
         Ok(ValType::String)
       },
       TokenKind::Slash if left_type == ValType::Integer && right_type == ValType::Integer => {
         Ok(ValType::Integer)
       },
+      TokenKind::Less | TokenKind::Greater | TokenKind::LessEqual | TokenKind::GreaterEqual
+        if left_type == ValType::Integer && right_type == ValType::Integer =>
+      {
+        Ok(ValType::Integer)
+      },
+      TokenKind::EqualEqual | TokenKind::BangEqual => Ok(ValType::Integer),
 
       _ => Err(RuntimeError::new(
         RuntimeErrorKind::CannotApplyInfix(left.clone(), *op, right.clone()),

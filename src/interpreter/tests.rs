@@ -59,6 +59,27 @@ fn interpret_expr() {
       0..17
     ))
   );
+
+  let result = interpret("1 > 2");
+  assert_eq!(result, Ok(Literal::Integer(0)));
+  let result = interpret("1 < 2");
+  assert_eq!(result, Ok(Literal::Integer(1)));
+  let result = interpret("\"hello\" == \"world\"");
+  assert_eq!(result, Ok(Literal::Integer(0)));
+  let result = interpret("\"hello\" != \"world\"");
+  assert_eq!(result, Ok(Literal::Integer(1)));
+  let result = interpret("\"hello\" > \"world\"");
+  assert_eq!(
+    result,
+    Err(RuntimeError::new(
+      RuntimeErrorKind::CannotApplyInfix(
+        Expr::new_without_span(ExprKind::String("hello".to_string())),
+        TokenKind::Greater,
+        Expr::new_without_span(ExprKind::String("world".to_string()))
+      ),
+      0..17
+    ))
+  );
 }
 
 #[test]

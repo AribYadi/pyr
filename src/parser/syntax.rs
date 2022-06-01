@@ -93,8 +93,22 @@ pub enum TokenKind {
   Star,
   #[token("/")]
   Slash,
+  #[token("=")]
+  Equal,
   #[token("!")]
   Bang,
+  #[token("<")]
+  Less,
+  #[token("<=")]
+  LessEqual,
+  #[token(">")]
+  Greater,
+  #[token(">=")]
+  GreaterEqual,
+  #[token("==")]
+  EqualEqual,
+  #[token("!=")]
+  BangEqual,
 
   // Keywords
   // Currently `print` is a keyword rather than a builtin function.
@@ -116,8 +130,6 @@ pub enum TokenKind {
   // Syntax
   #[token(":")]
   Colon,
-  #[token("=")]
-  Equal,
 }
 
 impl std::fmt::Display for TokenKind {
@@ -135,7 +147,14 @@ impl std::fmt::Display for TokenKind {
       TokenKind::Minus => write!(f, "-"),
       TokenKind::Star => write!(f, "*"),
       TokenKind::Slash => write!(f, "/"),
+      TokenKind::Equal => write!(f, "="),
       TokenKind::Bang => write!(f, "!"),
+      TokenKind::Less => write!(f, "<"),
+      TokenKind::LessEqual => write!(f, "<="),
+      TokenKind::Greater => write!(f, ">"),
+      TokenKind::GreaterEqual => write!(f, ">="),
+      TokenKind::EqualEqual => write!(f, "=="),
+      TokenKind::BangEqual => write!(f, "!="),
       TokenKind::Print => write!(f, "print"),
       TokenKind::If => write!(f, "if"),
       TokenKind::Else => write!(f, "else"),
@@ -143,7 +162,6 @@ impl std::fmt::Display for TokenKind {
       TokenKind::LeftParen => write!(f, "("),
       TokenKind::RightParen => write!(f, ")"),
       TokenKind::Colon => write!(f, ":"),
-      TokenKind::Equal => write!(f, "="),
     }
   }
 }
@@ -163,7 +181,11 @@ impl Operator for TokenKind {
 
   fn infix_bp(&self) -> (u8, u8) {
     match self {
-      TokenKind::Equal => (8, 7),
+      TokenKind::Equal => (6, 5),
+      TokenKind::EqualEqual | TokenKind::BangEqual => (7, 7),
+      TokenKind::Less | TokenKind::Greater | TokenKind::LessEqual | TokenKind::GreaterEqual => {
+        (8, 8)
+      },
       TokenKind::Plus | TokenKind::Minus => (9, 10),
       TokenKind::Star | TokenKind::Slash => (11, 12),
       _ => unreachable!("{self} is not an infix operator"),

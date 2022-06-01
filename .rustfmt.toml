@@ -10,3 +10,4 @@ fn_single_line = true
 imports_granularity = "Module"
 enum_discrim_align_threshold = 100
 use_small_heuristics = "Max"
+binop_separator = "Back"

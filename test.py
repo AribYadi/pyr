@@ -6,15 +6,59 @@ from enum import Enum
 from os import path
 import os
 import subprocess
-import argparse
 import sys
 from typing import BinaryIO, List
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-u", "--update", help = "Update the tests outputs", action = "store_true")
-parser.add_argument("-r", "--release", help = "Run tests in release mode", action = "store_true")
-parser.add_argument("-d", "--dir", help = "Directory to run tests in", default = "tests")
-args = parser.parse_args()
+def print_help():
+  print("\x1b[1;32m[INFO]\x1b[0m: \x1b[1;32mUsage\x1b[0m: `test.py [OPTIONS]`")
+  print()
+  print("\x1b[1;32m[INFO]\x1b[0m: \x1b[1;32mOptions\x1b[0m:")
+  print("\x1b[1;32m[INFO]\x1b[0m:   --help,     -h: Print this help message.")
+  print("\x1b[1;32m[INFO]\x1b[0m:   --release,  -r: Test in release mode.")
+  print("\x1b[1;32m[INFO]\x1b[0m:   --always-build: Always build `pyr` even if already built.")
+  print("\x1b[1;32m[INFO]\x1b[0m:   --dir,      -d: Specify test dir.")
+
+@dataclass
+class Args():
+  update: bool = False
+  release: bool = False
+  always_build: bool = False
+  dir: str = "tests"
+
+  @classmethod
+  def from_args(cls, args: List[str]) -> "Args":
+    self = cls()
+
+    arg_pos = 0
+    for arg in args:
+      if arg.startswith("-"):
+        text = [arg[1:]]
+        if text[0].startswith("-"):
+          text[0] = text[1:]
+        
+        if text[0] == "h" or text[0] == "help":
+          print_help()
+          exit(0)
+        elif text[0] == "u" or text[0] == "update":
+          self.update = True
+        elif text[0] == "r" or text[0] == "release":
+          self.release = True
+        elif text[0] == "always-build":
+          self.always_build = True
+        elif text[0] == "d" or text[0] == "dir":
+          if arg_pos + 1 > len(args):
+            print_help()
+            print(f"\x1b[1;31m[ERR]\x1b[0m: Missing argument for option `{arg}`.", file = sys.stderr)
+            exit(1)
+          self.dir = args[arg_pos + 1]
+        else:
+          print_help()
+          print(f"\x1b[1;31m[ERR]\x1b[0m: Unknown argument: `{arg}`.", file = sys.stderr)
+          exit(1)
+      arg_pos += 1
+    return self
+
+args = Args.from_args(sys.argv[1:])
 
 BASE_DIR = path.dirname(__file__)
 
@@ -181,11 +225,9 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
       results.failed += 1
 
 if __name__ == "__main__":
-  if not args.release and not exe_exist(PYR_DEBUG_BINARY):
-    print(f"\x1b[33m[WARN]\x1b[0m: Couldn't find `{PYR_DEBUG_BINARY}`. Running `cargo build`", file = sys.stderr)
+  if not args.release and (not exe_exist(PYR_DEBUG_BINARY), args.always_build):
     subprocess.run(["cargo", "build"], capture_output = True)
-  elif args.release and not exe_exist(PYR_RELEASE_BINARY):
-    print(f"\x1b[33m[WARN]\x1b[0m: Couldn't find `{PYR_RELEASE_BINARY}`. Running `cargo build --release`", file = sys.stderr)
+  elif args.release and (not exe_exist(PYR_RELEASE_BINARY), args.always_update):
     subprocess.run(["cargo", "build", "--release"], capture_output = True)
 
   print()

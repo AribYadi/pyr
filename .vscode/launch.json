@@ -7,7 +7,7 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug executable 'pyr'",
+      "name": "Debug executable 'pyr' with subcommand 'run'",
       "cargo": {
         "args": ["build", "--bin=pyr", "--package=pyr"],
         "filter": {
@@ -15,7 +15,21 @@
           "kind": "bin"
         }
       },
-      "args": ["${workspaceFolder}/examples/hello.pyr"],
+      "args": ["run", "${workspaceFolder}/examples/hello.pyr"],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug executable 'pyr' with subcommand 'compile'",
+      "cargo": {
+        "args": ["build", "--bin=pyr", "--package=pyr"],
+        "filter": {
+          "name": "pyr",
+          "kind": "bin"
+        }
+      },
+      "args": ["compile", "${workspaceFolder}/examples/hello.pyr"],
       "cwd": "${workspaceFolder}"
     },
     {
@@ -31,6 +45,12 @@
       },
       "args": [],
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "python",
+      "request": "launch",
+      "name": "Debug e2e tests",
+      "program": "${workspaceFolder}/test.py"
     }
   ]
 }

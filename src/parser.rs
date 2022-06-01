@@ -63,8 +63,8 @@ impl Parser<'_> {
   fn consume_indents(&mut self) -> Result<bool> {
     if (0..self.indent_level - 1)
       .rev()
-      .any(|i| self.lexer.clone().nth(i).unwrap_or(Tok::Eof) != Tok::Indent)
-      || self.peek != Tok::Indent
+      .any(|i| self.lexer.clone().nth(i).unwrap_or(Tok::Eof) != Tok::Indent) ||
+      self.peek != Tok::Indent
     {
       return Ok(false);
     }
@@ -144,13 +144,6 @@ impl Parser<'_> {
         self.consume(Tok::If)?;
         let condition = self.expression()?;
         self.consume(Tok::Colon)?;
-        self.consume(Tok::Newline)?;
-        if self.peek != Tok::Indent {
-          return Err(ParseError::new(
-            ParseErrorKind::UnexpectedToken(Tok::Indent, self.peek),
-            self.lexer.span(),
-          ));
-        }
 
         let body = self.parse_block()?;
         self.check_curr(Tok::Newline)?;
@@ -174,13 +167,6 @@ impl Parser<'_> {
         self.consume(Tok::While)?;
         let condition = self.expression()?;
         self.consume(Tok::Colon)?;
-        self.consume(Tok::Newline)?;
-        if self.peek != Tok::Indent {
-          return Err(ParseError::new(
-            ParseErrorKind::UnexpectedToken(Tok::Indent, self.peek),
-            self.lexer.span(),
-          ));
-        }
 
         let body = self.parse_block()?;
         self.check_curr(Tok::Newline)?;
@@ -220,6 +206,17 @@ impl Parser<'_> {
   fn parse_block(&mut self) -> Result<Vec<Stmt>> {
     self.indent_level += 1;
     let mut stmts = Vec::new();
+    if self.consume(Tok::Newline).is_err() {
+      stmts.push(self.statement()?);
+      self.indent_level -= 1;
+      return Ok(stmts);
+    }
+    if self.peek != Tok::Indent {
+      return Err(ParseError::new(
+        ParseErrorKind::UnexpectedToken(Tok::Indent, self.peek),
+        self.lexer.span(),
+      ));
+    }
     while self.peek != Tok::Eof {
       if !self.consume_indents()? {
         break;
@@ -236,13 +233,6 @@ impl Parser<'_> {
       else_stmt.push(self.statement()?);
     } else {
       self.consume(Tok::Colon)?;
-      self.consume(Tok::Newline)?;
-      if self.peek != Tok::Indent {
-        return Err(ParseError::new(
-          ParseErrorKind::UnexpectedToken(Tok::Indent, self.peek),
-          self.lexer.span(),
-        ));
-      }
 
       let new_else_stmt = self.parse_block()?;
       self.check_curr(Tok::Newline)?;
@@ -253,15 +243,15 @@ impl Parser<'_> {
     Ok(())
   }
 
-  pub(crate) fn expression(&mut self) -> Result<Expr> { self.parse_expr(0) }
+  pub(crate) fn expression(&mut self) -> Result<Expr> { self.parse_expr(0, Tok::Eof) }
 
-  fn parse_expr(&mut self, bp: u8) -> Result<Expr> {
+  fn parse_expr(&mut self, bp: u8, last_op: Tok) -> Result<Expr> {
     let mut lhs = match self.peek {
-      literal @ Tok::String
-      | literal @ Tok::Integer
-      | literal @ Tok::Identifier
-      | literal @ Tok::True
-      | literal @ Tok::False => {
+      literal @ Tok::String |
+      literal @ Tok::Integer |
+      literal @ Tok::Identifier |
+      literal @ Tok::True |
+      literal @ Tok::False => {
         let text = self.lexeme();
         let span = self.lexer.span();
         self.consume(literal)?;
@@ -279,7 +269,7 @@ impl Parser<'_> {
       },
       Tok::LeftParen => {
         self.consume(Tok::LeftParen)?;
-        let expr = self.parse_expr(0)?;
+        let expr = self.parse_expr(0, Tok::Eof)?;
         self.consume_delimiter(Tok::RightParen)?;
         Ok(expr)
       },
@@ -288,7 +278,7 @@ impl Parser<'_> {
 
         self.consume(op)?;
         let ((), rbp) = op.prefix_bp();
-        let right = self.parse_expr(rbp)?;
+        let right = self.parse_expr(rbp, op)?;
 
         let span_end = self.lexer.span().end;
 
@@ -302,14 +292,29 @@ impl Parser<'_> {
     }?;
     while self.peek != Tok::Eof {
       match self.peek {
-        op @ Tok::Plus | op @ Tok::Minus | op @ Tok::Star | op @ Tok::Slash => {
+        op @ Tok::Plus |
+        op @ Tok::Minus |
+        op @ Tok::Star |
+        op @ Tok::Slash |
+        op @ Tok::Less |
+        op @ Tok::Greater |
+        op @ Tok::LessEqual |
+        op @ Tok::GreaterEqual |
+        op @ Tok::EqualEqual |
+        op @ Tok::BangEqual => {
           let (lbp, rbp) = op.infix_bp();
           if lbp < bp {
             break;
           }
+          if lbp == bp || rbp == bp {
+            return Err(ParseError::new(
+              ParseErrorKind::InvalidChainOperator(op, last_op),
+              self.lexer.span(),
+            ));
+          }
 
           self.consume(op)?;
-          let right = self.parse_expr(rbp)?;
+          let right = self.parse_expr(rbp, op)?;
           let span_start = lhs.span.start;
           let span_end = right.span.end;
           lhs = Expr::new(
@@ -325,7 +330,7 @@ impl Parser<'_> {
             }
 
             self.consume(op)?;
-            let right = self.parse_expr(rbp)?;
+            let right = self.parse_expr(rbp, op)?;
             let span_start = lhs.span.start;
             let span_end = right.span.end;
             lhs = Expr::new(
