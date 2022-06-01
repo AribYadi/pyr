@@ -123,7 +123,7 @@ impl std::fmt::Display for ValueWrapper {
 mod utils {
   use super::*;
 
-  pub fn ptr_to_str<'a>(ptr: *const i8, length: usize) -> Cow<'a, str> {
+  pub fn ptr_to_str<'a>(ptr: *const u8, length: usize) -> Cow<'a, str> {
     if length < 2 {
       return "".into();
     }
@@ -146,7 +146,7 @@ pub struct Compiler {
 }
 
 impl Compiler {
-  fn cstring(&mut self, s: &str) -> *const i8 {
+  fn cstring(&mut self, s: &str) -> *const u8 {
     let s = s.to_string();
     if let Some(cstring) = self.cstring_cache.get(&s) {
       return cstring.as_ptr();
