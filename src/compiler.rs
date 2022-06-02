@@ -37,7 +37,10 @@ use llvm::transforms::scalar::{
   LLVMAddReassociatePass,
 };
 use llvm::transforms::util::LLVMAddPromoteMemoryToRegisterPass;
-use llvm::LLVMCallConv;
+use llvm::{
+  LLVMCallConv,
+  LLVMIntPredicate,
+};
 use llvm_sys as llvm;
 
 use llvm::core::*;
@@ -66,6 +69,8 @@ enum ValueType {
 struct ValueWrapper {
   v: LLVMValueRef,
   ty: ValueType,
+  is_pointer: bool,
+  is_runtime: bool,
 }
 
 impl ValueWrapper {
@@ -73,7 +78,7 @@ impl ValueWrapper {
     let ty = LLVMInt64TypeInContext(self_.ctx);
     let v = if v > 0 { LLVMConstInt(ty, v as u64, 0) } else { LLVMConstInt(ty, v as u64, 1) };
 
-    Self { v, ty: ValueType::Integer }
+    Self { v, ty: ValueType::Integer, is_pointer: false, is_runtime: false }
   }
 
   unsafe fn new_string(self_: &mut Compiler, v: &str) -> Self {
@@ -81,12 +86,21 @@ impl ValueWrapper {
     let length = v.len() as u32;
     let v = LLVMConstStringInContext(self_.ctx, ptr, length, 0);
 
-    Self { v, ty: ValueType::String }
+    Self { v, ty: ValueType::String, is_pointer: false, is_runtime: false }
+  }
+
+  unsafe fn new_variable(self_: &mut Compiler, inner: ValueWrapper) -> Self {
+    let v = self_.alloca_at_entry(inner.v);
+    Self { v, ty: inner.ty, is_pointer: true, is_runtime: true }
   }
 
   fn is_integer(&self) -> bool { self.ty == ValueType::Integer }
 
   fn is_string(&self) -> bool { self.ty == ValueType::String }
+
+  // Since pointers are also runtime values, we can say that a pointer is a
+  // runtime value
+  fn is_runtime(&self) -> bool { self.is_runtime || self.is_pointer }
 
   unsafe fn get_as_integer(&self) -> i64 {
     assert!(self.is_integer(), "Value is not an integer");
@@ -100,6 +114,19 @@ impl ValueWrapper {
     utils::ptr_to_str(ptr, length).to_string()
   }
 
+  unsafe fn load(&self, compiler: &mut Compiler) -> Self {
+    if self.is_pointer {
+      let ty = LLVMTypeOf(self.v);
+      let ty = LLVMGetElementType(ty);
+      let v = LLVMBuildLoad2(compiler.builder, ty, self.v, compiler.cstring("load"));
+      Self { v, ty: self.ty, is_pointer: false, is_runtime: true }
+    } else if self.is_runtime {
+      Self { v: self.v, ty: self.ty, is_pointer: false, is_runtime: true }
+    } else {
+      self.clone()
+    }
+  }
+
   fn is_truthy(&self) -> bool {
     unsafe {
       match self.ty {
@@ -108,11 +135,40 @@ impl ValueWrapper {
       }
     }
   }
+
+  unsafe fn new_is_truthy(&self, compiler: &mut Compiler) -> Self {
+    if self.is_runtime() {
+      let self_ = self.load(compiler);
+      match self_.ty {
+        ValueType::Integer => {
+          let int_ty = LLVMInt64TypeInContext(compiler.ctx);
+
+          let v = LLVMBuildICmp(
+            compiler.builder,
+            LLVMIntPredicate::LLVMIntEQ,
+            self_.v,
+            LLVMConstInt(int_ty, 1, 0),
+            compiler.cstring(""),
+          );
+          let v = LLVMBuildIntCast2(compiler.builder, v, int_ty, 0, compiler.cstring(""));
+          return ValueWrapper { v, ty: ValueType::Integer, is_pointer: false, is_runtime: true };
+        },
+        ValueType::String => todo!(),
+        #[allow(unreachable_patterns)]
+        _ => unreachable!(),
+      }
+    }
+    let v = self.is_truthy() as i64;
+    ValueWrapper::new_integer(compiler, v)
+  }
 }
 
 impl std::fmt::Display for ValueWrapper {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     unsafe {
+      if self.is_runtime() {
+        todo!()
+      }
       match self.ty {
         ValueType::Integer => write!(f, "{}", self.get_as_integer()),
         ValueType::String => write!(f, "{}", self.get_as_string()),
@@ -255,7 +311,7 @@ impl Compiler {
         LLVMPositionBuilderAtEnd(builder, entry);
       }
 
-      let name = self.cstring("str");
+      let name = self.cstring("");
       let value_ptr = LLVMBuildAlloca(builder, LLVMTypeOf(value), name);
       LLVMBuildStore(self.builder, value, value_ptr);
       value_ptr
@@ -294,7 +350,7 @@ impl Compiler {
           );
         },
         StmtKind::If { condition, body, else_stmt } => {
-          let condition = self.compile_expr(condition).not(self).not(self);
+          let condition = self.compile_expr(condition).new_is_truthy(self);
           let condition = LLVMBuildICmp(
             self.builder,
             llvm::LLVMIntPredicate::LLVMIntNE,
@@ -336,7 +392,7 @@ impl Compiler {
           LLVMPositionBuilderAtEnd(self.builder, continue_bb);
         },
         StmtKind::While { condition, body } => {
-          let loop_cond = self.compile_expr(condition).not(self).not(self);
+          let loop_cond = self.compile_expr(condition).new_is_truthy(self);
           let loop_cond = LLVMBuildICmp(
             self.builder,
             llvm::LLVMIntPredicate::LLVMIntNE,
@@ -357,7 +413,7 @@ impl Compiler {
             self.compile_stmt(stmt);
           }
 
-          let loop_cond = self.compile_expr(condition).not(self).not(self);
+          let loop_cond = self.compile_expr(condition).new_is_truthy(self);
           let loop_cond = LLVMBuildICmp(
             self.builder,
             llvm::LLVMIntPredicate::LLVMIntNE,
@@ -397,7 +453,19 @@ impl Compiler {
         },
         ExprKind::VarAssign { name, expr } => {
           let expr = self.compile_expr(expr);
-          self.variables.insert(name.to_string(), (self.indent_level, expr.clone()));
+          let new_val = ValueWrapper::new_variable(self, expr.clone());
+          match self.variables.get_mut(&name.clone()) {
+            Some((_, val)) => {
+              if val.ty == expr.ty {
+                LLVMBuildStore(self.builder, expr.v, val.v);
+              } else {
+                *val = new_val;
+              }
+            },
+            None => {
+              self.variables.insert(name.clone(), (self.indent_level, new_val));
+            },
+          }
           expr
         },
       }
@@ -441,6 +509,7 @@ impl Compiler {
     }
 
     LLVMBuildRet(self.builder, LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 0, 0));
+    LLVMDumpModule(self.module);
     LLVMVerifyFunction(self.main_func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
     LLVMRunFunctionPassManager(self.fpm, self.main_func);
 

@@ -1,4 +1,4 @@
-run = true
-while run:
+i = 0
+while i < 10:
   print "hello\n"
-  run = false
+  i = i + 1
