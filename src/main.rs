@@ -1,5 +1,8 @@
 use std::path::PathBuf;
-use std::process;
+use std::process::{
+  self,
+  Command,
+};
 
 use compiler::Compiler;
 use interpreter::Interpreter;
@@ -35,7 +38,7 @@ struct Args {
 }
 
 enum ArgsSubcommand {
-  Compile { out: Option<String> },
+  Compile { out: Option<String>, link: bool },
   Run,
 }
 
@@ -90,13 +93,32 @@ fn main() {
     },
   };
   match args.subcommand {
-    ArgsSubcommand::Compile { out } => {
-      let output_file =
-        out.unwrap_or_else(|| source_path.with_extension("o").to_string_lossy().to_string());
+    ArgsSubcommand::Compile { out, link } => {
+      let obj_file = out
+        .clone()
+        .unwrap_or_else(|| source_path.with_extension("o").to_string_lossy().to_string());
       unsafe {
         let compiler = Compiler::new(input_file);
-        compiler.compile_to_obj(&output_file, &stmts);
-        info!(INFO, "Compiled to: {}", output_file);
+        compiler.compile_to_obj(&obj_file, &stmts);
+      }
+      info!(INFO, "Compiled to `{obj_file}`");
+      if link {
+        let exe_file =
+          out.unwrap_or_else(|| source_path.with_extension("exe").to_string_lossy().to_string());
+        let clang_output =
+          match Command::new("clang").arg("-o").arg(&exe_file).arg(&obj_file).output() {
+            Ok(output) => output,
+            Err(err) => {
+              info!(ERR, "Failed to run `clang -o {exe_file} {obj_file}`: {err}");
+              process::exit(1);
+            },
+          };
+        if !clang_output.status.success() {
+          info!(ERR, "Failed to link {obj_file}!");
+          eprintln!("{status}", status = clang_output.status);
+          process::exit(1);
+        }
+        info!(INFO, "Successfully compiled and linked `{obj_file}` to `{exe_file}`!");
       }
     },
     ArgsSubcommand::Run => {
@@ -133,7 +155,7 @@ fn get_args() -> Args {
           process::exit(0);
         },
         _ => {
-          if let Some(ArgsSubcommand::Compile { ref mut out }) = subcommand {
+          if let Some(ArgsSubcommand::Compile { ref mut out, ref mut link }) = subcommand {
             match text {
               "o" | "out" => {
                 if args.len() < 1 {
@@ -143,6 +165,10 @@ fn get_args() -> Args {
                   process::exit(1);
                 }
                 *out = Some(args.next().unwrap());
+                continue;
+              },
+              "l" | "link" => {
+                *link = true;
                 continue;
               },
               _ => (),
@@ -160,7 +186,7 @@ fn get_args() -> Args {
     match arg_pos {
       0 => match arg.as_str() {
         "run" => subcommand = Some(ArgsSubcommand::Run),
-        "compile" => subcommand = Some(ArgsSubcommand::Compile { out: None }),
+        "compile" => subcommand = Some(ArgsSubcommand::Compile { out: None, link: false }),
         _ => {
           print_help();
           info!(ERR, "Unknown subcommand: `{arg}`.");
@@ -201,7 +227,8 @@ fn print_help() {
   info!(INFO, "");
   info!(INFO, "\x1b[1;32mSUBCOMMAND\x1b[0m:");
   info!(INFO, "  `compile` : Compiles the source file to an object file.");
-  info!(INFO, "    --out, -o: Specifies the output file name.");
+  info!(INFO, "    --out, -o : Specifies the output file name.");
+  info!(INFO, "    --link, -l: Links the object file.");
   info!(INFO, "  `run`     : Interprets the source file line by line.");
   info!(INFO, "\x1b[1;32mOptions\x1b[0m:");
   info!(INFO, "  --help, -h: Print this help message.");
