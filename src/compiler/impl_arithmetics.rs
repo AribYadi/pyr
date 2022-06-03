@@ -55,6 +55,15 @@ impl ValueWrapper {
             2,
             compiler.cstring(""),
           );
+          let null_term = LLVMBuildGEP2(
+            compiler.builder,
+            LLVMInt8TypeInContext(compiler.ctx),
+            buf,
+            [len].as_mut_ptr(),
+            1,
+            compiler.cstring(""),
+          );
+          LLVMBuildStore(compiler.builder, LLVMConstInt(LLVMInt8TypeInContext(compiler.ctx), 0, 0), null_term);
 
           (buf, ValueType::String, true, false, Some(len))
         };
@@ -92,7 +101,72 @@ impl ValueWrapper {
       impl_arithmetics_for_runtime! {
         compiler, self, other;
         (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| (LLVMBuildMul(compiler.builder, self_.v, other_.v, compiler.cstring("")), ValueType::Integer, false, true, None);
-        (ValueType::String, ValueType::Integer) | (ValueType::Integer, ValueType::String) => |_, _| todo!();
+        (ValueType::String, ValueType::Integer) | (ValueType::Integer, ValueType::String) => |left: Self, right: Self| {
+          let i64_type = LLVMInt64TypeInContext(compiler.ctx);
+
+          let (left, left_len) = utils::runtime_string_of(compiler, left);
+
+          let len = LLVMBuildMul(compiler.builder, left_len, right.v, compiler.cstring(""));
+          let buf = compiler.alloca_str(len);
+
+          let (strcpy_func, strcpy_ty) = compiler.get_func("strcpy").unwrap();
+          let (strcat_func, strcat_ty) = compiler.get_func("strcat").unwrap();
+
+          let start_bb = LLVMAppendBasicBlockInContext(compiler.ctx, compiler.curr_func, compiler.cstring("mul_start"));
+          let loop_bb = LLVMCreateBasicBlockInContext(compiler.ctx, compiler.cstring("mul_loop"));
+          let done_bb = LLVMCreateBasicBlockInContext(compiler.ctx, compiler.cstring("mul_done"));
+
+          let condition = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntNE, right.v, LLVMConstInt(i64_type, 0, 0), compiler.cstring(""));
+          LLVMBuildCondBr(compiler.builder, condition, start_bb, done_bb);
+
+          LLVMPositionBuilderAtEnd(compiler.builder, start_bb);
+          LLVMBuildCall2(
+            compiler.builder,
+            strcpy_ty,
+            strcpy_func,
+            [buf, left].as_mut_ptr(),
+            2,
+            compiler.cstring(""),
+          );
+          let condition = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntNE, right.v, LLVMConstInt(i64_type, 1, 0), compiler.cstring(""));
+          LLVMBuildCondBr(compiler.builder, condition, loop_bb, done_bb);
+
+          LLVMAppendExistingBasicBlock(compiler.curr_func, loop_bb);
+          LLVMPositionBuilderAtEnd(compiler.builder, loop_bb);
+          let i = LLVMBuildPhi(compiler.builder, i64_type, compiler.cstring("i"));
+          LLVMBuildCall2(
+            compiler.builder,
+            strcat_ty,
+            strcat_func,
+            [buf, left].as_mut_ptr(),
+            2,
+            compiler.cstring(""),
+          );
+          let new_i = LLVMBuildAdd(compiler.builder, i, LLVMConstInt(i64_type, 1, 0), compiler.cstring("new_i"));
+          LLVMAddIncoming(
+            i,
+            [LLVMConstInt(i64_type, 1, 0), new_i].as_mut_ptr(),
+            [start_bb, loop_bb].as_mut_ptr(),
+            2,
+          );
+          let condition = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntULT, new_i, right.v, compiler.cstring(""));
+          LLVMBuildCondBr(compiler.builder, condition, loop_bb, done_bb);
+
+          LLVMAppendExistingBasicBlock(compiler.curr_func, done_bb);
+          LLVMPositionBuilderAtEnd(compiler.builder, done_bb);
+
+          let null_term = LLVMBuildGEP2(
+            compiler.builder,
+            LLVMInt8TypeInContext(compiler.ctx),
+            buf,
+            [len].as_mut_ptr(),
+            1,
+            compiler.cstring(""),
+          );
+          LLVMBuildStore(compiler.builder, LLVMConstInt(LLVMInt8TypeInContext(compiler.ctx), 0, 0), null_term);
+
+          (buf, ValueType::String, true, false, Some(len))
+        };
       }
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
