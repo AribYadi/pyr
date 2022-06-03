@@ -240,7 +240,6 @@ if __name__ == "__main__":
       if not args.update:
         test_file(entry.path, Subcommand.Compile, results)
 
-
   if args.update:
     print()
     print(f"\x1b[2;96m[INFO]\x1b[0m: {results.updated} updated.")
@@ -253,3 +252,6 @@ if __name__ == "__main__":
     print(f"\x1b[2;96m[INFO]\x1b[0m: {results.skipped} skipped.")
     for file in results.to_be_deleted:
       os.remove(file)
+
+  if results.failed > 0:
+    exit(1)
