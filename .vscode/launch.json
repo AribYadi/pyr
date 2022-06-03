@@ -29,7 +29,7 @@
           "kind": "bin"
         }
       },
-      "args": ["compile", "${workspaceFolder}/examples/loops.pyr"],
+      "args": ["compile", "${workspaceFolder}/examples/variables.pyr"],
       "cwd": "${workspaceFolder}"
     },
     {

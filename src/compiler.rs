@@ -71,6 +71,8 @@ struct ValueWrapper {
   ty: ValueType,
   is_pointer: bool,
   is_runtime: bool,
+  can_be_loaded: bool,
+  ptr_len: Option<LLVMValueRef>,
 }
 
 impl ValueWrapper {
@@ -78,7 +80,14 @@ impl ValueWrapper {
     let ty = LLVMInt64TypeInContext(self_.ctx);
     let v = if v > 0 { LLVMConstInt(ty, v as u64, 0) } else { LLVMConstInt(ty, v as u64, 1) };
 
-    Self { v, ty: ValueType::Integer, is_pointer: false, is_runtime: false }
+    Self {
+      v,
+      ty: ValueType::Integer,
+      is_pointer: false,
+      can_be_loaded: true,
+      is_runtime: false,
+      ptr_len: None,
+    }
   }
 
   unsafe fn new_string(self_: &mut Compiler, v: &str) -> Self {
@@ -86,12 +95,19 @@ impl ValueWrapper {
     let length = v.len() as u32;
     let v = LLVMConstStringInContext(self_.ctx, ptr, length, 0);
 
-    Self { v, ty: ValueType::String, is_pointer: false, is_runtime: false }
+    Self {
+      v,
+      ty: ValueType::String,
+      is_pointer: false,
+      can_be_loaded: true,
+      is_runtime: false,
+      ptr_len: None,
+    }
   }
 
   unsafe fn new_variable(self_: &mut Compiler, inner: ValueWrapper) -> Self {
     let v = self_.alloca_at_entry(inner.v);
-    Self { v, ty: inner.ty, is_pointer: true, is_runtime: true }
+    Self { v, ty: inner.ty, is_pointer: true, can_be_loaded: true, is_runtime: true, ptr_len: None }
   }
 
   fn is_integer(&self) -> bool { self.ty == ValueType::Integer }
@@ -115,13 +131,27 @@ impl ValueWrapper {
   }
 
   unsafe fn load(&self, compiler: &mut Compiler) -> Self {
-    if self.is_pointer {
+    if self.is_pointer && self.can_be_loaded {
       let ty = LLVMTypeOf(self.v);
       let ty = LLVMGetElementType(ty);
       let v = LLVMBuildLoad2(compiler.builder, ty, self.v, compiler.cstring("load"));
-      Self { v, ty: self.ty, is_pointer: false, is_runtime: true }
-    } else if self.is_runtime {
-      Self { v: self.v, ty: self.ty, is_pointer: false, is_runtime: true }
+      Self {
+        v,
+        ty: self.ty,
+        is_pointer: false,
+        can_be_loaded: true,
+        is_runtime: true,
+        ptr_len: None,
+      }
+    } else if self.is_runtime && self.can_be_loaded {
+      Self {
+        v: self.v,
+        ty: self.ty,
+        is_pointer: false,
+        can_be_loaded: true,
+        is_runtime: true,
+        ptr_len: None,
+      }
     } else {
       self.clone()
     }
@@ -151,7 +181,14 @@ impl ValueWrapper {
             compiler.cstring(""),
           );
           let v = LLVMBuildIntCast2(compiler.builder, v, int_ty, 0, compiler.cstring(""));
-          return ValueWrapper { v, ty: ValueType::Integer, is_pointer: false, is_runtime: true };
+          return ValueWrapper {
+            v,
+            ty: ValueType::Integer,
+            is_pointer: false,
+            can_be_loaded: true,
+            is_runtime: true,
+            ptr_len: None,
+          };
         },
         ValueType::String => todo!(),
         #[allow(unreachable_patterns)]
@@ -167,7 +204,7 @@ impl std::fmt::Display for ValueWrapper {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     unsafe {
       if self.is_runtime() {
-        todo!()
+        unreachable!("Runtime value cannot be formatted.");
       }
       match self.ty {
         ValueType::Integer => write!(f, "{}", self.get_as_integer()),
@@ -186,6 +223,80 @@ mod utils {
     }
     unsafe { CStr::from_ptr(ptr as *const c_char).to_string_lossy() }
   }
+
+  pub(super) fn runtime_string_of(
+    self_: &mut Compiler,
+    value: ValueWrapper,
+  ) -> (LLVMValueRef, LLVMValueRef) {
+    unsafe {
+      let (int_len_func, int_len_ty) = self_.get_func("%%int_len%%").unwrap();
+      let (int_as_str_func, int_as_str_ty) = self_.get_func("%%int_as_str%%").unwrap();
+      let int64_type = LLVMInt64TypeInContext(self_.ctx);
+      let int8_type = LLVMInt8TypeInContext(self_.ctx);
+      let zero = LLVMConstInt(int64_type, 0, 0);
+
+      match &value.ty {
+        ValueType::String => {
+          let ty = LLVMTypeOf(value.v);
+          if value.is_pointer {
+            let len = LLVMBuildSub(
+              self_.builder,
+              value.ptr_len.unwrap(),
+              LLVMConstInt(int64_type, 1, 0),
+              self_.cstring(""),
+            );
+            return (value.v, len);
+          }
+          let v = self_.alloca_at_entry(value.v);
+          let v = LLVMBuildGEP2(
+            self_.builder,
+            LLVMGetElementType(LLVMTypeOf(v)),
+            v,
+            [zero, zero].as_mut_ptr(),
+            2,
+            self_.cstring(""),
+          );
+          (v, LLVMConstInt(int64_type, (LLVMGetArrayLength(ty) - 1) as u64, 0))
+        },
+        ValueType::Integer => {
+          let orig_len = LLVMBuildCall2(
+            self_.builder,
+            int_len_ty,
+            int_len_func,
+            [value.v].as_mut_ptr(),
+            1,
+            self_.cstring(""),
+          );
+          let len = LLVMBuildAdd(
+            self_.builder,
+            orig_len,
+            LLVMConstInt(int64_type, 1, 0),
+            self_.cstring(""),
+          );
+          let buf = self_.alloca_str(len);
+          LLVMBuildCall2(
+            self_.builder,
+            int_as_str_ty,
+            int_as_str_func,
+            [buf, value.v, orig_len].as_mut_ptr(),
+            3,
+            self_.cstring(""),
+          );
+          let null_term = LLVMBuildGEP2(
+            self_.builder,
+            int8_type,
+            buf,
+            [orig_len].as_mut_ptr(),
+            1,
+            self_.cstring(""),
+          );
+          LLVMBuildStore(self_.builder, LLVMConstInt(int8_type, 0, 0), null_term);
+
+          (buf, orig_len)
+        },
+      }
+    }
+  }
 }
 
 pub struct Compiler {
@@ -197,6 +308,7 @@ pub struct Compiler {
   cstring_cache: HashMap<String, CString>,
   main_func: LLVMValueRef,
   curr_func: LLVMValueRef,
+  str_arr_count: usize,
 
   variables: Variables<ValueWrapper>,
   indent_level: IndentLevel,
@@ -217,14 +329,171 @@ impl Compiler {
 
   fn declare_libc_functions(&mut self) {
     unsafe {
-      let printf_type = LLVMFunctionType(
-        LLVMInt32TypeInContext(self.ctx),
-        [LLVMPointerType(LLVMInt8TypeInContext(self.ctx), 0)].as_mut_ptr(),
-        1,
-        1,
-      );
+      let char_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.ctx), 0);
+
+      let printf_type =
+        LLVMFunctionType(LLVMInt32TypeInContext(self.ctx), [char_ptr_ty].as_mut_ptr(), 1, 1);
       let printf_func = LLVMAddFunction(self.module, self.cstring("printf"), printf_type);
       LLVMSetFunctionCallConv(printf_func, LLVMCallConv::LLVMCCallConv as u32);
+
+      let strcpy_type =
+        LLVMFunctionType(char_ptr_ty, [char_ptr_ty, char_ptr_ty].as_mut_ptr(), 2, 0);
+      let strcpy_func = LLVMAddFunction(self.module, self.cstring("strcpy"), strcpy_type);
+      LLVMSetFunctionCallConv(strcpy_func, LLVMCallConv::LLVMCCallConv as u32);
+
+      let strcat_type =
+        LLVMFunctionType(char_ptr_ty, [char_ptr_ty, char_ptr_ty].as_mut_ptr(), 2, 0);
+      let strcat_func = LLVMAddFunction(self.module, self.cstring("strcat"), strcat_type);
+      LLVMSetFunctionCallConv(strcat_func, LLVMCallConv::LLVMCCallConv as u32);
+    }
+  }
+
+  fn define_helper_functions(&mut self) {
+    // %%int_len%% => Gives the length of an integer as a string.
+    unsafe {
+      let i64_type = LLVMInt64TypeInContext(self.ctx);
+
+      let int_len_type = LLVMFunctionType(i64_type, [i64_type].as_mut_ptr(), 1, 0);
+      let int_len_func = LLVMAddFunction(self.module, self.cstring("%%int_len%%"), int_len_type);
+      let builder = LLVMCreateBuilderInContext(self.ctx);
+
+      let start_bb = LLVMAppendBasicBlockInContext(self.ctx, int_len_func, self.cstring("start"));
+      let loop_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("loop"));
+      let ret_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("ret"));
+
+      LLVMPositionBuilderAtEnd(builder, start_bb);
+      let orig_int_par = LLVMGetParam(int_len_func, 0);
+      let condition = LLVMBuildICmp(
+        builder,
+        LLVMIntPredicate::LLVMIntEQ,
+        orig_int_par,
+        LLVMConstInt(i64_type, 0, 0),
+        self.cstring(""),
+      );
+      LLVMBuildCondBr(builder, condition, ret_bb, loop_bb);
+
+      LLVMAppendExistingBasicBlock(int_len_func, loop_bb);
+      LLVMPositionBuilderAtEnd(builder, loop_bb);
+      let len = LLVMBuildPhi(builder, i64_type, self.cstring("len"));
+      let int_par = LLVMBuildPhi(builder, i64_type, self.cstring("int_par"));
+
+      let new_len = LLVMBuildAdd(builder, len, LLVMConstInt(i64_type, 1, 0), self.cstring(""));
+      LLVMAddIncoming(
+        len,
+        [LLVMConstInt(i64_type, 0, 0), new_len].as_mut_ptr(),
+        [start_bb, loop_bb].as_mut_ptr(),
+        2,
+      );
+      let new_int_par =
+        LLVMBuildSDiv(builder, int_par, LLVMConstInt(i64_type, 10, 0), self.cstring(""));
+      LLVMAddIncoming(
+        int_par,
+        [orig_int_par, new_int_par].as_mut_ptr(),
+        [start_bb, loop_bb].as_mut_ptr(),
+        2,
+      );
+
+      let condition =
+        LLVMBuildAdd(builder, int_par, LLVMConstInt(i64_type, 9, 0), self.cstring(""));
+      let condition = LLVMBuildICmp(
+        builder,
+        LLVMIntPredicate::LLVMIntULT,
+        condition,
+        LLVMConstInt(i64_type, 19, 0),
+        self.cstring(""),
+      );
+      LLVMBuildCondBr(builder, condition, ret_bb, loop_bb);
+
+      LLVMAppendExistingBasicBlock(int_len_func, ret_bb);
+      LLVMPositionBuilderAtEnd(builder, ret_bb);
+      let len = LLVMBuildPhi(builder, i64_type, self.cstring("len"));
+      LLVMAddIncoming(
+        len,
+        [LLVMConstInt(i64_type, 1, 0), new_len].as_mut_ptr(),
+        [start_bb, loop_bb].as_mut_ptr(),
+        2,
+      );
+      LLVMBuildRet(builder, len);
+    }
+
+    // %%int_as_str%% => Gives the string representation of an integer.
+    unsafe {
+      let i64_type = LLVMInt64TypeInContext(self.ctx);
+      let i8_type = LLVMInt8TypeInContext(self.ctx);
+
+      let int_as_str_type = LLVMFunctionType(
+        LLVMVoidTypeInContext(self.ctx),
+        [LLVMPointerType(i8_type, 0), i64_type, i64_type].as_mut_ptr(),
+        3,
+        0,
+      );
+      let int_as_str_func =
+        LLVMAddFunction(self.module, self.cstring("%%int_as_str%%"), int_as_str_type);
+      let builder = LLVMCreateBuilderInContext(self.ctx);
+
+      let start_bb =
+        LLVMAppendBasicBlockInContext(self.ctx, int_as_str_func, self.cstring("start"));
+      let loop_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("loop"));
+      let ret_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("ret"));
+
+      LLVMPositionBuilderAtEnd(builder, start_bb);
+      let buf = LLVMGetParam(int_as_str_func, 0);
+      let orig_int_par = LLVMGetParam(int_as_str_func, 1);
+      let len = LLVMGetParam(int_as_str_func, 2);
+
+      LLVMBuildBr(builder, loop_bb);
+
+      LLVMAppendExistingBasicBlock(int_as_str_func, loop_bb);
+      LLVMPositionBuilderAtEnd(builder, loop_bb);
+      let i = LLVMBuildPhi(builder, i64_type, self.cstring("i"));
+      let int_par = LLVMBuildPhi(builder, i64_type, self.cstring("int_par"));
+
+      let ch = LLVMBuildSRem(builder, int_par, LLVMConstInt(i64_type, 10, 0), self.cstring(""));
+      let ch = LLVMBuildTrunc(builder, ch, i8_type, self.cstring(""));
+      let ch = LLVMBuildAdd(builder, ch, LLVMConstInt(i8_type, 48, 0), self.cstring(""));
+      let idx =
+        LLVMBuildXor(builder, i, LLVMConstNeg(LLVMConstInt(i64_type, 1, 0)), self.cstring(""));
+      let idx = LLVMBuildAdd(builder, idx, len, self.cstring(""));
+      let ch_ptr = LLVMBuildGEP2(builder, i8_type, buf, [idx].as_mut_ptr(), 1, self.cstring(""));
+      LLVMBuildStore(builder, ch, ch_ptr);
+
+      let new_i = LLVMBuildAdd(builder, i, LLVMConstInt(i64_type, 1, 0), self.cstring("new_i"));
+      LLVMAddIncoming(
+        i,
+        [LLVMConstInt(i64_type, 0, 0), new_i].as_mut_ptr(),
+        [start_bb, loop_bb].as_mut_ptr(),
+        2,
+      );
+      let new_int_par =
+        LLVMBuildSDiv(builder, int_par, LLVMConstInt(i64_type, 10, 0), self.cstring("new_int_par"));
+      LLVMAddIncoming(
+        int_par,
+        [orig_int_par, new_int_par].as_mut_ptr(),
+        [start_bb, loop_bb].as_mut_ptr(),
+        2,
+      );
+
+      let condition =
+        LLVMBuildAdd(builder, int_par, LLVMConstInt(i64_type, 9, 0), self.cstring(""));
+      let condition = LLVMBuildICmp(
+        builder,
+        LLVMIntPredicate::LLVMIntULT,
+        condition,
+        LLVMConstInt(i64_type, 19, 0),
+        self.cstring(""),
+      );
+      LLVMBuildCondBr(builder, condition, ret_bb, loop_bb);
+
+      LLVMAppendExistingBasicBlock(int_as_str_func, ret_bb);
+      LLVMPositionBuilderAtEnd(builder, ret_bb);
+
+      let i = LLVMBuildAnd(builder, new_i, LLVMConstInt(i64_type, 4294967295, 0), self.cstring(""));
+      let i =
+        LLVMBuildXor(builder, i, LLVMConstNeg(LLVMConstInt(i64_type, 1, 0)), self.cstring(""));
+      let i = LLVMBuildAdd(builder, i, len, self.cstring(""));
+      let ch_ptr = LLVMBuildGEP2(builder, i8_type, buf, [i].as_mut_ptr(), 1, self.cstring(""));
+      LLVMBuildStore(builder, LLVMConstInt(i8_type, 48, 0), ch_ptr);
+      LLVMBuildRetVoid(builder);
     }
   }
 
@@ -271,9 +540,13 @@ impl Compiler {
       indent_level: 0,
       main_func: func,
       curr_func: func,
+      str_arr_count: 0,
     };
 
+    LLVMBuildGlobalString(builder, self_.cstring("%d"), self_.cstring("int_format"));
+    LLVMBuildGlobalString(builder, self_.cstring("%s"), self_.cstring("str_format"));
     self_.declare_libc_functions();
+    self_.define_helper_functions();
 
     self_
   }
@@ -296,6 +569,22 @@ impl Compiler {
         let ty = LLVMGetElementType(ty);
         Some((func, ty))
       }
+    }
+  }
+
+  fn alloca_str(&mut self, size: LLVMValueRef) -> LLVMValueRef {
+    unsafe {
+      LLVMAddGlobal(
+        self.module,
+        LLVMTypeOf(size),
+        self.cstring(&format!("str_arr_{}_len", self.str_arr_count)),
+      );
+      LLVMBuildArrayAlloca(
+        self.builder,
+        LLVMInt8TypeInContext(self.ctx),
+        size,
+        self.cstring("str_arr"),
+      )
     }
   }
 
@@ -328,24 +617,38 @@ impl Compiler {
         },
         StmtKind::Print { expr } => {
           let value = self.compile_expr(expr);
-          let value = ValueWrapper::new_string(self, &value.to_string()).v;
-          let value_ptr = self.alloca_at_entry(value);
-          let value = LLVMBuildGEP2(
+          println!();
+          let value = if !value.is_runtime() {
+            let value = ValueWrapper::new_string(self, &value.to_string()).v;
+            let value_ptr = self.alloca_at_entry(value);
+            LLVMBuildGEP2(
+              self.builder,
+              LLVMGetElementType(LLVMTypeOf(value_ptr)),
+              value_ptr,
+              [zero].as_mut_ptr(),
+              1,
+              self.cstring(""),
+            )
+          } else {
+            utils::runtime_string_of(self, value).0
+          };
+
+          let format = LLVMGetNamedGlobal(self.module, self.cstring("str_format"));
+          let format = LLVMBuildGEP2(
             self.builder,
-            LLVMTypeOf(value),
-            value_ptr,
+            LLVMGetElementType(LLVMTypeOf(format)),
+            format,
             [zero, zero].as_mut_ptr(),
             2,
             self.cstring(""),
           );
-
           let (printf_func, printf_ty) = self.get_func("printf").unwrap();
           LLVMBuildCall2(
             self.builder,
             printf_ty,
             printf_func,
-            [value].as_mut_ptr(),
-            1,
+            [format, value].as_mut_ptr(),
+            2,
             self.cstring(""),
           );
         },
@@ -509,7 +812,6 @@ impl Compiler {
     }
 
     LLVMBuildRet(self.builder, LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 0, 0));
-    LLVMDumpModule(self.module);
     LLVMVerifyFunction(self.main_func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
     LLVMRunFunctionPassManager(self.fpm, self.main_func);
 
