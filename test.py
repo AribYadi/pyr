@@ -10,13 +10,13 @@ import sys
 from typing import BinaryIO, List
 
 def print_help():
-  print("\x1b[1;32m[INFO]\x1b[0m: \x1b[1;32mUsage\x1b[0m: `test.py [OPTIONS]`")
+  print("\x1b[2;96m[INFO]\x1b[0m: \x1b[1;32mUsage\x1b[0m: `test.py [OPTIONS]`")
   print()
-  print("\x1b[1;32m[INFO]\x1b[0m: \x1b[1;32mOptions\x1b[0m:")
-  print("\x1b[1;32m[INFO]\x1b[0m:   --help,     -h: Print this help message.")
-  print("\x1b[1;32m[INFO]\x1b[0m:   --release,  -r: Test in release mode.")
-  print("\x1b[1;32m[INFO]\x1b[0m:   --always-build: Always build `pyr` even if already built.")
-  print("\x1b[1;32m[INFO]\x1b[0m:   --dir,      -d: Specify test dir.")
+  print("\x1b[2;96m[INFO]\x1b[0m: \x1b[1;32mOptions\x1b[0m:")
+  print("\x1b[2;96m[INFO]\x1b[0m:   --help,     -h: Print this help message.")
+  print("\x1b[2;96m[INFO]\x1b[0m:   --release,  -r: Test in release mode.")
+  print("\x1b[2;96m[INFO]\x1b[0m:   --always-build: Always build `pyr` even if already built.")
+  print("\x1b[2;96m[INFO]\x1b[0m:   --dir,      -d: Specify test dir.")
 
 @dataclass
 class Args():
