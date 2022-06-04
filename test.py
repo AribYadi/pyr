@@ -18,6 +18,11 @@ def print_help():
   print("\x1b[2;96m[INFO]\x1b[0m:   --always-build: Always build `pyr` even if already built.")
   print("\x1b[2;96m[INFO]\x1b[0m:   --dir,      -d: Specify test dir.")
 
+def executable_extension():
+  if sys.platform.startswith("win"):
+    return ".exe"
+  return ""
+
 @dataclass
 class Args():
   update: bool = False
@@ -180,14 +185,14 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
   pyr_output = subprocess.run([PYR_DEBUG_BINARY, subcommand.__str__(), input_path], capture_output = True)
   output = []
   if expected_test_case.exitcode == 0 and subcommand == Subcommand.Compile:
-    if pyr_output.returncode != 0 and expected_test_case.exitcode == 0:
+    if pyr_output.returncode != 0:
       print(f"\x1b[1;31m[ERR]\x1b[0m: Compilation failed for {relative_path(input_path)}.", file = sys.stderr)
       print(f"\x1b[1;31m[ERR]\x1b[0m: Stderr:", file = sys.stderr)
       print(f"{pyr_output.stderr}", file = sys.stderr)
       results.failed += 1
       return
     object_file = input_path[:-len(PYR_EXT)] + ".o"
-    exe_file = input_path[:-len(PYR_EXT)] + ".exe"
+    exe_file = input_path[:-len(PYR_EXT)] + executable_extension()
     clang_output = subprocess.run(["clang", object_file, "-o", exe_file], capture_output = True)
     if clang_output.returncode != 0:
       print(f"\x1b[1;31m[ERR]\x1b[0m: Clang failed to link `{object_file}`.", file = sys.stderr)
