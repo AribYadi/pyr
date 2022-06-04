@@ -7,13 +7,14 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        llvm_path: ["", "C:\\Program Files\\LLVM", ""]
     name: Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    env:
-      LLVM_SYS_140_PREFIX: ${{ matrix.llvm_path }}
     steps:
       - uses: actions/checkout@v2
+      - name: Set `LLVM_SYS_140_PREFIX` variable
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            echo "LLVM_SYS_140_PREFIX=\"C:\\Program Files\\LLVM\"" >> $GITHUB_ENV
       - name: Install Pypy
         uses: actions/setup-python@v3
         with:
