@@ -77,11 +77,7 @@ struct ValueWrapper {
 impl ValueWrapper {
   unsafe fn new_integer(self_: &mut Compiler, v: i64) -> Self {
     let ty = LLVMInt64TypeInContext(self_.ctx);
-    let v = if v > 0 {
-      LLVMConstInt(ty, v as u64, 0)
-    } else {
-      LLVMConstNeg(LLVMConstInt(ty, v as u64, 0))
-    };
+    let v = if v >= 0 { LLVMConstInt(ty, v as u64, 0) } else { LLVMConstInt(ty, v as u64, 1) };
 
     Self { v, ty: ValueType::Integer, is_pointer: false, can_be_loaded: true, is_runtime: false }
   }
@@ -1038,7 +1034,6 @@ impl Compiler {
     }
 
     LLVMBuildRet(self.builder, LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 0, 0));
-    LLVMDumpModule(self.module);
     LLVMVerifyFunction(self.main_func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
     LLVMRunFunctionPassManager(self.fpm, self.main_func);
 
