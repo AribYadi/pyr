@@ -169,7 +169,13 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
 
   pyr_output = subprocess.run([PYR_DEBUG_BINARY, subcommand.__str__(), input_path], capture_output = True)
   output = []
-  if pyr_output.returncode == 0 and subcommand == Subcommand.Compile:
+  if subcommand == Subcommand.Compile:
+    if pyr_output.returncode != 0:
+      print(f"\x1b[1;31m[ERR]\x1b[0m: Compilation failed for {relative_path(input_path)}.", file = sys.stderr)
+      print(f"\x1b[1;31m[ERR]\x1b[0m: Stderr:", file = sys.stderr)
+      print(f"{pyr_output.stderr}", file = sys.stderr)
+      results.failed += 1
+      return
     object_file = input_path[:-len(PYR_EXT)] + ".o"
     exe_file = input_path[:-len(PYR_EXT)] + ".exe"
     clang_output = subprocess.run(["clang", object_file, "-o", exe_file], capture_output = True)
@@ -177,7 +183,8 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
       print(f"\x1b[1;31m[ERR]\x1b[0m: Clang failed to link `{object_file}`.", file = sys.stderr)
       print(f"\x1b[1;31m[ERR]\x1b[0m: Stderr:", file = sys.stderr)
       print(f"{clang_output.stderr.decode()}", file = sys.stderr)
-      exit(1)
+      results.failed += 1
+      return
     results.to_be_deleted.append(object_file)
     results.to_be_deleted.append(exe_file)
     output.append(subprocess.run([exe_file], capture_output = True))
