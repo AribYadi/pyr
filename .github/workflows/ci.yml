@@ -9,7 +9,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     name: Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    if: ${{ matrix.os }} == "windows-latest"
+    if: matrix.os == "windows-latest"
     env:
       LLVM_SYS_140_PREFIX: "C:\\Program Files\\LLVM"
     steps:
