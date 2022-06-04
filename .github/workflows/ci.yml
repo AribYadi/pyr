@@ -7,12 +7,12 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        llvm_path: ["", "C:\\Program Files\\LLVM", ""]
     name: Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    if: matrix.os == "windows-latest"
-    env:
-      LLVM_SYS_140_PREFIX: "C:\\Program Files\\LLVM"
     steps:
+      - env:
+          LLVM_SYS_140_PREFIX: ${{ matrix.llvm_path }}
       - uses: actions/checkout@v2
       - name: Install Pypy
         uses: actions/setup-python@v3
