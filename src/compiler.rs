@@ -206,6 +206,8 @@ mod utils {
       let int8_type = LLVMInt8TypeInContext(self_.ctx);
       let zero = LLVMConstInt(int64_type, 0, 0);
 
+      let value = if value.can_be_loaded { value.load(self_) } else { value };
+
       match &value.ty {
         ValueType::String => {
           let ty = LLVMTypeOf(value.v);
@@ -1034,6 +1036,7 @@ impl Compiler {
     }
 
     LLVMBuildRet(self.builder, LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 0, 0));
+    LLVMDumpModule(self.module);
     LLVMVerifyFunction(self.main_func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
     LLVMRunFunctionPassManager(self.fpm, self.main_func);
 
