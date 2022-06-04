@@ -72,22 +72,18 @@ struct ValueWrapper {
   is_pointer: bool,
   is_runtime: bool,
   can_be_loaded: bool,
-  ptr_len: Option<LLVMValueRef>,
 }
 
 impl ValueWrapper {
   unsafe fn new_integer(self_: &mut Compiler, v: i64) -> Self {
     let ty = LLVMInt64TypeInContext(self_.ctx);
-    let v = if v > 0 { LLVMConstInt(ty, v as u64, 0) } else { LLVMConstInt(ty, v as u64, 1) };
+    let v = if v > 0 {
+      LLVMConstInt(ty, v as u64, 0)
+    } else {
+      LLVMConstNeg(LLVMConstInt(ty, v as u64, 0))
+    };
 
-    Self {
-      v,
-      ty: ValueType::Integer,
-      is_pointer: false,
-      can_be_loaded: true,
-      is_runtime: false,
-      ptr_len: None,
-    }
+    Self { v, ty: ValueType::Integer, is_pointer: false, can_be_loaded: true, is_runtime: false }
   }
 
   unsafe fn new_string(self_: &mut Compiler, v: &str) -> Self {
@@ -95,19 +91,12 @@ impl ValueWrapper {
     let length = v.len() as u32;
     let v = LLVMConstStringInContext(self_.ctx, ptr, length, 0);
 
-    Self {
-      v,
-      ty: ValueType::String,
-      is_pointer: false,
-      can_be_loaded: true,
-      is_runtime: false,
-      ptr_len: None,
-    }
+    Self { v, ty: ValueType::String, is_pointer: false, can_be_loaded: true, is_runtime: false }
   }
 
   unsafe fn new_variable(self_: &mut Compiler, inner: ValueWrapper) -> Self {
     let v = self_.alloca_at_entry(inner.v);
-    Self { v, ty: inner.ty, is_pointer: true, can_be_loaded: true, is_runtime: true, ptr_len: None }
+    Self { v, ty: inner.ty, is_pointer: true, can_be_loaded: true, is_runtime: true }
   }
 
   fn is_integer(&self) -> bool { self.ty == ValueType::Integer }
@@ -135,23 +124,9 @@ impl ValueWrapper {
       let ty = LLVMTypeOf(self.v);
       let ty = LLVMGetElementType(ty);
       let v = LLVMBuildLoad2(compiler.builder, ty, self.v, compiler.cstring("load"));
-      Self {
-        v,
-        ty: self.ty,
-        is_pointer: false,
-        can_be_loaded: true,
-        is_runtime: true,
-        ptr_len: None,
-      }
+      Self { v, ty: self.ty, is_pointer: false, can_be_loaded: true, is_runtime: true }
     } else if self.is_runtime && self.can_be_loaded {
-      Self {
-        v: self.v,
-        ty: self.ty,
-        is_pointer: false,
-        can_be_loaded: true,
-        is_runtime: true,
-        ptr_len: None,
-      }
+      Self { v: self.v, ty: self.ty, is_pointer: false, can_be_loaded: true, is_runtime: true }
     } else {
       self.clone()
     }
@@ -187,7 +162,6 @@ impl ValueWrapper {
             is_pointer: false,
             can_be_loaded: true,
             is_runtime: true,
-            ptr_len: None,
           };
         },
         ValueType::String => todo!(),
@@ -231,6 +205,7 @@ mod utils {
     unsafe {
       let (int_len_func, int_len_ty) = self_.get_func("%%int_len%%").unwrap();
       let (int_as_str_func, int_as_str_ty) = self_.get_func("%%int_as_str%%").unwrap();
+      let (strlen_func, strlen_ty) = self_.get_func("strlen").unwrap();
       let int64_type = LLVMInt64TypeInContext(self_.ctx);
       let int8_type = LLVMInt8TypeInContext(self_.ctx);
       let zero = LLVMConstInt(int64_type, 0, 0);
@@ -239,10 +214,12 @@ mod utils {
         ValueType::String => {
           let ty = LLVMTypeOf(value.v);
           if value.is_pointer {
-            let len = LLVMBuildSub(
+            let len = LLVMBuildCall2(
               self_.builder,
-              value.ptr_len.unwrap(),
-              LLVMConstInt(int64_type, 1, 0),
+              strlen_ty,
+              strlen_func,
+              [value.v].as_mut_ptr(),
+              1,
               self_.cstring(""),
             );
             return (value.v, len);
@@ -336,23 +313,25 @@ impl Compiler {
       let printf_func = LLVMAddFunction(self.module, self.cstring("printf"), printf_type);
       LLVMSetFunctionCallConv(printf_func, LLVMCallConv::LLVMCCallConv as u32);
 
-      let strcpy_type =
-        LLVMFunctionType(char_ptr_ty, [char_ptr_ty, char_ptr_ty].as_mut_ptr(), 2, 0);
-      let strcpy_func = LLVMAddFunction(self.module, self.cstring("strcpy"), strcpy_type);
-      LLVMSetFunctionCallConv(strcpy_func, LLVMCallConv::LLVMCCallConv as u32);
-
-      let strcat_type =
-        LLVMFunctionType(char_ptr_ty, [char_ptr_ty, char_ptr_ty].as_mut_ptr(), 2, 0);
-      let strcat_func = LLVMAddFunction(self.module, self.cstring("strcat"), strcat_type);
-      LLVMSetFunctionCallConv(strcat_func, LLVMCallConv::LLVMCCallConv as u32);
+      let strlen_type =
+        LLVMFunctionType(LLVMInt64TypeInContext(self.ctx), [char_ptr_ty].as_mut_ptr(), 1, 0);
+      let strlen_func = LLVMAddFunction(self.module, self.cstring("strlen"), strlen_type);
+      LLVMSetFunctionCallConv(strlen_func, LLVMCallConv::LLVMCCallConv as u32);
     }
   }
 
   fn define_helper_functions(&mut self) {
+    let i64_type = unsafe { LLVMInt64TypeInContext(self.ctx) };
+    let i8_type = unsafe { LLVMInt8TypeInContext(self.ctx) };
+    let i8_ptr_type = unsafe { LLVMPointerType(i8_type, 0) };
+    let void_type = unsafe { LLVMVoidTypeInContext(self.ctx) };
+
+    let const_null_char = unsafe { LLVMConstNull(i8_ptr_type) };
+    let const_one = unsafe { LLVMConstInt(i64_type, 1, 0) };
+    let (strlen_func, strlen_ty) = self.get_func("strlen").unwrap();
+
     // %%int_len%% => Gives the length of an integer as a string.
     unsafe {
-      let i64_type = LLVMInt64TypeInContext(self.ctx);
-
       let int_len_type = LLVMFunctionType(i64_type, [i64_type].as_mut_ptr(), 1, 0);
       let int_len_func = LLVMAddFunction(self.module, self.cstring("%%int_len%%"), int_len_type);
       let builder = LLVMCreateBuilderInContext(self.ctx);
@@ -418,15 +397,8 @@ impl Compiler {
 
     // %%int_as_str%% => Gives the string representation of an integer.
     unsafe {
-      let i64_type = LLVMInt64TypeInContext(self.ctx);
-      let i8_type = LLVMInt8TypeInContext(self.ctx);
-
-      let int_as_str_type = LLVMFunctionType(
-        LLVMVoidTypeInContext(self.ctx),
-        [LLVMPointerType(i8_type, 0), i64_type, i64_type].as_mut_ptr(),
-        3,
-        0,
-      );
+      let int_as_str_type =
+        LLVMFunctionType(void_type, [i8_ptr_type, i64_type, i64_type].as_mut_ptr(), 3, 0);
       let int_as_str_func =
         LLVMAddFunction(self.module, self.cstring("%%int_as_str%%"), int_as_str_type);
       let builder = LLVMCreateBuilderInContext(self.ctx);
@@ -493,6 +465,260 @@ impl Compiler {
       let i = LLVMBuildAdd(builder, i, len, self.cstring(""));
       let ch_ptr = LLVMBuildGEP2(builder, i8_type, buf, [i].as_mut_ptr(), 1, self.cstring(""));
       LLVMBuildStore(builder, LLVMConstInt(i8_type, 48, 0), ch_ptr);
+      LLVMBuildRetVoid(builder);
+    }
+
+    // %%copy_str%% => Copies a string to a another string.
+    // TODO: Report if `dst` or `src` is null.
+    // TODO: Return if `len` is bigger than `INT_MAX`.
+    unsafe {
+      let copy_str_type =
+        LLVMFunctionType(void_type, [i8_ptr_type, i8_ptr_type, i64_type].as_mut_ptr(), 2, 0);
+      let copy_str_func = LLVMAddFunction(self.module, self.cstring("%%copy_str%%"), copy_str_type);
+      let builder = LLVMCreateBuilderInContext(self.ctx);
+
+      let checks_bb =
+        LLVMAppendBasicBlockInContext(self.ctx, copy_str_func, self.cstring("checks"));
+      let get_len_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("get_len"));
+      let loop_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("loop"));
+      let ret_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("ret"));
+
+      LLVMPositionBuilderAtEnd(builder, checks_bb);
+      let dst = LLVMGetParam(copy_str_func, 0);
+      let src = LLVMGetParam(copy_str_func, 1);
+
+      let is_dst_null =
+        LLVMBuildICmp(builder, LLVMIntPredicate::LLVMIntEQ, dst, const_null_char, self.cstring(""));
+      let is_src_null =
+        LLVMBuildICmp(builder, LLVMIntPredicate::LLVMIntEQ, src, const_null_char, self.cstring(""));
+      let is_dst_or_src_null = LLVMBuildOr(builder, is_dst_null, is_src_null, self.cstring(""));
+      let is_dst_and_src_same =
+        LLVMBuildICmp(builder, LLVMIntPredicate::LLVMIntEQ, dst, src, self.cstring(""));
+      let condition =
+        LLVMBuildOr(builder, is_dst_or_src_null, is_dst_and_src_same, self.cstring(""));
+      LLVMBuildCondBr(builder, condition, ret_bb, get_len_bb);
+
+      LLVMAppendExistingBasicBlock(copy_str_func, get_len_bb);
+      LLVMPositionBuilderAtEnd(builder, get_len_bb);
+
+      let len =
+        LLVMBuildCall2(builder, strlen_ty, strlen_func, [src].as_mut_ptr(), 1, self.cstring(""));
+      let len = LLVMBuildAdd(builder, len, const_one, self.cstring(""));
+      LLVMBuildBr(builder, loop_bb);
+
+      LLVMAppendExistingBasicBlock(copy_str_func, loop_bb);
+      LLVMPositionBuilderAtEnd(builder, loop_bb);
+
+      let i = LLVMBuildPhi(builder, i64_type, self.cstring("i"));
+      let dst_ptr = LLVMBuildPhi(builder, i8_ptr_type, self.cstring("dst_ptr"));
+      let src_ptr = LLVMBuildPhi(builder, i8_ptr_type, self.cstring("src_ptr"));
+
+      let src_deref = LLVMBuildLoad2(builder, i8_type, src_ptr, self.cstring(""));
+      LLVMBuildStore(builder, src_deref, dst_ptr);
+
+      let new_i = LLVMBuildSub(builder, i, const_one, self.cstring("new_i"));
+      LLVMAddIncoming(i, [len, new_i].as_mut_ptr(), [get_len_bb, loop_bb].as_mut_ptr(), 2);
+      let new_dst_ptr =
+        LLVMBuildGEP2(builder, i8_type, dst_ptr, [const_one].as_mut_ptr(), 1, self.cstring(""));
+      LLVMAddIncoming(
+        dst_ptr,
+        [dst, new_dst_ptr].as_mut_ptr(),
+        [get_len_bb, loop_bb].as_mut_ptr(),
+        2,
+      );
+      let new_src_ptr =
+        LLVMBuildGEP2(builder, i8_type, src_ptr, [const_one].as_mut_ptr(), 1, self.cstring(""));
+      LLVMAddIncoming(
+        src_ptr,
+        [src, new_src_ptr].as_mut_ptr(),
+        [get_len_bb, loop_bb].as_mut_ptr(),
+        2,
+      );
+
+      let is_src_terminator = LLVMBuildICmp(
+        builder,
+        LLVMIntPredicate::LLVMIntNE,
+        src_deref,
+        LLVMConstInt(i8_type, 0, 0),
+        self.cstring(""),
+      );
+      let is_i_0 =
+        LLVMBuildICmp(builder, LLVMIntPredicate::LLVMIntUGT, i, const_one, self.cstring(""));
+      let condition = LLVMBuildSelect(
+        builder,
+        is_src_terminator,
+        is_i_0,
+        LLVMConstInt(LLVMInt1TypeInContext(self.ctx), 0, 0),
+        self.cstring(""),
+      );
+      LLVMBuildCondBr(builder, condition, loop_bb, ret_bb);
+
+      LLVMAppendExistingBasicBlock(copy_str_func, ret_bb);
+      LLVMPositionBuilderAtEnd(builder, ret_bb);
+
+      LLVMBuildRetVoid(builder);
+    }
+
+    // %%concat_str%% => Concatenates two strings.
+    // TODO: Report if `dst` or `src` is null.
+    // TODO: Return if `len` is bigger than `INT_MAX`.
+    unsafe {
+      let concat_str_type =
+        LLVMFunctionType(void_type, [i8_ptr_type, i8_ptr_type].as_mut_ptr(), 2, 0);
+      let concat_str_func =
+        LLVMAddFunction(self.module, self.cstring("%%concat_str%%"), concat_str_type);
+      let builder = LLVMCreateBuilderInContext(self.ctx);
+
+      let checks_bb =
+        LLVMAppendBasicBlockInContext(self.ctx, concat_str_func, self.cstring("checks"));
+      let get_len_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("get_len"));
+
+      let lut_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("loop_until_term"));
+      let lut_modify_bb =
+        LLVMCreateBasicBlockInContext(self.ctx, self.cstring("loop_until_term_modify"));
+
+      let loop_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("loop"));
+      let ret_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("ret"));
+
+      LLVMPositionBuilderAtEnd(builder, checks_bb);
+      let dst = LLVMGetParam(concat_str_func, 0);
+      let src = LLVMGetParam(concat_str_func, 1);
+
+      let is_dst_null =
+        LLVMBuildICmp(builder, LLVMIntPredicate::LLVMIntEQ, dst, const_null_char, self.cstring(""));
+      let is_src_null =
+        LLVMBuildICmp(builder, LLVMIntPredicate::LLVMIntEQ, src, const_null_char, self.cstring(""));
+      let is_dst_or_src_null = LLVMBuildOr(builder, is_dst_null, is_src_null, self.cstring(""));
+      let is_dst_and_src_same =
+        LLVMBuildICmp(builder, LLVMIntPredicate::LLVMIntEQ, dst, src, self.cstring(""));
+      let condition =
+        LLVMBuildOr(builder, is_dst_or_src_null, is_dst_and_src_same, self.cstring(""));
+      LLVMBuildCondBr(builder, condition, ret_bb, get_len_bb);
+
+      LLVMAppendExistingBasicBlock(concat_str_func, get_len_bb);
+      LLVMPositionBuilderAtEnd(builder, get_len_bb);
+
+      let src_len =
+        LLVMBuildCall2(builder, strlen_ty, strlen_func, [src].as_mut_ptr(), 1, self.cstring(""));
+      let dst_len =
+        LLVMBuildCall2(builder, strlen_ty, strlen_func, [dst].as_mut_ptr(), 1, self.cstring(""));
+      let len = LLVMBuildAdd(builder, src_len, dst_len, self.cstring(""));
+      let len = LLVMBuildAdd(builder, len, const_one, self.cstring(""));
+
+      let dst_deref = LLVMBuildLoad2(builder, i8_type, dst, self.cstring(""));
+      let condition = LLVMBuildICmp(
+        builder,
+        LLVMIntPredicate::LLVMIntEQ,
+        dst_deref,
+        LLVMConstInt(i8_type, 0, 0),
+        self.cstring(""),
+      );
+      LLVMBuildCondBr(builder, condition, lut_bb, lut_modify_bb);
+
+      LLVMAppendExistingBasicBlock(concat_str_func, lut_bb);
+      LLVMPositionBuilderAtEnd(builder, lut_bb);
+
+      // Loops until terminator in dst.
+      let i1 = LLVMBuildPhi(builder, i64_type, self.cstring("i"));
+      let dst_ptr1 = LLVMBuildPhi(builder, i8_ptr_type, self.cstring("dst_ptr"));
+      {
+        let condition = LLVMBuildICmp(
+          builder,
+          LLVMIntPredicate::LLVMIntSGT,
+          i1,
+          LLVMConstInt(i64_type, 0, 0),
+          self.cstring(""),
+        );
+        LLVMBuildCondBr(builder, condition, loop_bb, ret_bb);
+
+        LLVMAppendExistingBasicBlock(concat_str_func, lut_modify_bb);
+        LLVMPositionBuilderAtEnd(builder, lut_modify_bb);
+
+        let i2 = LLVMBuildPhi(builder, i64_type, self.cstring("i"));
+        let dst_ptr2 = LLVMBuildPhi(builder, i8_ptr_type, self.cstring("dst_ptr"));
+
+        let new_dst_ptr =
+          LLVMBuildGEP2(builder, i8_type, dst_ptr2, [const_one].as_mut_ptr(), 1, self.cstring(""));
+        LLVMAddIncoming(
+          dst_ptr1,
+          [dst, new_dst_ptr].as_mut_ptr(),
+          [get_len_bb, lut_modify_bb].as_mut_ptr(),
+          2,
+        );
+        LLVMAddIncoming(
+          dst_ptr2,
+          [dst, new_dst_ptr].as_mut_ptr(),
+          [get_len_bb, lut_modify_bb].as_mut_ptr(),
+          2,
+        );
+        let new_i = LLVMBuildSub(builder, i2, const_one, self.cstring(""));
+        LLVMAddIncoming(i1, [len, new_i].as_mut_ptr(), [get_len_bb, lut_modify_bb].as_mut_ptr(), 2);
+        LLVMAddIncoming(i2, [len, new_i].as_mut_ptr(), [get_len_bb, lut_modify_bb].as_mut_ptr(), 2);
+
+        let dst_deref = LLVMBuildLoad2(builder, i8_type, new_dst_ptr, self.cstring(""));
+        let condition = LLVMBuildICmp(
+          builder,
+          LLVMIntPredicate::LLVMIntEQ,
+          dst_deref,
+          LLVMConstInt(i8_type, 0, 0),
+          self.cstring(""),
+        );
+        LLVMBuildCondBr(builder, condition, lut_bb, lut_modify_bb);
+      }
+
+      LLVMAppendExistingBasicBlock(concat_str_func, loop_bb);
+      LLVMPositionBuilderAtEnd(builder, loop_bb);
+
+      // Concatenate strings.
+      {
+        let i = LLVMBuildPhi(builder, i64_type, self.cstring("i"));
+        let src_ptr = LLVMBuildPhi(builder, i8_ptr_type, self.cstring("src_ptr"));
+        let dst_ptr = LLVMBuildPhi(builder, i8_ptr_type, self.cstring("dst_ptr"));
+
+        let src_deref = LLVMBuildLoad2(builder, i8_type, src_ptr, self.cstring(""));
+        LLVMBuildStore(builder, src_deref, dst_ptr);
+
+        let new_dst_ptr =
+          LLVMBuildGEP2(builder, i8_type, dst_ptr, [const_one].as_mut_ptr(), 1, self.cstring(""));
+        LLVMAddIncoming(
+          dst_ptr,
+          [dst_ptr1, new_dst_ptr].as_mut_ptr(),
+          [lut_bb, loop_bb].as_mut_ptr(),
+          2,
+        );
+        let new_src_ptr =
+          LLVMBuildGEP2(builder, i8_type, src_ptr, [const_one].as_mut_ptr(), 1, self.cstring(""));
+        LLVMAddIncoming(
+          src_ptr,
+          [src, new_src_ptr].as_mut_ptr(),
+          [lut_bb, loop_bb].as_mut_ptr(),
+          2,
+        );
+        let new_i = LLVMBuildSub(builder, i, const_one, self.cstring(""));
+        LLVMAddIncoming(i, [i1, new_i].as_mut_ptr(), [lut_bb, loop_bb].as_mut_ptr(), 2);
+
+        let is_src_terminator = LLVMBuildICmp(
+          builder,
+          LLVMIntPredicate::LLVMIntNE,
+          src_deref,
+          LLVMConstInt(i8_type, 0, 0),
+          self.cstring(""),
+        );
+        let is_i_0 =
+          LLVMBuildICmp(builder, LLVMIntPredicate::LLVMIntUGT, i, const_one, self.cstring(""));
+        let condition = LLVMBuildSelect(
+          builder,
+          is_src_terminator,
+          is_i_0,
+          LLVMConstInt(LLVMInt1TypeInContext(self.ctx), 0, 0),
+          self.cstring(""),
+        );
+        LLVMBuildCondBr(builder, condition, loop_bb, ret_bb);
+      }
+
+      LLVMAppendExistingBasicBlock(concat_str_func, ret_bb);
+      LLVMPositionBuilderAtEnd(builder, ret_bb);
+
       LLVMBuildRetVoid(builder);
     }
   }
@@ -812,6 +1038,7 @@ impl Compiler {
     }
 
     LLVMBuildRet(self.builder, LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 0, 0));
+    LLVMDumpModule(self.module);
     LLVMVerifyFunction(self.main_func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
     LLVMRunFunctionPassManager(self.fpm, self.main_func);
 
