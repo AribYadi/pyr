@@ -4,8 +4,12 @@ name: Continuous integration
 
 jobs:
   check:
-    name: cargo build
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
       - name: Install Pypy
@@ -52,7 +56,7 @@ jobs:
         shell: sh
 
   fmt:
-    name: cargo fmt
+    name: Check Formatting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
