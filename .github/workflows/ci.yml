@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Set `LLVM_SYS_140_PREFIX` variable
         run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
+          if [ "$RUNNER_OS" == "Windows" ]; then |
             echo "LLVM_SYS_140_PREFIX=\"C:\\Program Files\\LLVM\"" >> $GITHUB_ENV
       - name: Install Pypy
         uses: actions/setup-python@v3
