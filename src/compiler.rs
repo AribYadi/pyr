@@ -232,7 +232,6 @@ mod utils {
       let (int_len_func, int_len_ty) = self_.get_func("%%int_len%%").unwrap();
       let (int_as_str_func, int_as_str_ty) = self_.get_func("%%int_as_str%%").unwrap();
       let int64_type = LLVMInt64TypeInContext(self_.ctx);
-      let int8_type = LLVMInt8TypeInContext(self_.ctx);
       let zero = LLVMConstInt(int64_type, 0, 0);
 
       match &value.ty {
@@ -282,15 +281,6 @@ mod utils {
             3,
             self_.cstring(""),
           );
-          let null_term = LLVMBuildGEP2(
-            self_.builder,
-            int8_type,
-            buf,
-            [orig_len].as_mut_ptr(),
-            1,
-            self_.cstring(""),
-          );
-          LLVMBuildStore(self_.builder, LLVMConstInt(int8_type, 0, 0), null_term);
 
           (buf, orig_len)
         },
@@ -488,9 +478,6 @@ impl Compiler {
       LLVMPositionBuilderAtEnd(builder, ret_bb);
 
       let i = LLVMBuildAnd(builder, new_i, LLVMConstInt(i64_type, 4294967295, 0), self.cstring(""));
-      let i =
-        LLVMBuildXor(builder, i, LLVMConstNeg(LLVMConstInt(i64_type, 1, 0)), self.cstring(""));
-      let i = LLVMBuildAdd(builder, i, len, self.cstring(""));
       let ch_ptr = LLVMBuildGEP2(builder, i8_type, buf, [i].as_mut_ptr(), 1, self.cstring(""));
       LLVMBuildStore(builder, LLVMConstInt(i8_type, 48, 0), ch_ptr);
       LLVMBuildRetVoid(builder);
