@@ -18,11 +18,6 @@ def print_help():
   print("\x1b[2;96m[INFO]\x1b[0m:   --always-build: Always build `pyr` even if already built.")
   print("\x1b[2;96m[INFO]\x1b[0m:   --dir,      -d: Specify test dir.")
 
-def executable_extension():
-  if sys.platform.startswith("win"):
-    return ".exe"
-  return ""
-
 @dataclass
 class Args():
   update: bool = False
@@ -176,14 +171,13 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
   output = []
   if pyr_output.returncode == 0 and subcommand == Subcommand.Compile:
     object_file = input_path[:-len(PYR_EXT)] + ".o"
-    exe_file = input_path[:-len(PYR_EXT)] + executable_extension()
+    exe_file = input_path[:-len(PYR_EXT)] + ".exe"
     clang_output = subprocess.run(["clang", object_file, "-o", exe_file], capture_output = True)
     if clang_output.returncode != 0:
       print(f"\x1b[1;31m[ERR]\x1b[0m: Clang failed to link `{object_file}`.", file = sys.stderr)
       print(f"\x1b[1;31m[ERR]\x1b[0m: Stderr:", file = sys.stderr)
       print(f"{clang_output.stderr.decode()}", file = sys.stderr)
-      results.failed += 1
-      return
+      exit(1)
     results.to_be_deleted.append(object_file)
     results.to_be_deleted.append(exe_file)
     output.append(subprocess.run([exe_file], capture_output = True))
@@ -208,13 +202,11 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
     else:
       print(f"\x1b[2;96m[INFO]\x1b[0m: {tc_path} is up to date. Skipping.")
       results.skipped += 1
+  elif not os.path.exists(tc_path):
+    print(f"\x1b[33m[WARN]\x1b[0m: Couldn't find record file for {input_path}. Skipping.")
+    results.skipped += 1
   else:
     print(f"\x1b[2;96m[INFO]\x1b[0m: Testing `{input_path}` with subcommand `{subcommand.__str__()}`..")
-    if not os.path.exists(tc_path):
-      print(f"\x1b[33m[WARN]\x1b[0m: Couldn't find record file for {input_path}. Skipping.")
-      results.skipped += 1
-      return
-
     expected_test_case = TestCase.read(tc_path)
 
     if test_case == expected_test_case:

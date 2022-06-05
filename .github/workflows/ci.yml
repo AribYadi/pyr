@@ -4,19 +4,10 @@ name: Continuous integration
 
 jobs:
   check:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    name: Test on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: cargo build
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set `LLVM_SYS_140_PREFIX` variable
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            echo "LLVM_SYS_140_PREFIX=\"C:\\Program Files\\LLVM\"" >> $GITHUB_ENV
-          fi
-        shell: bash
       - name: Install Pypy
         uses: actions/setup-python@v3
         with:
@@ -61,7 +52,7 @@ jobs:
         shell: sh
 
   fmt:
-    name: Check Formatting
+    name: cargo fmt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

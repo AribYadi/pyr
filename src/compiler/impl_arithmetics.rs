@@ -14,8 +14,8 @@ macro_rules! impl_arithmetics_for_runtime {
       #[allow(unreachable_patterns)]
       match (&self_.ty, &other_.ty) {
         $($pattern => {
-          let (v, ty, is_pointer, can_be_loaded) = ($pattern_out)(self_, other_);
-          return Self { v, ty, is_pointer, can_be_loaded, is_runtime: true }
+          let (v, ty, is_pointer, can_be_loaded, ptr_len) = ($pattern_out)(self_, other_);
+          return Self { v, ty, is_pointer, can_be_loaded, is_runtime: true, ptr_len }
         },)*
         _ => (),
       }
@@ -28,7 +28,7 @@ impl ValueWrapper {
     unsafe {
       impl_arithmetics_for_runtime! {
         compiler, self, other;
-        (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| (LLVMBuildAdd(compiler.builder, self_.v, other_.v, compiler.cstring("")), ValueType::Integer, false, true);
+        (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| (LLVMBuildAdd(compiler.builder, self_.v, other_.v, compiler.cstring("")), ValueType::Integer, false, true, None);
         (ValueType::String, _) | (_, ValueType::String) => |left: Self, right: Self| {
           let (left, left_len) = utils::runtime_string_of(compiler, left);
           let (right, right_len) = utils::runtime_string_of(compiler, right);
@@ -37,8 +37,8 @@ impl ValueWrapper {
           let len = LLVMBuildAdd(compiler.builder, len, LLVMConstInt(LLVMInt64TypeInContext(compiler.ctx), 1, 0), compiler.cstring(""));
           let buf = compiler.alloca_str(len);
 
-          let (strcpy_func, strcpy_ty) = compiler.get_func("%%copy_str%%").unwrap();
-          let (concat_str_func, concat_str_ty) = compiler.get_func("%%concat_str%%").unwrap();
+          let (strcpy_func, strcpy_ty) = compiler.get_func("strcpy").unwrap();
+          let (strcat_func, strcat_ty) = compiler.get_func("strcat").unwrap();
           LLVMBuildCall2(
             compiler.builder,
             strcpy_ty,
@@ -49,8 +49,8 @@ impl ValueWrapper {
           );
           LLVMBuildCall2(
             compiler.builder,
-            concat_str_ty,
-            concat_str_func,
+            strcat_ty,
+            strcat_func,
             [buf, right].as_mut_ptr(),
             2,
             compiler.cstring(""),
@@ -65,7 +65,7 @@ impl ValueWrapper {
           );
           LLVMBuildStore(compiler.builder, LLVMConstInt(LLVMInt8TypeInContext(compiler.ctx), 0, 0), null_term);
 
-          (buf, ValueType::String, true, false)
+          (buf, ValueType::String, true, false, Some(len))
         };
       }
       match (&self.ty, &other.ty) {
@@ -85,7 +85,7 @@ impl ValueWrapper {
     unsafe {
       impl_arithmetics_for_runtime! {
         compiler, self, other;
-        (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| (LLVMBuildSub(compiler.builder, self_.v, other_.v, compiler.cstring("")), ValueType::Integer, false, true);
+        (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| (LLVMBuildSub(compiler.builder, self_.v, other_.v, compiler.cstring("")), ValueType::Integer, false, true, None);
       }
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
@@ -100,7 +100,7 @@ impl ValueWrapper {
     unsafe {
       impl_arithmetics_for_runtime! {
         compiler, self, other;
-        (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| (LLVMBuildMul(compiler.builder, self_.v, other_.v, compiler.cstring("")), ValueType::Integer, false, true);
+        (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| (LLVMBuildMul(compiler.builder, self_.v, other_.v, compiler.cstring("")), ValueType::Integer, false, true, None);
         (ValueType::String, ValueType::Integer) | (ValueType::Integer, ValueType::String) => |left: Self, right: Self| {
           let i64_type = LLVMInt64TypeInContext(compiler.ctx);
 
@@ -109,8 +109,8 @@ impl ValueWrapper {
           let len = LLVMBuildMul(compiler.builder, left_len, right.v, compiler.cstring(""));
           let buf = compiler.alloca_str(len);
 
-          let (strcpy_func, strcpy_ty) = compiler.get_func("%%copy_str%%").unwrap();
-          let (concat_str_func, concat_str_ty) = compiler.get_func("%%concat_str%%").unwrap();
+          let (strcpy_func, strcpy_ty) = compiler.get_func("strcpy").unwrap();
+          let (strcat_func, strcat_ty) = compiler.get_func("strcat").unwrap();
 
           let start_bb = LLVMAppendBasicBlockInContext(compiler.ctx, compiler.curr_func, compiler.cstring("mul_start"));
           let loop_bb = LLVMCreateBasicBlockInContext(compiler.ctx, compiler.cstring("mul_loop"));
@@ -136,8 +136,8 @@ impl ValueWrapper {
           let i = LLVMBuildPhi(compiler.builder, i64_type, compiler.cstring("i"));
           LLVMBuildCall2(
             compiler.builder,
-            concat_str_ty,
-            concat_str_func,
+            strcat_ty,
+            strcat_func,
             [buf, left].as_mut_ptr(),
             2,
             compiler.cstring(""),
@@ -165,7 +165,7 @@ impl ValueWrapper {
           );
           LLVMBuildStore(compiler.builder, LLVMConstInt(LLVMInt8TypeInContext(compiler.ctx), 0, 0), null_term);
 
-          (buf, ValueType::String, true, false)
+          (buf, ValueType::String, true, false, Some(len))
         };
       }
       match (&self.ty, &other.ty) {
@@ -194,7 +194,7 @@ impl ValueWrapper {
     unsafe {
       impl_arithmetics_for_runtime! {
         compiler, self, other;
-        (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| (LLVMBuildSDiv(compiler.builder, self_.v, other_.v, compiler.cstring("")), ValueType::Integer, false, true);
+        (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| (LLVMBuildSDiv(compiler.builder, self_.v, other_.v, compiler.cstring("")), ValueType::Integer, false, true, None);
       }
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
@@ -216,6 +216,7 @@ impl ValueWrapper {
           is_pointer: false,
           can_be_loaded: true,
           is_runtime: true,
+          ptr_len: None,
         };
       }
       match self.ty {
@@ -244,6 +245,7 @@ impl ValueWrapper {
               is_pointer: false,
               can_be_loaded: true,
               is_runtime: true,
+              ptr_len: None,
             };
           },
           ValueType::String => todo!(),
@@ -261,7 +263,7 @@ impl ValueWrapper {
         compiler, self, other;
         (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| {
           let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntSLT, self_.v, other_.v, compiler.cstring(""));
-          (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true)
+          (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true, None)
         };
       }
       match (&self.ty, &other.ty) {
@@ -279,7 +281,7 @@ impl ValueWrapper {
         compiler, self, other;
         (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| {
           let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntSLE, self_.v, other_.v, compiler.cstring(""));
-          (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true)
+          (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true, None)
         };
       }
       match (&self.ty, &other.ty) {
@@ -297,7 +299,7 @@ impl ValueWrapper {
         compiler, self, other;
         (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| {
           let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntSGT, self_.v, other_.v, compiler.cstring(""));
-          (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true)
+          (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true, None)
         };
       }
       match (&self.ty, &other.ty) {
@@ -315,7 +317,7 @@ impl ValueWrapper {
         compiler, self, other;
         (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| {
           let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntSGE, self_.v, other_.v, compiler.cstring(""));
-          (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true)
+          (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true, None)
         };
       }
       match (&self.ty, &other.ty) {
@@ -333,7 +335,7 @@ impl ValueWrapper {
         compiler, self, other;
         (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| {
           let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntEQ, self_.v, other_.v, compiler.cstring(""));
-          (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true)
+          (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true, None)
         };
         (ValueType::String, ValueType::String) => |_, _| todo!();
       }
@@ -355,7 +357,7 @@ impl ValueWrapper {
         compiler, self, other;
         (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| {
           let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntNE, self_.v, other_.v, compiler.cstring(""));
-          (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true)
+          (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true, None)
         };
         (ValueType::String, ValueType::String) => |_, _| todo!();
       }
