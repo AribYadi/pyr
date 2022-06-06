@@ -499,7 +499,7 @@ impl Compiler {
 
       let i = LLVMBuildAnd(builder, new_i, LLVMConstInt(i64_type, 4294967295, 0), self.cstring(""));
       let ch_ptr = LLVMBuildGEP2(builder, i8_type, buf, [i].as_mut_ptr(), 1, self.cstring(""));
-      LLVMBuildStore(builder, LLVMConstInt(i8_type, 48, 0), ch_ptr);
+      LLVMBuildStore(builder, LLVMConstInt(i8_type, 0, 0), ch_ptr);
       LLVMBuildRetVoid(builder);
     }
   }
