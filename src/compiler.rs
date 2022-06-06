@@ -72,7 +72,6 @@ struct ValueWrapper {
   is_pointer: bool,
   is_runtime: bool,
   can_be_loaded: bool,
-  ptr_len: Option<LLVMValueRef>,
 }
 
 impl ValueWrapper {
@@ -80,14 +79,7 @@ impl ValueWrapper {
     let ty = LLVMInt64TypeInContext(self_.ctx);
     let v = if v > 0 { LLVMConstInt(ty, v as u64, 0) } else { LLVMConstInt(ty, v as u64, 1) };
 
-    Self {
-      v,
-      ty: ValueType::Integer,
-      is_pointer: false,
-      can_be_loaded: true,
-      is_runtime: false,
-      ptr_len: None,
-    }
+    Self { v, ty: ValueType::Integer, is_pointer: false, can_be_loaded: true, is_runtime: false }
   }
 
   unsafe fn new_string(self_: &mut Compiler, v: &str) -> Self {
@@ -95,19 +87,12 @@ impl ValueWrapper {
     let length = v.len() as u32;
     let v = LLVMConstStringInContext(self_.ctx, ptr, length, 0);
 
-    Self {
-      v,
-      ty: ValueType::String,
-      is_pointer: false,
-      can_be_loaded: true,
-      is_runtime: false,
-      ptr_len: None,
-    }
+    Self { v, ty: ValueType::String, is_pointer: false, can_be_loaded: true, is_runtime: false }
   }
 
   unsafe fn new_variable(self_: &mut Compiler, inner: ValueWrapper) -> Self {
     let v = self_.alloca_at_entry(inner.v);
-    Self { v, ty: inner.ty, is_pointer: true, can_be_loaded: true, is_runtime: true, ptr_len: None }
+    Self { v, ty: inner.ty, is_pointer: true, can_be_loaded: true, is_runtime: true }
   }
 
   fn is_integer(&self) -> bool { self.ty == ValueType::Integer }
@@ -135,23 +120,9 @@ impl ValueWrapper {
       let ty = LLVMTypeOf(self.v);
       let ty = LLVMGetElementType(ty);
       let v = LLVMBuildLoad2(compiler.builder, ty, self.v, compiler.cstring("load"));
-      Self {
-        v,
-        ty: self.ty,
-        is_pointer: false,
-        can_be_loaded: true,
-        is_runtime: true,
-        ptr_len: None,
-      }
+      Self { v, ty: self.ty, is_pointer: false, can_be_loaded: true, is_runtime: true }
     } else if self.is_runtime && self.can_be_loaded {
-      Self {
-        v: self.v,
-        ty: self.ty,
-        is_pointer: false,
-        can_be_loaded: true,
-        is_runtime: true,
-        ptr_len: None,
-      }
+      Self { v: self.v, ty: self.ty, is_pointer: false, can_be_loaded: true, is_runtime: true }
     } else {
       self.clone()
     }
@@ -168,11 +139,10 @@ impl ValueWrapper {
 
   unsafe fn new_is_truthy(&self, compiler: &mut Compiler) -> Self {
     if self.is_runtime() {
-      let self_ = self.load(compiler);
-      match self_.ty {
+      let int_ty = LLVMInt64TypeInContext(compiler.ctx);
+      match self.ty {
         ValueType::Integer => {
-          let int_ty = LLVMInt64TypeInContext(compiler.ctx);
-
+          let self_ = self.load(compiler);
           let v = LLVMBuildICmp(
             compiler.builder,
             LLVMIntPredicate::LLVMIntEQ,
@@ -187,10 +157,46 @@ impl ValueWrapper {
             is_pointer: false,
             can_be_loaded: true,
             is_runtime: true,
-            ptr_len: None,
           };
         },
-        ValueType::String => todo!(),
+        ValueType::String => {
+          let (strlen_func, strlen_ty) = compiler.get_func("strlen").unwrap();
+          let self_ = if self.load(compiler).is_pointer {
+            self.v
+          } else {
+            LLVMBuildGEP2(
+              compiler.builder,
+              LLVMGetElementType(LLVMTypeOf(self.v)),
+              self.v,
+              [LLVMConstInt(int_ty, 0, 0), LLVMConstInt(int_ty, 0, 0)].as_mut_ptr(),
+              2,
+              compiler.cstring(""),
+            )
+          };
+          let str_len = LLVMBuildCall2(
+            compiler.builder,
+            strlen_ty,
+            strlen_func,
+            [self_].as_mut_ptr(),
+            1,
+            compiler.cstring(""),
+          );
+          let v = LLVMBuildICmp(
+            compiler.builder,
+            LLVMIntPredicate::LLVMIntNE,
+            str_len,
+            LLVMConstInt(int_ty, 0, 0),
+            compiler.cstring(""),
+          );
+          let v = LLVMBuildIntCast2(compiler.builder, v, int_ty, 0, compiler.cstring(""));
+          return ValueWrapper {
+            v,
+            ty: ValueType::Integer,
+            is_pointer: false,
+            can_be_loaded: true,
+            is_runtime: true,
+          };
+        },
         #[allow(unreachable_patterns)]
         _ => unreachable!(),
       }
@@ -231,6 +237,7 @@ mod utils {
     unsafe {
       let (int_len_func, int_len_ty) = self_.get_func("%%int_len%%").unwrap();
       let (int_as_str_func, int_as_str_ty) = self_.get_func("%%int_as_str%%").unwrap();
+      let (strlen_func, strlen_ty) = self_.get_func("strlen").unwrap();
       let int64_type = LLVMInt64TypeInContext(self_.ctx);
       let zero = LLVMConstInt(int64_type, 0, 0);
 
@@ -238,9 +245,17 @@ mod utils {
         ValueType::String => {
           let ty = LLVMTypeOf(value.v);
           if value.is_pointer {
+            let ptr_len = LLVMBuildCall2(
+              self_.builder,
+              strlen_ty,
+              strlen_func,
+              [value.v].as_mut_ptr(),
+              1,
+              self_.cstring(""),
+            );
             let len = LLVMBuildSub(
               self_.builder,
-              value.ptr_len.unwrap(),
+              ptr_len,
               LLVMConstInt(int64_type, 1, 0),
               self_.cstring(""),
             );
@@ -335,6 +350,11 @@ impl Compiler {
         LLVMFunctionType(char_ptr_ty, [char_ptr_ty, char_ptr_ty].as_mut_ptr(), 2, 0);
       let strcat_func = LLVMAddFunction(self.module, self.cstring("strcat"), strcat_type);
       LLVMSetFunctionCallConv(strcat_func, LLVMCallConv::LLVMCCallConv as u32);
+
+      let strlen_type =
+        LLVMFunctionType(LLVMInt64TypeInContext(self.ctx), [char_ptr_ty].as_mut_ptr(), 1, 0);
+      let strlen_func = LLVMAddFunction(self.module, self.cstring("strlen"), strlen_type);
+      LLVMSetFunctionCallConv(strlen_func, LLVMCallConv::LLVMCCallConv as u32);
     }
   }
 
@@ -604,7 +624,6 @@ impl Compiler {
         },
         StmtKind::Print { expr } => {
           let value = self.compile_expr(expr);
-          println!();
           let value = if !value.is_runtime() {
             let value = ValueWrapper::new_string(self, &value.to_string()).v;
             let value_ptr = self.alloca_at_entry(value);
