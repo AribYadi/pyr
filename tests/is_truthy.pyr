@@ -11,3 +11,9 @@ if foo:
 foo = "foo"
 if foo:
   print "String is working!\n"
+
+if !foo:
+  print "Broken! `!foo` is not supposed to be true!\n"
+foo = ""
+if !foo:
+  print "Negating a string is working!\n"

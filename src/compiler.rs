@@ -607,7 +607,7 @@ impl Compiler {
         LLVMPositionBuilderAtEnd(builder, entry);
       }
 
-      let name = self.cstring("");
+      let name = self.cstring("pwerfajwoer");
       let value_ptr = LLVMBuildAlloca(builder, LLVMTypeOf(value), name);
       LLVMBuildStore(self.builder, value, value_ptr);
       value_ptr
@@ -768,7 +768,8 @@ impl Compiler {
           let new_val = ValueWrapper::new_variable(self, expr.clone());
           match self.variables.get_mut(&name.clone()) {
             Some((_, val)) => {
-              if val.ty == expr.ty {
+              // Since strings have a variable size, we just overwrite the value
+              if val.ty == expr.ty && val.ty != ValueType::String {
                 LLVMBuildStore(self.builder, expr.v, val.v);
               } else {
                 *val = new_val;

@@ -259,28 +259,29 @@ impl ValueWrapper {
   pub fn not(self, compiler: &mut Compiler) -> Self {
     unsafe {
       if self.is_runtime() {
-        let self_ = self.load(compiler);
-        match self_.ty {
-          ValueType::Integer => {
-            let v = LLVMBuildICmp(
-              compiler.builder,
-              LLVMIntPredicate::LLVMIntNE,
-              self_.v,
-              LLVMConstInt(LLVMInt64TypeInContext(compiler.ctx), 1, 0),
-              compiler.cstring(""),
-            );
-            return ValueWrapper {
-              v,
-              ty: ValueType::Integer,
-              is_pointer: false,
-              can_be_loaded: true,
-              is_runtime: true,
-            };
-          },
-          ValueType::String => todo!(),
-          #[allow(unreachable_patterns)]
-          _ => unreachable!(),
-        }
+        let self_ = self.new_is_truthy(compiler);
+        let v = LLVMBuildIntCast2(
+          compiler.builder,
+          self_.v,
+          LLVMInt1TypeInContext(compiler.ctx),
+          0,
+          compiler.cstring(""),
+        );
+        let v = LLVMBuildNot(compiler.builder, v, compiler.cstring(""));
+        let v = LLVMBuildIntCast2(
+          compiler.builder,
+          v,
+          LLVMInt64TypeInContext(compiler.ctx),
+          0,
+          compiler.cstring(""),
+        );
+        return Self {
+          v,
+          ty: ValueType::Integer,
+          is_pointer: false,
+          can_be_loaded: true,
+          is_runtime: true,
+        };
       }
       ValueWrapper::new_integer(compiler, !self.is_truthy() as i64)
     }

@@ -1,7 +1,8 @@
 :exitcode 0:
-:stdout 39:
+:stdout 69:
 Integer is working!
 String is working!
+Negating a string is working!
 
 :end:
 :stderr 0:
