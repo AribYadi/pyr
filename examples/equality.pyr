@@ -1,0 +1,10 @@
+print "1 == 1: " + (1 == 1) + "\n"
+print "1 == 0: " + (1 == 0) + "\n"
+print "1 != 0: " + (1 != 0) + "\n"
+print "\"hello\" == \"hello\": " + ("hello" == "hello") + "\n"
+print "\"hello\" == \"world\": " + ("hello" == "world") + "\n"
+print "\"hello\" != \"world\": " + ("hello" != "world") + "\n"
+
+foo = "foo"
+print "foo == \"foo\": " + (foo == "foo") + "\n"
+print "foo == 1: " + (foo == 1) + "\n"

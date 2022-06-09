@@ -21,37 +21,6 @@ macro_rules! impl_arithmetics_for_runtime {
       }
     }
   };
-  (
-    SHORT_CIRCUIT;
-    $compiler:ident, $self_val:ident, $other_val:ident, $other_expr:ident;
-    $($pattern:pat => $pattern_out:expr;)*
-  ) => {
-    if $self_val.is_runtime() {
-      let self_val = $self_val.load($compiler);
-      #[allow(clippy::redundant_closure_call)]
-      #[allow(unreachable_patterns)]
-      match &$self_val.ty {
-        $($pattern => {
-          let (v, ty, is_pointer, can_be_loaded) = ($pattern_out)($self_val, self_val, Some($other_expr), $other_val);
-          return Self { v, ty, is_pointer, can_be_loaded, is_runtime: true }
-        },)*
-      }
-    }
-    let other = $other_val.unwrap_or_else(|| $compiler.compile_expr($other_expr));
-    if other.is_runtime() {
-      let other_ = other.load($compiler);
-      #[allow(clippy::redundant_closure_call)]
-      #[allow(unreachable_patterns)]
-      match &other_.ty {
-        $($pattern => {
-          let (v, ty, is_pointer, can_be_loaded) = ($pattern_out)(other, other_, None, Some($self_val));
-          return Self { v, ty, is_pointer, can_be_loaded, is_runtime: true }
-        },)*
-      }
-    }
-
-    unreachable!()
-  };
 }
 
 impl ValueWrapper {
@@ -367,9 +336,26 @@ impl ValueWrapper {
           let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntEQ, self_.v, other_.v, compiler.cstring(""));
           (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true)
         };
-        (ValueType::String, ValueType::String) => |_, _| todo!();
-        _ => |_, _| todo!();
+        (ValueType::String, ValueType::String) => |_, _| {
+          let self_ = utils::gep_string_ptr(compiler, self);
+          let other_ = utils::gep_string_ptr(compiler, other);
+
+          let (strcmp_func, strcmp_ty) = compiler.get_func("strcmp").unwrap();
+          let match_ = LLVMBuildCall2(
+            compiler.builder,
+            strcmp_ty,
+            strcmp_func,
+            [self_, other_].as_mut_ptr(),
+            2,
+            compiler.cstring(""),
+          );
+          let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntEQ, match_, LLVMConstInt(LLVMInt32TypeInContext(compiler.ctx), 0, 0), compiler.cstring(""));
+          let v = LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring(""));
+          (v, ValueType::Integer, false, true)
+        };
+        _ => |_, _| (LLVMConstInt(LLVMInt64TypeInContext(compiler.ctx), 0, 0), ValueType::Integer, false, true);
       }
+
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, (self.get_as_integer() == other.get_as_integer()) as i64)
@@ -390,8 +376,24 @@ impl ValueWrapper {
           let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntNE, self_.v, other_.v, compiler.cstring(""));
           (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true)
         };
-        (ValueType::String, ValueType::String) => |_, _| todo!();
-        _ => |_, _| todo!();
+        (ValueType::String, ValueType::String) => |_, _| {
+          let self_ = utils::gep_string_ptr(compiler, self);
+          let other_ = utils::gep_string_ptr(compiler, other);
+
+          let (strcmp_func, strcmp_ty) = compiler.get_func("strcmp").unwrap();
+          let match_ = LLVMBuildCall2(
+            compiler.builder,
+            strcmp_ty,
+            strcmp_func,
+            [self_, other_].as_mut_ptr(),
+            2,
+            compiler.cstring(""),
+          );
+          let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntNE, match_, LLVMConstInt(LLVMInt32TypeInContext(compiler.ctx), 0, 0), compiler.cstring(""));
+          let v = LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring(""));
+          (v, ValueType::Integer, false, true)
+        };
+        _ => |_, _| (LLVMConstInt(LLVMInt64TypeInContext(compiler.ctx), 1, 0), ValueType::Integer, false, true);
       }
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {

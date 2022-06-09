@@ -1,0 +1,15 @@
+:exitcode 0:
+:stdout 124:
+1 == 1: 1
+1 == 0: 0
+1 != 0: 1
+"hello" == "hello": 1
+"hello" == "world": 0
+"hello" != "world": 1
+foo == "foo": 1
+foo == 1: 0
+
+:end:
+:stderr 0:
+
+:end:

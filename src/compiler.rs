@@ -168,10 +168,10 @@ impl ValueWrapper {
           let self_ = if self_.is_pointer {
             self.v
           } else if self.is_pointer {
-            utils::gep_string_ptr(compiler, self.v)
+            utils::gep_string_ptr_raw(compiler, self.v)
           } else {
             let self_ptr = compiler.alloca_at_entry(self_.v);
-            utils::gep_string_ptr(compiler, self_ptr)
+            utils::gep_string_ptr_raw(compiler, self_ptr)
           };
           let str_len = LLVMBuildCall2(
             compiler.builder,
@@ -261,7 +261,7 @@ mod utils {
             return (value.v, len);
           }
           let v = self_.alloca_at_entry(value.v);
-          let v = utils::gep_string_ptr(self_, v);
+          let v = utils::gep_string_ptr_raw(self_, v);
           (v, LLVMConstInt(int64_type, (LLVMGetArrayLength(ty) - 1) as u64, 0))
         },
         ValueType::Integer => {
@@ -295,8 +295,21 @@ mod utils {
     }
   }
 
-  pub fn gep_string_ptr(self_: &mut Compiler, value: LLVMValueRef) -> LLVMValueRef {
+  pub(super) fn gep_string_ptr(self_: &mut Compiler, value: ValueWrapper) -> LLVMValueRef {
     unsafe {
+      if LLVMTypeOf(value.v) == LLVMPointerType(LLVMInt8TypeInContext(self_.ctx), 0) {
+        return value.v;
+      }
+      let value = if !value.is_pointer { self_.alloca_at_entry(value.v) } else { value.v };
+      utils::gep_string_ptr_raw(self_, value)
+    }
+  }
+
+  pub fn gep_string_ptr_raw(self_: &mut Compiler, value: LLVMValueRef) -> LLVMValueRef {
+    unsafe {
+      if LLVMTypeOf(value) == LLVMPointerType(LLVMInt8TypeInContext(self_.ctx), 0) {
+        return value;
+      }
       let zero = LLVMConstInt(LLVMInt64TypeInContext(self_.ctx), 0, 0);
       LLVMBuildGEP2(
         self_.builder,
@@ -361,6 +374,15 @@ impl Compiler {
         LLVMFunctionType(LLVMInt64TypeInContext(self.ctx), [char_ptr_ty].as_mut_ptr(), 1, 0);
       let strlen_func = LLVMAddFunction(self.module, self.cstring("strlen"), strlen_type);
       LLVMSetFunctionCallConv(strlen_func, LLVMCallConv::LLVMCCallConv as u32);
+
+      let strcmp_type = LLVMFunctionType(
+        LLVMInt32TypeInContext(self.ctx),
+        [char_ptr_ty, char_ptr_ty].as_mut_ptr(),
+        2,
+        0,
+      );
+      let strcmp_func = LLVMAddFunction(self.module, self.cstring("strcmp"), strcmp_type);
+      LLVMSetFunctionCallConv(strcmp_func, LLVMCallConv::LLVMCCallConv as u32);
     }
   }
 
@@ -607,7 +629,7 @@ impl Compiler {
         LLVMPositionBuilderAtEnd(builder, entry);
       }
 
-      let name = self.cstring("pwerfajwoer");
+      let name = self.cstring("");
       let value_ptr = LLVMBuildAlloca(builder, LLVMTypeOf(value), name);
       LLVMBuildStore(self.builder, value, value_ptr);
       value_ptr
@@ -836,9 +858,8 @@ impl Compiler {
     }
 
     LLVMBuildRet(self.builder, LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 0, 0));
-    LLVMDumpModule(self.module);
     LLVMVerifyFunction(self.main_func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
-    // LLVMRunFunctionPassManager(self.fpm, self.main_func);
+    LLVMRunFunctionPassManager(self.fpm, self.main_func);
 
     LLVMVerifyModule(
       self.module,

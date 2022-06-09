@@ -84,7 +84,7 @@ fn parse_binary_expr() {
   check_precedence(expr, "(a = (b = c))");
 
   let expr = parse("a and b or c");
-  check_precedence(expr, "(a and (b or c))");
+  check_precedence(expr, "((a and b) or c)");
 
   let expr = parse("1 > 0 < 2");
   assert_eq!(
