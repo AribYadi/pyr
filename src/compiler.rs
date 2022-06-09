@@ -130,6 +130,9 @@ impl ValueWrapper {
 
   fn is_truthy(&self) -> bool {
     unsafe {
+      if self.is_runtime() {
+        return false;
+      }
       match self.ty {
         ValueType::Integer => self.get_as_integer() == 1,
         ValueType::String => !self.get_as_string().is_empty(),
@@ -160,18 +163,15 @@ impl ValueWrapper {
           };
         },
         ValueType::String => {
+          let self_ = self.load(compiler);
           let (strlen_func, strlen_ty) = compiler.get_func("strlen").unwrap();
-          let self_ = if self.load(compiler).is_pointer {
+          let self_ = if self_.is_pointer {
             self.v
+          } else if self.is_pointer {
+            utils::gep_string_ptr(compiler, self.v)
           } else {
-            LLVMBuildGEP2(
-              compiler.builder,
-              LLVMGetElementType(LLVMTypeOf(self.v)),
-              self.v,
-              [LLVMConstInt(int_ty, 0, 0), LLVMConstInt(int_ty, 0, 0)].as_mut_ptr(),
-              2,
-              compiler.cstring(""),
-            )
+            let self_ptr = compiler.alloca_at_entry(self_.v);
+            utils::gep_string_ptr(compiler, self_ptr)
           };
           let str_len = LLVMBuildCall2(
             compiler.builder,
@@ -239,7 +239,6 @@ mod utils {
       let (int_as_str_func, int_as_str_ty) = self_.get_func("%%int_as_str%%").unwrap();
       let (strlen_func, strlen_ty) = self_.get_func("strlen").unwrap();
       let int64_type = LLVMInt64TypeInContext(self_.ctx);
-      let zero = LLVMConstInt(int64_type, 0, 0);
 
       match &value.ty {
         ValueType::String => {
@@ -262,14 +261,7 @@ mod utils {
             return (value.v, len);
           }
           let v = self_.alloca_at_entry(value.v);
-          let v = LLVMBuildGEP2(
-            self_.builder,
-            LLVMGetElementType(LLVMTypeOf(v)),
-            v,
-            [zero, zero].as_mut_ptr(),
-            2,
-            self_.cstring(""),
-          );
+          let v = utils::gep_string_ptr(self_, v);
           (v, LLVMConstInt(int64_type, (LLVMGetArrayLength(ty) - 1) as u64, 0))
         },
         ValueType::Integer => {
@@ -302,8 +294,23 @@ mod utils {
       }
     }
   }
+
+  pub fn gep_string_ptr(self_: &mut Compiler, value: LLVMValueRef) -> LLVMValueRef {
+    unsafe {
+      let zero = LLVMConstInt(LLVMInt64TypeInContext(self_.ctx), 0, 0);
+      LLVMBuildGEP2(
+        self_.builder,
+        LLVMGetElementType(LLVMTypeOf(value)),
+        value,
+        [zero, zero].as_mut_ptr(),
+        2,
+        self_.cstring(""),
+      )
+    }
+  }
 }
 
+#[derive(Clone)]
 pub struct Compiler {
   pub ctx: LLVMContextRef,
   pub module: LLVMModuleRef,
@@ -313,7 +320,6 @@ pub struct Compiler {
   cstring_cache: HashMap<String, CString>,
   main_func: LLVMValueRef,
   curr_func: LLVMValueRef,
-  str_arr_count: usize,
 
   variables: Variables<ValueWrapper>,
   indent_level: IndentLevel,
@@ -547,7 +553,6 @@ impl Compiler {
       indent_level: 0,
       main_func: func,
       curr_func: func,
-      str_arr_count: 0,
     };
 
     LLVMBuildGlobalString(builder, self_.cstring("%d"), self_.cstring("int_format"));
@@ -581,11 +586,6 @@ impl Compiler {
 
   fn alloca_str(&mut self, size: LLVMValueRef) -> LLVMValueRef {
     unsafe {
-      LLVMAddGlobal(
-        self.module,
-        LLVMTypeOf(size),
-        self.cstring(&format!("str_arr_{}_len", self.str_arr_count)),
-      );
       LLVMBuildArrayAlloca(
         self.builder,
         LLVMInt8TypeInContext(self.ctx),
@@ -623,7 +623,7 @@ impl Compiler {
           self.compile_expr(expr);
         },
         StmtKind::Print { expr } => {
-          let value = self.compile_expr(expr);
+          let value = self.compile_expr(expr).load(self);
           let value = if !value.is_runtime() {
             let value = ValueWrapper::new_string(self, &value.to_string()).v;
             let value_ptr = self.alloca_at_entry(value);
@@ -760,6 +760,9 @@ impl Compiler {
           let right = self.compile_expr(right);
           self.compile_infix_op(op, left, right)
         },
+        ExprKind::ShortCircuitOp { op, left, right } => {
+          self.compile_short_circuit_op(op, left, right)
+        },
         ExprKind::VarAssign { name, expr } => {
           let expr = self.compile_expr(expr);
           let new_val = ValueWrapper::new_variable(self, expr.clone());
@@ -812,14 +815,29 @@ impl Compiler {
     }
   }
 
+  fn compile_short_circuit_op(
+    &mut self,
+    op: &TokenKind,
+    left: &Expr,
+    right: &Expr,
+  ) -> ValueWrapper {
+    match op {
+      TokenKind::And => ValueWrapper::and(self, left, right),
+      TokenKind::Or => ValueWrapper::or(self, left, right),
+
+      _ => unreachable!("{op} is not a short circuit operator"),
+    }
+  }
+
   unsafe fn finish(&mut self, stmts: &[Stmt]) {
     for stmt in stmts {
       self.compile_stmt(stmt);
     }
 
     LLVMBuildRet(self.builder, LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 0, 0));
+    LLVMDumpModule(self.module);
     LLVMVerifyFunction(self.main_func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
-    LLVMRunFunctionPassManager(self.fpm, self.main_func);
+    // LLVMRunFunctionPassManager(self.fpm, self.main_func);
 
     LLVMVerifyModule(
       self.module,
@@ -863,8 +881,6 @@ impl Compiler {
     LLVMSetModuleDataLayout(self.module, LLVMCreateTargetDataLayout(target_machine));
     LLVMSetTarget(self.module, target_triple as *const _);
 
-    let pass = LLVMCreatePassManager();
-
     let file_type = LLVMCodeGenFileType::LLVMObjectFile;
     let filename = self.cstring(output_file) as *mut _;
 
@@ -878,8 +894,6 @@ impl Compiler {
       );
       process::exit(1);
     }
-
-    LLVMRunPassManager(pass, self.module);
   }
 }
 

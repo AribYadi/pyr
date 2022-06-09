@@ -120,6 +120,10 @@ pub enum TokenKind {
   Else,
   #[token("while")]
   While,
+  #[token("and")]
+  And,
+  #[token("or")]
+  Or,
 
   // Delimiters
   #[token("(")]
@@ -159,6 +163,8 @@ impl std::fmt::Display for TokenKind {
       TokenKind::If => write!(f, "if"),
       TokenKind::Else => write!(f, "else"),
       TokenKind::While => write!(f, "while"),
+      TokenKind::And => write!(f, "and"),
+      TokenKind::Or => write!(f, "or"),
       TokenKind::LeftParen => write!(f, "("),
       TokenKind::RightParen => write!(f, ")"),
       TokenKind::Colon => write!(f, ":"),
@@ -181,7 +187,8 @@ impl Operator for TokenKind {
 
   fn infix_bp(&self) -> (u8, u8) {
     match self {
-      TokenKind::Equal => (6, 5),
+      TokenKind::Equal => (4, 3),
+      TokenKind::And | TokenKind::Or => (5, 6),
       TokenKind::EqualEqual | TokenKind::BangEqual => (7, 7),
       TokenKind::Less | TokenKind::Greater | TokenKind::LessEqual | TokenKind::GreaterEqual => {
         (8, 8)
@@ -201,6 +208,7 @@ pub enum ExprKind {
 
   PrefixOp { op: TokenKind, right: Box<Expr> },
   InfixOp { op: TokenKind, left: Box<Expr>, right: Box<Expr> },
+  ShortCircuitOp { op: TokenKind, left: Box<Expr>, right: Box<Expr> },
   VarAssign { name: String, expr: Box<Expr> },
 }
 
@@ -218,6 +226,7 @@ impl std::fmt::Display for Expr {
       ExprKind::Identifier(s) => write!(f, "{s}"),
       ExprKind::PrefixOp { op, right } => write!(f, "{op}{right}"),
       ExprKind::InfixOp { op, left, right } => write!(f, "{left} {op} {right}"),
+      ExprKind::ShortCircuitOp { op, left, right } => write!(f, "{left} {op} {right}"),
       ExprKind::VarAssign { name, expr } => write!(f, "{name} = {expr}"),
     }
   }

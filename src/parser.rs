@@ -341,6 +341,27 @@ impl Parser<'_> {
             return Err(ParseError::new(ParseErrorKind::InvalidAssignment(lhs.clone()), lhs.span));
           }
         },
+        op @ Tok::And | op @ Tok::Or => {
+          let (lbp, rbp) = op.infix_bp();
+          if lbp < bp {
+            break;
+          }
+          if lbp == bp || rbp == bp {
+            return Err(ParseError::new(
+              ParseErrorKind::InvalidChainOperator(op, last_op),
+              self.lexer.span(),
+            ));
+          }
+
+          self.consume(op)?;
+          let right = self.parse_expr(rbp, op)?;
+          let span_start = lhs.span.start;
+          let span_end = right.span.end;
+          lhs = Expr::new(
+            ExprKind::ShortCircuitOp { left: Box::new(lhs), op, right: Box::new(right) },
+            span_start..span_end,
+          );
+        },
 
         Tok::Newline | Tok::Colon | Tok::RightParen => break,
         Tok::Error => {

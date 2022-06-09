@@ -15,7 +15,7 @@
           "kind": "bin"
         }
       },
-      "args": ["run", "${workspaceFolder}/examples/loops.pyr"],
+      "args": ["run", "${workspaceFolder}/tests/short_circuiting.pyr"],
       "cwd": "${workspaceFolder}"
     },
     {
@@ -29,7 +29,7 @@
           "kind": "bin"
         }
       },
-      "args": ["compile", "${workspaceFolder}/examples/variables.pyr"],
+      "args": ["compile", "${workspaceFolder}/tests/short_circuiting.pyr"],
       "cwd": "${workspaceFolder}"
     },
     {

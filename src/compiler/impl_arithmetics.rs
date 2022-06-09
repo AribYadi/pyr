@@ -21,6 +21,37 @@ macro_rules! impl_arithmetics_for_runtime {
       }
     }
   };
+  (
+    SHORT_CIRCUIT;
+    $compiler:ident, $self_val:ident, $other_val:ident, $other_expr:ident;
+    $($pattern:pat => $pattern_out:expr;)*
+  ) => {
+    if $self_val.is_runtime() {
+      let self_val = $self_val.load($compiler);
+      #[allow(clippy::redundant_closure_call)]
+      #[allow(unreachable_patterns)]
+      match &$self_val.ty {
+        $($pattern => {
+          let (v, ty, is_pointer, can_be_loaded) = ($pattern_out)($self_val, self_val, Some($other_expr), $other_val);
+          return Self { v, ty, is_pointer, can_be_loaded, is_runtime: true }
+        },)*
+      }
+    }
+    let other = $other_val.unwrap_or_else(|| $compiler.compile_expr($other_expr));
+    if other.is_runtime() {
+      let other_ = other.load($compiler);
+      #[allow(clippy::redundant_closure_call)]
+      #[allow(unreachable_patterns)]
+      match &other_.ty {
+        $($pattern => {
+          let (v, ty, is_pointer, can_be_loaded) = ($pattern_out)(other, other_, None, Some($self_val));
+          return Self { v, ty, is_pointer, can_be_loaded, is_runtime: true }
+        },)*
+      }
+    }
+
+    unreachable!()
+  };
 }
 
 impl ValueWrapper {
@@ -336,6 +367,7 @@ impl ValueWrapper {
           (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true)
         };
         (ValueType::String, ValueType::String) => |_, _| todo!();
+        _ => |_, _| todo!();
       }
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
@@ -358,6 +390,7 @@ impl ValueWrapper {
           (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true)
         };
         (ValueType::String, ValueType::String) => |_, _| todo!();
+        _ => |_, _| todo!();
       }
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
@@ -367,6 +400,195 @@ impl ValueWrapper {
           Self::new_integer(compiler, (self.get_as_string() != other.get_as_string()) as i64)
         },
         _ => Self::new_integer(compiler, 1),
+      }
+    }
+  }
+
+  pub fn and(compiler: &mut Compiler, self_expr: &Expr, other_expr: &Expr) -> Self {
+    unsafe {
+      let i64_type = LLVMInt64TypeInContext(compiler.ctx);
+      let mut left = compiler.compile_expr(self_expr).load(compiler);
+      if left.ty == ValueType::String {
+        // Turn string(array) into string(pointers)
+        left = Self {
+          v: utils::runtime_string_of(compiler, left.clone()).0,
+          ty: ValueType::String,
+          is_pointer: true,
+          is_runtime: true,
+          can_be_loaded: false,
+        };
+      }
+
+      let start_bb = LLVMGetInsertBlock(compiler.builder);
+      let right_bb = LLVMCreateBasicBlockInContext(compiler.ctx, compiler.cstring("and_right"));
+      let continue_bb =
+        LLVMCreateBasicBlockInContext(compiler.ctx, compiler.cstring("and_continue"));
+
+      let condition = left.new_is_truthy(compiler).v;
+      let condition = LLVMBuildICmp(
+        compiler.builder,
+        LLVMIntPredicate::LLVMIntEQ,
+        condition,
+        LLVMConstInt(i64_type, 1, 0),
+        compiler.cstring(""),
+      );
+      LLVMBuildCondBr(compiler.builder, condition, right_bb, continue_bb);
+
+      LLVMAppendExistingBasicBlock(compiler.curr_func, right_bb);
+      LLVMPositionBuilderAtEnd(compiler.builder, right_bb);
+
+      let mut right = compiler.compile_expr(other_expr).load(compiler);
+      if right.ty == ValueType::String {
+        // Turn string(array) into string(pointers)
+        right = Self {
+          v: utils::runtime_string_of(compiler, right.clone()).0,
+          ty: ValueType::String,
+          is_pointer: true,
+          is_runtime: true,
+          can_be_loaded: false,
+        };
+      }
+      if left.ty != right.ty {
+        right = right.new_is_truthy(compiler);
+      }
+
+      LLVMBuildBr(compiler.builder, continue_bb);
+
+      LLVMAppendExistingBasicBlock(compiler.curr_func, continue_bb);
+      LLVMPositionBuilderAtEnd(compiler.builder, continue_bb);
+
+      let out_ty = match (&left.ty, &right.ty) {
+        (ValueType::Integer, ValueType::Integer) => ValueType::Integer,
+        (ValueType::String, ValueType::String) => ValueType::String,
+        _ => ValueType::Integer,
+      };
+      let v_ty = match out_ty {
+        ValueType::Integer => i64_type,
+        ValueType::String => LLVMPointerType(LLVMInt8TypeInContext(compiler.ctx), 0),
+      };
+      let v_value = if left.ty == right.ty {
+        let v_value = LLVMBuildPhi(compiler.builder, v_ty, compiler.cstring(""));
+        LLVMAddIncoming(
+          v_value,
+          [left.v, right.v].as_mut_ptr(),
+          [start_bb, right_bb].as_mut_ptr(),
+          2,
+        );
+        v_value
+      } else {
+        let v_value = LLVMBuildPhi(compiler.builder, v_ty, compiler.cstring(""));
+        LLVMAddIncoming(
+          v_value,
+          [LLVMConstInt(i64_type, 0, 0), right.v].as_mut_ptr(),
+          [start_bb, right_bb].as_mut_ptr(),
+          2,
+        );
+        v_value
+      };
+
+      let v = if out_ty == ValueType::String { v_value } else { compiler.alloca_at_entry(v_value) };
+
+      Self {
+        v,
+        ty: out_ty,
+        is_pointer: true,
+        is_runtime: true,
+        can_be_loaded: matches!(out_ty, ValueType::Integer),
+      }
+    }
+  }
+
+  pub fn or(compiler: &mut Compiler, self_expr: &Expr, other_expr: &Expr) -> Self {
+    unsafe {
+      let i64_type = LLVMInt64TypeInContext(compiler.ctx);
+      let mut left = compiler.compile_expr(self_expr).load(compiler);
+      if left.ty == ValueType::String {
+        // Turn string(array) into string(pointers)
+        left = Self {
+          v: utils::runtime_string_of(compiler, left.clone()).0,
+          ty: ValueType::String,
+          is_pointer: true,
+          is_runtime: true,
+          can_be_loaded: false,
+        };
+      }
+
+      let start_bb = LLVMGetInsertBlock(compiler.builder);
+      let right_bb = LLVMCreateBasicBlockInContext(compiler.ctx, compiler.cstring("or_right"));
+      let continue_bb =
+        LLVMCreateBasicBlockInContext(compiler.ctx, compiler.cstring("or_continue"));
+
+      let condition = left.new_is_truthy(compiler).v;
+      let condition = LLVMBuildICmp(
+        compiler.builder,
+        LLVMIntPredicate::LLVMIntEQ,
+        condition,
+        LLVMConstInt(i64_type, 0, 0),
+        compiler.cstring(""),
+      );
+      LLVMBuildCondBr(compiler.builder, condition, right_bb, continue_bb);
+
+      LLVMAppendExistingBasicBlock(compiler.curr_func, right_bb);
+      LLVMPositionBuilderAtEnd(compiler.builder, right_bb);
+
+      let mut right = compiler.compile_expr(other_expr).load(compiler);
+      if right.ty == ValueType::String {
+        // Turn string(array) into string(pointers)
+        right = Self {
+          v: utils::runtime_string_of(compiler, right.clone()).0,
+          ty: ValueType::String,
+          is_pointer: true,
+          is_runtime: true,
+          can_be_loaded: false,
+        };
+      }
+      if left.ty != right.ty {
+        left = left.new_is_truthy(compiler);
+        right = right.new_is_truthy(compiler);
+      }
+
+      LLVMBuildBr(compiler.builder, continue_bb);
+
+      LLVMAppendExistingBasicBlock(compiler.curr_func, continue_bb);
+      LLVMPositionBuilderAtEnd(compiler.builder, continue_bb);
+
+      let out_ty = match (&left.ty, &right.ty) {
+        (ValueType::Integer, ValueType::Integer) => ValueType::Integer,
+        (ValueType::String, ValueType::String) => ValueType::String,
+        _ => ValueType::Integer,
+      };
+      let v_ty = match out_ty {
+        ValueType::Integer => i64_type,
+        ValueType::String => LLVMPointerType(LLVMInt8TypeInContext(compiler.ctx), 0),
+      };
+      let v_value = if left.ty == right.ty {
+        let v_value = LLVMBuildPhi(compiler.builder, v_ty, compiler.cstring(""));
+        LLVMAddIncoming(
+          v_value,
+          [left.v, right.v].as_mut_ptr(),
+          [start_bb, right_bb].as_mut_ptr(),
+          2,
+        );
+        v_value
+      } else {
+        let v_value = LLVMBuildPhi(compiler.builder, v_ty, compiler.cstring(""));
+        LLVMAddIncoming(
+          v_value,
+          [LLVMConstInt(i64_type, 0, 0), right.v].as_mut_ptr(),
+          [start_bb, right_bb].as_mut_ptr(),
+          2,
+        );
+        v_value
+      };
+
+      let v = if out_ty == ValueType::String { v_value } else { compiler.alloca_at_entry(v_value) };
+
+      Self {
+        v,
+        ty: out_ty,
+        is_pointer: true,
+        is_runtime: true,
+        can_be_loaded: matches!(out_ty, ValueType::Integer),
       }
     }
   }

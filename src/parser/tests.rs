@@ -58,6 +58,9 @@ fn parse_binary_expr() {
         ExprKind::InfixOp { left, op, right } => {
           format!("({} {op} {})", to_string(*left), to_string(*right))
         },
+        ExprKind::ShortCircuitOp { op, left, right } => {
+          format!("({} {op} {})", to_string(*left), to_string(*right))
+        },
         ExprKind::VarAssign { name, expr } => format!("({} = {})", name, to_string(*expr)),
       }
     }
@@ -79,6 +82,9 @@ fn parse_binary_expr() {
 
   let expr = parse("a = b = c");
   check_precedence(expr, "(a = (b = c))");
+
+  let expr = parse("a and b or c");
+  check_precedence(expr, "(a and (b or c))");
 
   let expr = parse("1 > 0 < 2");
   assert_eq!(

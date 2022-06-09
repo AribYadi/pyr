@@ -27,4 +27,11 @@ impl Literal {
       Literal::String(s) => !s.is_empty(),
     }
   }
+
+  pub fn is_same_variant(&self, other: &Self) -> bool {
+    matches!(
+      (self, other),
+      (Literal::String(_), Literal::String(_)) | (Literal::Integer(_), Literal::Integer(_))
+    )
+  }
 }

@@ -17,6 +17,7 @@ use crate::runtime::{
   Variables,
 };
 
+#[derive(Clone)]
 pub struct Interpreter {
   variables: Variables<Literal>,
   indent_level: IndentLevel,
@@ -98,6 +99,9 @@ impl Interpreter {
         let right = self.interpret_expr(right)?;
         self.interpret_infix_op(op, left, right)
       },
+      ExprKind::ShortCircuitOp { op, left, right } => {
+        self.interpret_short_circuit_op(op, *left.clone(), *right.clone())
+      },
       ExprKind::VarAssign { name, expr } => {
         let value = self.interpret_expr(expr)?;
         self.variables.entry(name.to_string()).or_insert((self.indent_level, value.clone())).1 =
@@ -130,6 +134,38 @@ impl Interpreter {
       TokenKind::BangEqual => Ok(left.ne(right)),
 
       _ => unreachable!("{op} is not an infix operator"),
+    }
+  }
+
+  fn interpret_short_circuit_op(
+    &mut self,
+    op: &TokenKind,
+    left: Expr,
+    right: Expr,
+  ) -> Result<Literal> {
+    let left = self.interpret_expr(&left)?;
+    let right_lit = self.clone().interpret_expr(&right)?;
+    match op {
+      TokenKind::And if right_lit.is_same_variant(&left) => {
+        if !left.is_truthy() {
+          return Ok(left);
+        }
+        self.interpret_expr(&right)
+      },
+      TokenKind::And if left.is_truthy() => {
+        Ok(Literal::Integer(self.interpret_expr(&right)?.is_truthy() as i64))
+      },
+      TokenKind::And => Ok(Literal::Integer(0)),
+      TokenKind::Or if right_lit.is_same_variant(&left) => {
+        if left.is_truthy() {
+          return Ok(left);
+        }
+        self.interpret_expr(&right)
+      },
+      TokenKind::Or if left.is_truthy() => Ok(Literal::Integer(1)),
+      TokenKind::Or => Ok(Literal::Integer(self.interpret_expr(&right)?.is_truthy() as i64)),
+
+      _ => unreachable!("{op} is not a short circuit operator"),
     }
   }
 }

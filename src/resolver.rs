@@ -104,6 +104,9 @@ impl Resolver {
 
       ExprKind::PrefixOp { op, right } => self.resolve_prefix_op(op, right),
       ExprKind::InfixOp { op, left, right } => self.resolve_infix_op(op, left, right),
+      ExprKind::ShortCircuitOp { op, left, right } => {
+        self.resolve_short_circuit_op(op, left, right)
+      },
       ExprKind::VarAssign { name, expr } => {
         let val_type = self.resolve_expr(expr)?;
         self.variables.entry(name.to_string()).or_insert((self.indent_level, val_type)).1 =
@@ -157,6 +160,28 @@ impl Resolver {
         Ok(ValType::Integer)
       },
       TokenKind::EqualEqual | TokenKind::BangEqual => Ok(ValType::Integer),
+
+      _ => Err(RuntimeError::new(
+        RuntimeErrorKind::CannotApplyInfix(left.clone(), *op, right.clone()),
+        0..0,
+      )),
+    }
+  }
+
+  fn resolve_short_circuit_op(
+    &mut self,
+    op: &TokenKind,
+    left: &Expr,
+    right: &Expr,
+  ) -> Result<ValType> {
+    let left_type = self.resolve_expr(left)?;
+    let right_type = self.resolve_expr(right)?;
+
+    match op {
+      // If left and right have the same type, then return that type
+      TokenKind::And | TokenKind::Or if left_type == right_type => Ok(left_type),
+      // Otherwise return a boolean
+      TokenKind::And | TokenKind::Or => Ok(ValType::Integer),
 
       _ => Err(RuntimeError::new(
         RuntimeErrorKind::CannotApplyInfix(left.clone(), *op, right.clone()),
