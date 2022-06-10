@@ -20,7 +20,9 @@ jobs:
           command: install
           args: mdbook --no-default-features --features search --vers "^0.4" --locked
       - name: Build docs
-        run: mdbook build
+        run: |
+          cd docs
+          mdbook build
       - name: Publish HTML
         uses: peaceiris/actions-gh-pages@v3
         with:
