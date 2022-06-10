@@ -1,0 +1,355 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Pyr Language Reference</title>
+        <meta name="robots" content="noindex" />
+        <!-- Custom HTML head -->
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="language-reference/variables.html"><strong aria-hidden="true">4.</strong> Variable</a></li><li class="chapter-item expanded "><a href="language-reference/arithmetic.html"><strong aria-hidden="true">5.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="language-reference/comparison.html"><strong aria-hidden="true">6.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="language-reference/truthiness.html"><strong aria-hidden="true">7.</strong> Truthiness</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Pyr Language Reference</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <div style="break-before: page; page-break-before: always;"></div><h1 id="overview"><a class="header" href="#overview">Overview</a></h1>
+<p>Pyr is a programming language based on <a href="https://www.python.org/">Python</a>.</p>
+<h2 id="features"><a class="header" href="#features">Features</a></h2>
+<ul>
+<li>Static type checking</li>
+<li>Can be interpreted</li>
+<li>Can be compiled into a native object file (using <a href="https://llvm.org/">LLVM</a>)</li>
+</ul>
+<h2 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h2>
+<p>Pyr is written in <a href="https://www.rust-lang.org/">Rust</a>.
+To compile Pyr you need to have a <a href="https://rustup.rs/">Rust compiler</a> and <a href="https://llvm.org/">LLVM</a> version 14.0.x.</p>
+<p>To compile Pyr:</p>
+<pre><code class="language-bash">cargo build --release
+</code></pre>
+<p>To interpret a Pyr program:</p>
+<pre><code class="language-bash">pyr run foo.pyr
+</code></pre>
+<p>To compile a Pyr program:</p>
+<pre><code class="language-bash">pyr compile foo.pyr
+clang foo.o -o foo
+</code></pre>
+<h2 id="license"><a class="header" href="#license">License</a></h2>
+<p>Pyr is under the license of <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache-2.0</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="literals"><a class="header" href="#literals">Literals</a></h2>
+<p>Pyr currently supports the following literals:</p>
+<ul>
+<li><a href="language-reference/./literals.html#integer">Integer</a></li>
+<li><a href="language-reference/./literals.html#boolean">Boolean</a></li>
+<li><a href="language-reference/./literals.html#string">String</a></li>
+</ul>
+<h3 id="integer"><a class="header" href="#integer">Integer</a></h3>
+<p>Integers in Pyr are 64 bit signed integers.</p>
+<pre><code class="language-python">123
+</code></pre>
+<h3 id="boolean"><a class="header" href="#boolean">Boolean</a></h3>
+<p>Booleans in Pyr are secretly integers with <code>true</code> as 1 and <code>false</code> as 0.</p>
+<pre><code class="language-python">true # returns is 1
+false # returns is 0
+</code></pre>
+<h3 id="string"><a class="header" href="#string">String</a></h3>
+<p>Strings in Pyr are delimited by double quotes. <br />
+For escaping things like double quotes, you can use a backslash. <br />
+Multiline strings are also supported. </p>
+<pre><code class="language-python">&quot;Hello, World!&quot;
+&quot;Newlines\n&quot;
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="keywords"><a class="header" href="#keywords">Keywords</a></h2>
+<p>Keywords in Pyr are as follows:</p>
+<ul>
+<li><a href="language-reference/./keywords.html#print">print</a></li>
+<li><a href="language-reference/./keywords.html#if">if</a></li>
+<li><a href="language-reference/./keywords.html#else">else</a></li>
+<li><a href="language-reference/./keywords.html#while">while</a></li>
+<li><a href="language-reference/./keywords.html#and">and</a></li>
+<li><a href="language-reference/./keywords.html#or">or</a></li>
+</ul>
+<h3 id="print"><a class="header" href="#print">print</a></h3>
+<p><code>print</code> prints its right hand side to stdout.
+Currently, <code>print</code> is a keyword, but later on it will be a function.
+<code>print</code> does not automatically add a newline.</p>
+<pre><code class="language-python">print &quot;Hello, World\n&quot; # prints Hello, World
+</code></pre>
+<h3 id="if"><a class="header" href="#if">if</a></h3>
+<p><code>if</code> evaluates its condition and if it's truthy, it executes its body.</p>
+<pre><code class="language-python">if 34 &lt; 56:
+  print &quot;34 is less than 56\n&quot; # Executes this line
+</code></pre>
+<h3 id="else"><a class="header" href="#else">else</a></h3>
+<p><code>else</code> executes its body if the previous <code>if</code>'s condition is falsy.</p>
+<pre><code class="language-python">if 100 &lt; 50:
+  print &quot;100 is less than 50\n&quot; # Skips this line
+else:
+  print &quot;100 is greater than 50\n&quot; # Executes this line
+</code></pre>
+<p><code>else</code> can also be continued with another <code>if</code>:</p>
+<pre><code class="language-python">if 100 &lt; 50:
+  print &quot;100 is less than 50\n&quot; # Skips this line
+else if 100 &gt; 50:
+  print &quot;100 is greater than 50\n&quot; # Executes this line
+else:
+  print &quot;100 is equal to 50\n&quot; # Skips this line
+</code></pre>
+<h3 id="while"><a class="header" href="#while">while</a></h3>
+<p><code>while</code> will execute its body until the condition is falsy.</p>
+<pre><code class="language-python">i = 0
+while i &lt; 10: # Executes its body 10 times
+  print i + &quot;\n&quot;
+  i += 1
+</code></pre>
+<h3 id="and"><a class="header" href="#and">and</a></h3>
+<p><code>and</code> with the same type of operands will return the left value if either is falsy and will return the right value if both are truthy. <br />
+<code>and</code> with different types of operands will return <code>false</code> if either is falsy and will <code>true</code> if both are truthy. <br />
+<code>and</code> will short circuit if left hand side is falsy. </p>
+<pre><code class="language-python">10 &gt; 2 and 10 &lt; 20 # result is true
+&quot;hello&quot; and &quot;world&quot; # result is &quot;world&quot;
+123 and &quot;&quot; # result is false
+</code></pre>
+<h3 id="or"><a class="header" href="#or">or</a></h3>
+<p><code>or</code> with the same type of operands will return the left value if it is truthy otherwise it will return the right hand side. <br />
+<code>or</code> with different types of operands will return <code>true</code> if either is truthy and will return <code>false</code> if both are falsy. <br />
+<code>or</code> will short circuit if left hand side is truthy. </p>
+<pre><code class="language-python">10 &gt; 2 or 10 &lt; 20 # result is true
+&quot;hello&quot; or &quot;world&quot; # result is &quot;hello&quot;
+123 or &quot;&quot; # result is true
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="variable"><a class="header" href="#variable">Variable</a></h2>
+<p>Declaration and assignment in Pyr use the same syntax.</p>
+<pre><code class="language-python">foo = &quot;bar&quot;
+</code></pre>
+<p>To access a variable, use the following syntax:</p>
+<pre><code class="language-python">var_name # result is &quot;bar&quot;
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="arithmetic"><a class="header" href="#arithmetic">Arithmetic</a></h2>
+<ul>
+<li><a href="language-reference/./symbols.html#addition">Addition</a></li>
+<li><a href="language-reference/./symbols.html#subtraction">Subtraction</a></li>
+<li><a href="language-reference/./symbols.html#multiplication">Multiplication</a></li>
+<li><a href="language-reference/./symbols.html#division">Division</a></li>
+<li><a href="language-reference/./symbols.html#negation">Negation</a></li>
+</ul>
+<h3 id="addition"><a class="header" href="#addition">Addition</a></h3>
+<pre><code class="language-python">1 + 2 # result is 3
+</code></pre>
+<p>Addition with strings is concatenation.</p>
+<pre><code class="language-python">&quot;Hello, &quot; + &quot;World!&quot; # result is &quot;Hello, World!&quot;
+</code></pre>
+<h3 id="subtraction"><a class="header" href="#subtraction">Subtraction</a></h3>
+<pre><code class="language-python">1 - 2 # result is -1
+</code></pre>
+<h3 id="multiplication"><a class="header" href="#multiplication">Multiplication</a></h3>
+<pre><code class="language-python">1 * 2 # result is 2
+</code></pre>
+<p>Multiplication between strings and integers is string repetition.</p>
+<pre><code class="language-python">&quot;Hello&quot; * 3 # result is &quot;HelloHelloHello&quot;
+</code></pre>
+<h3 id="division"><a class="header" href="#division">Division</a></h3>
+<pre><code class="language-python">30 / 5 # result is 6
+</code></pre>
+<h3 id="negation"><a class="header" href="#negation">Negation</a></h3>
+<pre><code class="language-python">-1 # result is -1
+!true # result is 0
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="comparison"><a class="header" href="#comparison">Comparison</a></h2>
+<ul>
+<li><a href="language-reference/./equality.html#less-than">Less Than</a></li>
+<li><a href="language-reference/./equality.html#greater-than">Greater Than</a></li>
+<li><a href="language-reference/./equality.html#less-than-or-equal">Less Than or Equal</a></li>
+<li><a href="language-reference/./equality.html#greater-than-or-equal">Greater Than or Equal</a></li>
+<li><a href="language-reference/./equality.html#equal">Equal</a></li>
+<li><a href="language-reference/./equality.html#not-equal">Not Equal</a></li>
+</ul>
+<h3 id="less-than"><a class="header" href="#less-than">Less Than</a></h3>
+<pre><code class="language-python">1 &lt; 2 # result is true
+</code></pre>
+<h3 id="greater-than"><a class="header" href="#greater-than">Greater Than</a></h3>
+<pre><code class="language-python">1 &gt; 2 # result is false
+</code></pre>
+<h3 id="less-than-or-equal"><a class="header" href="#less-than-or-equal">Less Than or Equal</a></h3>
+<pre><code class="language-python">2 &lt;= 2 # result is true
+</code></pre>
+<h3 id="greater-than-or-equal"><a class="header" href="#greater-than-or-equal">Greater Than or Equal</a></h3>
+<pre><code class="language-python">2 &gt;= 2 # result is true
+</code></pre>
+<h3 id="equal"><a class="header" href="#equal">Equal</a></h3>
+<pre><code class="language-python">1 == 2 # result is false
+&quot;Hello&quot; == &quot;Hello&quot; # result is true
+&quot;Hello&quot; == &quot;World&quot; # result is false
+</code></pre>
+<h3 id="not-equal"><a class="header" href="#not-equal">Not Equal</a></h3>
+<pre><code class="language-python">1 != 2 # result is true
+&quot;Hello&quot; != &quot;Hello&quot; # result is false
+&quot;Hello&quot; != &quot;World&quot; # result is true
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="truthiness"><a class="header" href="#truthiness">Truthiness</a></h2>
+<h3 id="integers"><a class="header" href="#integers">Integers</a></h3>
+<p>An integer is truthy if it is equal to 1.</p>
+<pre><code class="language-python">!!0 # result is false
+!!1 # result is true
+!!2 # result is false
+</code></pre>
+<h3 id="string-1"><a class="header" href="#string-1">String</a></h3>
+<p>A string is truthy if it is not empty.</p>
+<pre><code class="language-python">!!&quot;&quot; # result is false
+!!&quot;Hello&quot; # result is true
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+            </nav>
+
+        </div>
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+    </body>
+</html>
