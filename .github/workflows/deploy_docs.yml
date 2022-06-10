@@ -2,6 +2,7 @@ on:
   push:
     paths:
       - "docs/**"
+      - ".github/workflows/deploy_docs.yml"
 
 name: Deploy docs
 
