@@ -1,4 +1,9 @@
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  pull_request:
 
 name: Continuous integration
 
