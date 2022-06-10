@@ -18,7 +18,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: install
-          args: mdbook
+          args: mdbook --no-default-features --features search --vers "^0.4" --locked
       - name: Build docs
         run: mdbook build
       - name: Publish HTML
