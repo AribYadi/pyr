@@ -63,6 +63,7 @@ pub enum TokenKind {
   Eof,
   #[error]
   #[regex(r"[\r\f]+", logos::skip)]
+  #[regex(r"#[^\n]*", logos::skip)]
   Error,
 
   // Whitespace
