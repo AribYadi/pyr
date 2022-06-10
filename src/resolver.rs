@@ -160,6 +160,7 @@ impl Resolver {
         Ok(ValType::Integer)
       },
       TokenKind::EqualEqual | TokenKind::BangEqual => Ok(ValType::Integer),
+      TokenKind::Caret => Ok(ValType::Integer),
 
       _ => Err(RuntimeError::new(
         RuntimeErrorKind::CannotApplyInfix(left.clone(), *op, right.clone()),

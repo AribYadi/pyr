@@ -1,10 +1,12 @@
 ## Arithmetic
 
-- [Addition](./symbols.md#addition)
-- [Subtraction](./symbols.md#subtraction)
-- [Multiplication](./symbols.md#multiplication)
-- [Division](./symbols.md#division)
-- [Negation](./symbols.md#negation)
+- [Arithmetic](#arithmetic)
+  - [Addition](#addition)
+  - [Subtraction](#subtraction)
+  - [Multiplication](#multiplication)
+  - [Division](#division)
+  - [Negation](#negation)
+  - [Exponent](#exponent)
 
 ### Addition
 
@@ -47,4 +49,10 @@ Multiplication between strings and integers is string repetition.
 ```python
 -1 # result is -1
 !true # result is 0
+```
+
+### Exponent
+
+```python
+2 ^ 3 # result is 8
 ```

@@ -2,12 +2,13 @@
 
 Keywords in Pyr are as follows:
 
-- [print](./keywords.md#print)
-- [if](./keywords.md#if)
-- [else](./keywords.md#else)
-- [while](./keywords.md#while)
-- [and](./keywords.md#and)
-- [or](./keywords.md#or)
+- [Keywords](#keywords)
+  - [print](#print)
+  - [if](#if)
+  - [else](#else)
+  - [while](#while)
+  - [and](#and)
+  - [or](#or)
 
 ### print
 

@@ -2,9 +2,10 @@
 
 Pyr currently supports the following literals:
 
-- [Integer](./literals.md#integer)
-- [Boolean](./literals.md#boolean)
-- [String](./literals.md#string)
+- [Literals](#literals)
+  - [Integer](#integer)
+  - [Boolean](#boolean)
+  - [String](#string)
 
 ### Integer
 

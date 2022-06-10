@@ -1,7 +1,9 @@
 :exitcode 0:
-:stdout 5:
+:stdout 11:
 3
 14
+8
+100
 
 :end:
 :stderr 0:

@@ -140,4 +140,13 @@ impl Literal {
       _ => Literal::Integer(1),
     }
   }
+
+  pub fn pow(self, rhs: Self) -> Self {
+    match (self, rhs) {
+      (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l.pow(r as u32)),
+      _ => {
+        unreachable!("Resolver didn't type check infix operator `^`");
+      },
+    }
+  }
 }

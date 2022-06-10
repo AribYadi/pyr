@@ -1,11 +1,12 @@
 ## Comparison
 
-- [Less Than](./equality.md#less-than)
-- [Greater Than](./equality.md#greater-than)
-- [Less Than or Equal](./equality.md#less-than-or-equal)
-- [Greater Than or Equal](./equality.md#greater-than-or-equal)
-- [Equal](./equality.md#equal)
-- [Not Equal](./equality.md#not-equal)
+- [Comparison](#comparison)
+  - [Less Than](#less-than)
+  - [Greater Than](#greater-than)
+  - [Less Than or Equal](#less-than-or-equal)
+  - [Greater Than or Equal](#greater-than-or-equal)
+  - [Equal](#equal)
+  - [Not Equal](#not-equal)
 
 ### Less Than
 

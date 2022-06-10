@@ -595,4 +595,32 @@ impl ValueWrapper {
       }
     }
   }
+
+  pub fn pow(self, compiler: &mut Compiler, other: Self) -> Self {
+    unsafe {
+      impl_arithmetics_for_runtime! {
+        compiler, self, other;
+        (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| {
+          let (powi_func, powi_ty) = compiler.get_func("llvm.powi.i64.i64").unwrap();
+          let v = LLVMBuildCall2(
+            compiler.builder,
+            powi_ty,
+            powi_func,
+            [self_.v, other_.v].as_mut_ptr(),
+            2,
+            compiler.cstring(""),
+          );
+          (v, ValueType::Integer, false, false)
+        };
+      }
+
+      match (&self.ty, &other.ty) {
+        (ValueType::Integer, ValueType::Integer) => {
+          Self::new_integer(compiler, self.get_as_integer().pow(other.get_as_integer() as u32))
+        },
+
+        _ => unreachable!("Resolver didn't type check infix operator `^`"),
+      }
+    }
+  }
 }

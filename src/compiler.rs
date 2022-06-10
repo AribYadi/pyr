@@ -142,7 +142,7 @@ impl ValueWrapper {
 
   unsafe fn new_is_truthy(&self, compiler: &mut Compiler) -> Self {
     if self.is_runtime() {
-      let int_ty = LLVMInt64TypeInContext(compiler.ctx);
+      let i64_ty = LLVMInt64TypeInContext(compiler.ctx);
       match self.ty {
         ValueType::Integer => {
           let self_ = self.load(compiler);
@@ -150,10 +150,10 @@ impl ValueWrapper {
             compiler.builder,
             LLVMIntPredicate::LLVMIntEQ,
             self_.v,
-            LLVMConstInt(int_ty, 1, 0),
+            LLVMConstInt(i64_ty, 1, 0),
             compiler.cstring(""),
           );
-          let v = LLVMBuildIntCast2(compiler.builder, v, int_ty, 0, compiler.cstring(""));
+          let v = LLVMBuildIntCast2(compiler.builder, v, i64_ty, 0, compiler.cstring(""));
           return ValueWrapper {
             v,
             ty: ValueType::Integer,
@@ -185,10 +185,10 @@ impl ValueWrapper {
             compiler.builder,
             LLVMIntPredicate::LLVMIntNE,
             str_len,
-            LLVMConstInt(int_ty, 0, 0),
+            LLVMConstInt(i64_ty, 0, 0),
             compiler.cstring(""),
           );
-          let v = LLVMBuildIntCast2(compiler.builder, v, int_ty, 0, compiler.cstring(""));
+          let v = LLVMBuildIntCast2(compiler.builder, v, i64_ty, 0, compiler.cstring(""));
           return ValueWrapper {
             v,
             ty: ValueType::Integer,
@@ -238,7 +238,7 @@ mod utils {
       let (int_len_func, int_len_ty) = self_.get_func("%%int_len%%").unwrap();
       let (int_as_str_func, int_as_str_ty) = self_.get_func("%%int_as_str%%").unwrap();
       let (strlen_func, strlen_ty) = self_.get_func("strlen").unwrap();
-      let int64_type = LLVMInt64TypeInContext(self_.ctx);
+      let i64_type = LLVMInt64TypeInContext(self_.ctx);
 
       match &value.ty {
         ValueType::String => {
@@ -252,17 +252,13 @@ mod utils {
               1,
               self_.cstring(""),
             );
-            let len = LLVMBuildSub(
-              self_.builder,
-              ptr_len,
-              LLVMConstInt(int64_type, 1, 0),
-              self_.cstring(""),
-            );
+            let len =
+              LLVMBuildSub(self_.builder, ptr_len, LLVMConstInt(i64_type, 1, 0), self_.cstring(""));
             return (value.v, len);
           }
           let v = self_.alloca_at_entry(value.v);
           let v = utils::gep_string_ptr_raw(self_, v);
-          (v, LLVMConstInt(int64_type, (LLVMGetArrayLength(ty) - 1) as u64, 0))
+          (v, LLVMConstInt(i64_type, (LLVMGetArrayLength(ty) - 1) as u64, 0))
         },
         ValueType::Integer => {
           let orig_len = LLVMBuildCall2(
@@ -273,12 +269,8 @@ mod utils {
             1,
             self_.cstring(""),
           );
-          let len = LLVMBuildAdd(
-            self_.builder,
-            orig_len,
-            LLVMConstInt(int64_type, 1, 0),
-            self_.cstring(""),
-          );
+          let len =
+            LLVMBuildAdd(self_.builder, orig_len, LLVMConstInt(i64_type, 1, 0), self_.cstring(""));
           let buf = self_.alloca_str(len);
           LLVMBuildCall2(
             self_.builder,
@@ -400,11 +392,11 @@ impl Compiler {
       let ret_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("ret"));
 
       LLVMPositionBuilderAtEnd(builder, start_bb);
-      let orig_int_par = LLVMGetParam(int_len_func, 0);
+      let orig_val = LLVMGetParam(int_len_func, 0);
       let condition = LLVMBuildICmp(
         builder,
         LLVMIntPredicate::LLVMIntEQ,
-        orig_int_par,
+        orig_val,
         LLVMConstInt(i64_type, 0, 0),
         self.cstring(""),
       );
@@ -413,7 +405,7 @@ impl Compiler {
       LLVMAppendExistingBasicBlock(int_len_func, loop_bb);
       LLVMPositionBuilderAtEnd(builder, loop_bb);
       let len = LLVMBuildPhi(builder, i64_type, self.cstring("len"));
-      let int_par = LLVMBuildPhi(builder, i64_type, self.cstring("int_par"));
+      let val = LLVMBuildPhi(builder, i64_type, self.cstring("val"));
 
       let new_len = LLVMBuildAdd(builder, len, LLVMConstInt(i64_type, 1, 0), self.cstring(""));
       LLVMAddIncoming(
@@ -422,17 +414,10 @@ impl Compiler {
         [start_bb, loop_bb].as_mut_ptr(),
         2,
       );
-      let new_int_par =
-        LLVMBuildSDiv(builder, int_par, LLVMConstInt(i64_type, 10, 0), self.cstring(""));
-      LLVMAddIncoming(
-        int_par,
-        [orig_int_par, new_int_par].as_mut_ptr(),
-        [start_bb, loop_bb].as_mut_ptr(),
-        2,
-      );
+      let new_val = LLVMBuildSDiv(builder, val, LLVMConstInt(i64_type, 10, 0), self.cstring(""));
+      LLVMAddIncoming(val, [orig_val, new_val].as_mut_ptr(), [start_bb, loop_bb].as_mut_ptr(), 2);
 
-      let condition =
-        LLVMBuildAdd(builder, int_par, LLVMConstInt(i64_type, 9, 0), self.cstring(""));
+      let condition = LLVMBuildAdd(builder, val, LLVMConstInt(i64_type, 9, 0), self.cstring(""));
       let condition = LLVMBuildICmp(
         builder,
         LLVMIntPredicate::LLVMIntULT,
@@ -476,7 +461,7 @@ impl Compiler {
 
       LLVMPositionBuilderAtEnd(builder, start_bb);
       let buf = LLVMGetParam(int_as_str_func, 0);
-      let orig_int_par = LLVMGetParam(int_as_str_func, 1);
+      let orig_val = LLVMGetParam(int_as_str_func, 1);
       let len = LLVMGetParam(int_as_str_func, 2);
 
       LLVMBuildBr(builder, loop_bb);
@@ -484,9 +469,9 @@ impl Compiler {
       LLVMAppendExistingBasicBlock(int_as_str_func, loop_bb);
       LLVMPositionBuilderAtEnd(builder, loop_bb);
       let i = LLVMBuildPhi(builder, i64_type, self.cstring("i"));
-      let int_par = LLVMBuildPhi(builder, i64_type, self.cstring("int_par"));
+      let val = LLVMBuildPhi(builder, i64_type, self.cstring("val"));
 
-      let ch = LLVMBuildSRem(builder, int_par, LLVMConstInt(i64_type, 10, 0), self.cstring(""));
+      let ch = LLVMBuildSRem(builder, val, LLVMConstInt(i64_type, 10, 0), self.cstring(""));
       let ch = LLVMBuildTrunc(builder, ch, i8_type, self.cstring(""));
       let ch = LLVMBuildAdd(builder, ch, LLVMConstInt(i8_type, 48, 0), self.cstring(""));
       let idx =
@@ -502,17 +487,11 @@ impl Compiler {
         [start_bb, loop_bb].as_mut_ptr(),
         2,
       );
-      let new_int_par =
-        LLVMBuildSDiv(builder, int_par, LLVMConstInt(i64_type, 10, 0), self.cstring("new_int_par"));
-      LLVMAddIncoming(
-        int_par,
-        [orig_int_par, new_int_par].as_mut_ptr(),
-        [start_bb, loop_bb].as_mut_ptr(),
-        2,
-      );
+      let new_val =
+        LLVMBuildSDiv(builder, val, LLVMConstInt(i64_type, 10, 0), self.cstring("new_int_par"));
+      LLVMAddIncoming(val, [orig_val, new_val].as_mut_ptr(), [start_bb, loop_bb].as_mut_ptr(), 2);
 
-      let condition =
-        LLVMBuildAdd(builder, int_par, LLVMConstInt(i64_type, 9, 0), self.cstring(""));
+      let condition = LLVMBuildAdd(builder, val, LLVMConstInt(i64_type, 9, 0), self.cstring(""));
       let condition = LLVMBuildICmp(
         builder,
         LLVMIntPredicate::LLVMIntULT,
@@ -529,6 +508,17 @@ impl Compiler {
       let ch_ptr = LLVMBuildGEP2(builder, i8_type, buf, [i].as_mut_ptr(), 1, self.cstring(""));
       LLVMBuildStore(builder, LLVMConstInt(i8_type, 0, 0), ch_ptr);
       LLVMBuildRetVoid(builder);
+    }
+  }
+
+  fn declare_llvm_functions(&mut self) {
+    unsafe {
+      let i64_type = LLVMInt64TypeInContext(self.ctx);
+
+      let powi_i64_i64_type = LLVMFunctionType(i64_type, [i64_type, i64_type].as_mut_ptr(), 2, 0);
+      let powi_i64_i64_func =
+        LLVMAddFunction(self.module, self.cstring("llvm.powi.i64.i64"), powi_i64_i64_type);
+      LLVMSetFunctionCallConv(powi_i64_i64_func, LLVMCallConv::LLVMCCallConv as u32);
     }
   }
 
@@ -581,6 +571,7 @@ impl Compiler {
     LLVMBuildGlobalString(builder, self_.cstring("%s"), self_.cstring("str_format"));
     self_.declare_libc_functions();
     self_.define_helper_functions();
+    self_.declare_llvm_functions();
 
     self_
   }
@@ -833,6 +824,7 @@ impl Compiler {
       TokenKind::GreaterEqual => left.ge(self, right),
       TokenKind::EqualEqual => left.eq(self, right),
       TokenKind::BangEqual => left.ne(self, right),
+      TokenKind::Caret => left.pow(self, right),
 
       _ => unreachable!("{op} is not an infix operator"),
     }
