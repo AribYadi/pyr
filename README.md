@@ -3,6 +3,7 @@
 ![build status](https://img.shields.io/github/workflow/status/AribYadi/pyr/Continuous%20integration/master)
 
 Pyr is a programming language similar to python (or in other words, python but not python).
+For more information, see [the documentation](https://aribyadi.github.io/pyr/).
 
 ## Table of Contents
 
