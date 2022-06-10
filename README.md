@@ -38,7 +38,7 @@ Hello, World!
 To compile the source code, run the following command:
 
 ```bash
-$ pyr build ./examples/hello.pyr
+$ pyr compile ./examples/hello.pyr
 $ clang -o hello hello.o
 $ ./hello
 Hello, World!
@@ -60,6 +60,8 @@ if true:
 else:
   print 456
 ```
+
+For more examples, see the [examples directory](./examples).
 
 ## Testing
 
