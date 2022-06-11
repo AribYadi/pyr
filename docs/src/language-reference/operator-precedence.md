@@ -1,0 +1,14 @@
+## Operator Precedence
+
+The following are the precedence levels and associativity of the operators in the Pyr language. The higher the precedence, the faster the operation will be performed.
+
+| Operator             | Description                                                                                                                                                                                                    | Associativity | Precedence |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ---------- |
+| `-`, `!`             | [Negation](./arithmetic.md#negation)                                                                                                                                                                           | Right-to-left | 7          |
+| `^`                  | [Exponent](./arithmetic.md#exponent)                                                                                                                                                                           | Not chainable | 6          |
+| `*`, `/`, `%`        | [Multiply](./arithmetic.md#multiply), [Division](./arithmetic.md#division), [Modulo](./arithmetic.md#modulo)                                                                                                   | Left-to-right | 5          |
+| `+`, `-`             | [Addition](./arithmetic.md#addition), [Subtraction](./arithmetic.md#subtraction)                                                                                                                               | Left-to-right | 4          |
+| `<`, `<=`, `>`, `>=` | [Less Than](./comparison.md#less-than), [Less Than or Equal](./comparison.md#less-than-or-equal), [Greater Than](./comparison.md#greater-than), [Greater Than or Equal](./comparison.md#greater-than-or-equal) | Not chainable | 3          |
+| `==`, `!=`           | [Equal](./comparison.md#equal), [Not Equal](./comparison.md#not-equal)                                                                                                                                         | Not chainable | 2          |
+| `and`, `or`          | [Logical And](./keywords.md.md#and), [Logical Or](./keywords.md#or)                                                                                                                                            | Left-to-right | 1          |
+| `=`                  | [Variable Assignment](./variables.md)                                                                                                                                                                          | Right-to-left | 0          |

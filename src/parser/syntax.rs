@@ -187,22 +187,22 @@ pub trait Operator {
 impl Operator for TokenKind {
   fn prefix_bp(&self) -> ((), u8) {
     match self {
-      TokenKind::Minus | TokenKind::Bang => ((), 51),
+      TokenKind::Minus | TokenKind::Bang => ((), 12),
       _ => unreachable!("{self} is not a prefix operator"),
     }
   }
 
   fn infix_bp(&self) -> (u8, u8) {
     match self {
-      TokenKind::Equal => (4, 3),
-      TokenKind::And | TokenKind::Or => (5, 6),
-      TokenKind::EqualEqual | TokenKind::BangEqual => (7, 7),
+      TokenKind::Equal => (2, 1),
+      TokenKind::And | TokenKind::Or => (3, 4),
+      TokenKind::EqualEqual | TokenKind::BangEqual => (5, 5),
       TokenKind::Less | TokenKind::Greater | TokenKind::LessEqual | TokenKind::GreaterEqual => {
-        (8, 8)
+        (6, 6)
       },
-      TokenKind::Plus | TokenKind::Minus => (9, 10),
-      TokenKind::Star | TokenKind::Slash | TokenKind::Percent => (11, 12),
-      TokenKind::Caret => (13, 13),
+      TokenKind::Plus | TokenKind::Minus => (7, 8),
+      TokenKind::Star | TokenKind::Slash | TokenKind::Percent => (9, 10),
+      TokenKind::Caret => (11, 11),
 
       _ => unreachable!("{self} is not an infix operator"),
     }
