@@ -5,6 +5,7 @@ import dataclasses
 from enum import Enum
 from os import path
 import os
+import platform
 import subprocess
 import sys
 from typing import BinaryIO, List
@@ -68,6 +69,10 @@ TEST_DIR = path.join(BASE_DIR, args.dir)
 
 PYR_EXT = ".pyr"
 RECORD_EXT = ".record"
+EXE_EXT = ""
+if platform.system() == "Windows":
+  # global EXE_EXT
+  EXE_EXT.replace("", ".exe")
 
 END_TAG = "\n:end:\n"
 
@@ -171,7 +176,7 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
   output = []
   if pyr_output.returncode == 0 and subcommand == Subcommand.Compile:
     object_file = input_path[:-len(PYR_EXT)] + ".o"
-    exe_file = input_path[:-len(PYR_EXT)] + ".exe"
+    exe_file = input_path[:-len(PYR_EXT)] + EXE_EXT
     clang_output = subprocess.run(["clang", object_file, "-o", exe_file], capture_output = True)
     if clang_output.returncode != 0:
       print(f"\x1b[1;31m[ERR]\x1b[0m: Clang failed to link `{object_file}`.", file = sys.stderr)

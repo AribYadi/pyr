@@ -103,8 +103,12 @@ fn main() {
       }
       info!(INFO, "Compiled to `{obj_file}`");
       if link {
+        #[cfg(target_os = "windows")]
         let exe_file =
           out.unwrap_or_else(|| source_path.with_extension("exe").to_string_lossy().to_string());
+        #[cfg(not(target_os = "windows"))]
+        let exe_file =
+          out.unwrap_or_else(|| source_path.with_extension("").to_string_lossy().to_string());
         let clang_output =
           match Command::new("clang").arg("-o").arg(&exe_file).arg(&obj_file).output() {
             Ok(output) => output,
