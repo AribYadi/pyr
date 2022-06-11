@@ -1,10 +1,13 @@
 :exitcode 0:
-:stdout 11:
+:stdout 37:
 3
 14
 8
 100
-
+1
+2
+0
+10 is divisible by 2
 :end:
 :stderr 0:
 

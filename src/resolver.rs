@@ -133,17 +133,8 @@ impl Resolver {
     let right_type = self.resolve_expr(right)?;
 
     match op {
-      TokenKind::Plus if left_type == ValType::Integer && right_type == ValType::Integer => {
-        Ok(ValType::Integer)
-      },
       TokenKind::Plus if left_type == ValType::String || right_type == ValType::String => {
         Ok(ValType::String)
-      },
-      TokenKind::Minus if left_type == ValType::Integer && right_type == ValType::Integer => {
-        Ok(ValType::Integer)
-      },
-      TokenKind::Star if left_type == ValType::Integer && right_type == ValType::Integer => {
-        Ok(ValType::Integer)
       },
       TokenKind::Star
         if (left_type == ValType::String && right_type == ValType::Integer) ||
@@ -151,16 +142,21 @@ impl Resolver {
       {
         Ok(ValType::String)
       },
-      TokenKind::Slash if left_type == ValType::Integer && right_type == ValType::Integer => {
-        Ok(ValType::Integer)
-      },
-      TokenKind::Less | TokenKind::Greater | TokenKind::LessEqual | TokenKind::GreaterEqual
+      TokenKind::Plus |
+      TokenKind::Minus |
+      TokenKind::Star |
+      TokenKind::Slash |
+      TokenKind::Less |
+      TokenKind::Greater |
+      TokenKind::LessEqual |
+      TokenKind::GreaterEqual |
+      TokenKind::Caret |
+      TokenKind::Percent
         if left_type == ValType::Integer && right_type == ValType::Integer =>
       {
         Ok(ValType::Integer)
       },
       TokenKind::EqualEqual | TokenKind::BangEqual => Ok(ValType::Integer),
-      TokenKind::Caret => Ok(ValType::Integer),
 
       _ => Err(RuntimeError::new(
         RuntimeErrorKind::CannotApplyInfix(left.clone(), *op, right.clone()),

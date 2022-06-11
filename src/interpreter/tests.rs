@@ -70,6 +70,12 @@ fn interpret_expr() {
   assert_eq!(result, Ok(Literal::Integer(1)));
   let result = interpret("2 ^ 3");
   assert_eq!(result, Ok(Literal::Integer(8)));
+  let result = interpret("4 % 2");
+  assert_eq!(result, Ok(Literal::Integer(0)));
+  let result = interpret("4 % 3");
+  assert_eq!(result, Ok(Literal::Integer(1)));
+  let result = interpret("4 % -3");
+  assert_eq!(result, Ok(Literal::Integer(1)));
   let result = interpret("\"hello\" > \"world\"");
   assert_eq!(
     result,

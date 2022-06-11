@@ -7,6 +7,7 @@
   - [Division](#division)
   - [Negation](#negation)
   - [Exponent](#exponent)
+  - [Modulo / Remainder](#modulo--remainder)
 
 ### Addition
 
@@ -55,4 +56,12 @@ Multiplication between strings and integers is string repetition.
 
 ```python
 2 ^ 3 # result is 8
+```
+
+### Modulo / Remainder
+
+```python
+30 % 5 # result is 0
+4 % 3 # result is 1
+12 % 5 # result is 2
 ```

@@ -112,6 +112,8 @@ pub enum TokenKind {
   BangEqual,
   #[token("^")]
   Caret,
+  #[token("%")]
+  Percent,
 
   // Keywords
   // Currently `print` is a keyword rather than a builtin function.
@@ -163,6 +165,7 @@ impl std::fmt::Display for TokenKind {
       TokenKind::EqualEqual => write!(f, "=="),
       TokenKind::BangEqual => write!(f, "!="),
       TokenKind::Caret => write!(f, "^"),
+      TokenKind::Percent => write!(f, "%"),
       TokenKind::Print => write!(f, "print"),
       TokenKind::If => write!(f, "if"),
       TokenKind::Else => write!(f, "else"),
@@ -198,8 +201,9 @@ impl Operator for TokenKind {
         (8, 8)
       },
       TokenKind::Plus | TokenKind::Minus => (9, 10),
-      TokenKind::Star | TokenKind::Slash => (11, 12),
+      TokenKind::Star | TokenKind::Slash | TokenKind::Percent => (11, 12),
       TokenKind::Caret => (13, 13),
+
       _ => unreachable!("{self} is not an infix operator"),
     }
   }

@@ -302,7 +302,8 @@ impl Parser<'_> {
         op @ Tok::GreaterEqual |
         op @ Tok::EqualEqual |
         op @ Tok::BangEqual |
-        op @ Tok::Caret => {
+        op @ Tok::Caret |
+        op @ Tok::Percent => {
           let (lbp, rbp) = op.infix_bp();
           if lbp < bp {
             break;

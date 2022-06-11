@@ -133,6 +133,7 @@ impl Interpreter {
       TokenKind::EqualEqual => Ok(left.eq(right)),
       TokenKind::BangEqual => Ok(left.ne(right)),
       TokenKind::Caret => Ok(left.pow(right)),
+      TokenKind::Percent => Ok(left.mod_(right)),
 
       _ => unreachable!("{op} is not an infix operator"),
     }

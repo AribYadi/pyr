@@ -825,6 +825,7 @@ impl Compiler {
       TokenKind::EqualEqual => left.eq(self, right),
       TokenKind::BangEqual => left.ne(self, right),
       TokenKind::Caret => left.pow(self, right),
+      TokenKind::Percent => left.mod_(self, right),
 
       _ => unreachable!("{op} is not an infix operator"),
     }

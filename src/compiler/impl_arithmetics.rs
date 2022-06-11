@@ -67,7 +67,8 @@ impl ValueWrapper {
 
           (buf, ValueType::String, true, false)
         };
-      }
+      };
+
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, self.get_as_integer() + other.get_as_integer())
@@ -86,7 +87,8 @@ impl ValueWrapper {
       impl_arithmetics_for_runtime! {
         compiler, self, other;
         (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| (LLVMBuildSub(compiler.builder, self_.v, other_.v, compiler.cstring("")), ValueType::Integer, false, true);
-      }
+      };
+
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, self.get_as_integer() - other.get_as_integer())
@@ -167,7 +169,8 @@ impl ValueWrapper {
 
           (buf, ValueType::String, true, false)
         };
-      }
+      };
+
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, self.get_as_integer() * other.get_as_integer())
@@ -195,7 +198,8 @@ impl ValueWrapper {
       impl_arithmetics_for_runtime! {
         compiler, self, other;
         (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| (LLVMBuildSDiv(compiler.builder, self_.v, other_.v, compiler.cstring("")), ValueType::Integer, false, true);
-      }
+      };
+
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, self.get_as_integer() / other.get_as_integer())
@@ -217,7 +221,8 @@ impl ValueWrapper {
           can_be_loaded: true,
           is_runtime: true,
         };
-      }
+      };
+
       match self.ty {
         ValueType::Integer => Self::new_integer(compiler, -self.get_as_integer()),
         _ => unreachable!("Resolver didn't type check prefix operator `-`"),
@@ -251,7 +256,8 @@ impl ValueWrapper {
           can_be_loaded: true,
           is_runtime: true,
         };
-      }
+      };
+
       ValueWrapper::new_integer(compiler, !self.is_truthy() as i64)
     }
   }
@@ -264,7 +270,8 @@ impl ValueWrapper {
           let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntSLT, self_.v, other_.v, compiler.cstring(""));
           (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true)
         };
-      }
+      };
+
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, (self.get_as_integer() < other.get_as_integer()) as i64)
@@ -282,7 +289,8 @@ impl ValueWrapper {
           let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntSLE, self_.v, other_.v, compiler.cstring(""));
           (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true)
         };
-      }
+      };
+
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, (self.get_as_integer() <= other.get_as_integer()) as i64)
@@ -300,7 +308,8 @@ impl ValueWrapper {
           let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntSGT, self_.v, other_.v, compiler.cstring(""));
           (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true)
         };
-      }
+      };
+
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, (self.get_as_integer() > other.get_as_integer()) as i64)
@@ -318,7 +327,8 @@ impl ValueWrapper {
           let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntSGE, self_.v, other_.v, compiler.cstring(""));
           (LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring("")), ValueType::Integer, false, true)
         };
-      }
+      };
+
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, (self.get_as_integer() >= other.get_as_integer()) as i64)
@@ -354,7 +364,7 @@ impl ValueWrapper {
           (v, ValueType::Integer, false, true)
         };
         _ => |_, _| (LLVMConstInt(LLVMInt64TypeInContext(compiler.ctx), 0, 0), ValueType::Integer, false, true);
-      }
+      };
 
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
@@ -394,7 +404,8 @@ impl ValueWrapper {
           (v, ValueType::Integer, false, true)
         };
         _ => |_, _| (LLVMConstInt(LLVMInt64TypeInContext(compiler.ctx), 1, 0), ValueType::Integer, false, true);
-      }
+      };
+
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, (self.get_as_integer() != other.get_as_integer()) as i64)
@@ -612,7 +623,7 @@ impl ValueWrapper {
           );
           (v, ValueType::Integer, false, false)
         };
-      }
+      };
 
       match (&self.ty, &other.ty) {
         (ValueType::Integer, ValueType::Integer) => {
@@ -620,6 +631,26 @@ impl ValueWrapper {
         },
 
         _ => unreachable!("Resolver didn't type check infix operator `^`"),
+      }
+    }
+  }
+
+  pub fn mod_(self, compiler: &mut Compiler, other: Self) -> Self {
+    unsafe {
+      impl_arithmetics_for_runtime! {
+        compiler, self, other;
+        (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| {
+          let v = LLVMBuildSRem(compiler.builder, self_.v, other_.v, compiler.cstring(""));
+          (v, ValueType::Integer, false, false)
+        };
+      };
+
+      match (&self.ty, &other.ty) {
+        (ValueType::Integer, ValueType::Integer) => {
+          Self::new_integer(compiler, self.get_as_integer() % other.get_as_integer())
+        },
+
+        _ => unreachable!("Resolver didn't type check infix operator `%`"),
       }
     }
   }

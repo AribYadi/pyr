@@ -149,4 +149,13 @@ impl Literal {
       },
     }
   }
+
+  pub fn mod_(self, rhs: Self) -> Self {
+    match (self, rhs) {
+      (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l % r),
+      _ => {
+        unreachable!("Resolver didn't type check infix operator `%`");
+      },
+    }
+  }
 }
