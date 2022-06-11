@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="language-reference/variables.html"><strong aria-hidden="true">4.</strong> Variable</a></li><li class="chapter-item expanded "><a href="language-reference/arithmetic.html"><strong aria-hidden="true">5.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="language-reference/comparison.html"><strong aria-hidden="true">6.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="language-reference/truthiness.html"><strong aria-hidden="true">7.</strong> Truthiness</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="language-reference/arithmetic.html"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="language-reference/truthiness.html"><strong aria-hidden="true">6.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="language-reference/operator-precedence.html"><strong aria-hidden="true">7.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="language-reference/variables.html"><strong aria-hidden="true">8.</strong> Variable</a></li><li class="chapter-item expanded "><a href="language-reference/comments.html"><strong aria-hidden="true">9.</strong> Comments</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -175,8 +175,8 @@ clang foo.o -o foo
 </code></pre>
 <h3 id="boolean"><a class="header" href="#boolean">Boolean</a></h3>
 <p>Booleans in Pyr are secretly integers with <code>true</code> as 1 and <code>false</code> as 0.</p>
-<pre><code class="language-python">true # returns is 1
-false # returns is 0
+<pre><code class="language-python">true # returns 1
+false # returns 0
 </code></pre>
 <h3 id="string"><a class="header" href="#string">String</a></h3>
 <p>Strings in Pyr are delimited by double quotes. <br />
@@ -248,13 +248,6 @@ while i &lt; 10: # Executes its body 10 times
 &quot;hello&quot; or &quot;world&quot; # result is &quot;hello&quot;
 123 or &quot;&quot; # result is true
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h2 id="variable"><a class="header" href="#variable">Variable</a></h2>
-<p>Declaration and assignment in Pyr use the same syntax.</p>
-<pre><code class="language-python">foo = &quot;bar&quot;
-</code></pre>
-<p>To access a variable, use the following syntax:</p>
-<pre><code class="language-python">var_name # result is &quot;bar&quot;
-</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="arithmetic"><a class="header" href="#arithmetic">Arithmetic</a></h2>
 <ul>
 <li><a href="language-reference/arithmetic.html#arithmetic">Arithmetic</a>
@@ -265,33 +258,48 @@ while i &lt; 10: # Executes its body 10 times
 <li><a href="language-reference/arithmetic.html#division">Division</a></li>
 <li><a href="language-reference/arithmetic.html#negation">Negation</a></li>
 <li><a href="language-reference/arithmetic.html#exponent">Exponent</a></li>
+<li><a href="language-reference/arithmetic.html#modulo--remainder">Modulo / Remainder</a></li>
 </ul>
 </li>
 </ul>
 <h3 id="addition"><a class="header" href="#addition">Addition</a></h3>
+<p><code>+</code> with integers will add the numbers together.</p>
 <pre><code class="language-python">1 + 2 # result is 3
 </code></pre>
-<p>Addition with strings is concatenation.</p>
+<p><code>+</code> with strings is concatenation.</p>
 <pre><code class="language-python">&quot;Hello, &quot; + &quot;World!&quot; # result is &quot;Hello, World!&quot;
 </code></pre>
 <h3 id="subtraction"><a class="header" href="#subtraction">Subtraction</a></h3>
+<p><code>-</code> will subtract the first number with the second.</p>
 <pre><code class="language-python">1 - 2 # result is -1
 </code></pre>
 <h3 id="multiplication"><a class="header" href="#multiplication">Multiplication</a></h3>
+<p><code>*</code> with integers will multiply the numbers together.</p>
 <pre><code class="language-python">1 * 2 # result is 2
 </code></pre>
-<p>Multiplication between strings and integers is string repetition.</p>
+<p><code>*</code> between strings and integers is string repetition.</p>
 <pre><code class="language-python">&quot;Hello&quot; * 3 # result is &quot;HelloHelloHello&quot;
 </code></pre>
 <h3 id="division"><a class="header" href="#division">Division</a></h3>
+<p><code>/</code> with integers will divide the first number by the second.</p>
 <pre><code class="language-python">30 / 5 # result is 6
 </code></pre>
 <h3 id="negation"><a class="header" href="#negation">Negation</a></h3>
+<p><code>-</code> will either make its right hand side negative or positive. <br />
+<code>!</code> will return <code>true</code> if its right hand side is falsy, and <code>false</code> if it is truthy.</p>
 <pre><code class="language-python">-1 # result is -1
 !true # result is 0
 </code></pre>
+<p>For more information about truthiness and falsiness, see <a href="language-reference/./truthiness.html">Truthiness</a>.</p>
 <h3 id="exponent"><a class="header" href="#exponent">Exponent</a></h3>
+<p><code>^</code> will multiply its left hand side by itself the number of times on the right hand side.</p>
 <pre><code class="language-python">2 ^ 3 # result is 8
+</code></pre>
+<h3 id="modulo--remainder"><a class="header" href="#modulo--remainder">Modulo / Remainder</a></h3>
+<p><code>%</code> will return the remainder of its left hand side subtracted by its right hand side multiple times until it is less than its original value.</p>
+<pre><code class="language-python">30 % 5 # result is 0
+4 % 3 # result is 1
+12 % 5 # result is 2
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="comparison"><a class="header" href="#comparison">Comparison</a></h2>
 <ul>
@@ -307,23 +315,29 @@ while i &lt; 10: # Executes its body 10 times
 </li>
 </ul>
 <h3 id="less-than"><a class="header" href="#less-than">Less Than</a></h3>
+<p><code>&lt;</code> will return <code>true</code> if its left hand side is less than its right hand side.</p>
 <pre><code class="language-python">1 &lt; 2 # result is true
 </code></pre>
 <h3 id="greater-than"><a class="header" href="#greater-than">Greater Than</a></h3>
+<p><code>&gt;</code> will return <code>true</code> if its left hand side is greater than its right hand side.</p>
 <pre><code class="language-python">1 &gt; 2 # result is false
 </code></pre>
 <h3 id="less-than-or-equal"><a class="header" href="#less-than-or-equal">Less Than or Equal</a></h3>
+<p><code>&lt;=</code> will return <code>true</code> if its left hand side is less than or equal to its right hand side.</p>
 <pre><code class="language-python">2 &lt;= 2 # result is true
 </code></pre>
 <h3 id="greater-than-or-equal"><a class="header" href="#greater-than-or-equal">Greater Than or Equal</a></h3>
+<p><code>&gt;=</code> will return <code>true</code> if its left hand side is greater than or equal to its right hand side.</p>
 <pre><code class="language-python">2 &gt;= 2 # result is true
 </code></pre>
 <h3 id="equal"><a class="header" href="#equal">Equal</a></h3>
+<p><code>==</code> will return <code>true</code> if its left hand side is equal to its right hand side.</p>
 <pre><code class="language-python">1 == 2 # result is false
 &quot;Hello&quot; == &quot;Hello&quot; # result is true
 &quot;Hello&quot; == &quot;World&quot; # result is false
 </code></pre>
 <h3 id="not-equal"><a class="header" href="#not-equal">Not Equal</a></h3>
+<p><code>!=</code> will return <code>true</code> if its left hand side is not equal to its right hand side.</p>
 <pre><code class="language-python">1 != 2 # result is true
 &quot;Hello&quot; != &quot;Hello&quot; # result is false
 &quot;Hello&quot; != &quot;World&quot; # result is true
@@ -340,6 +354,33 @@ while i &lt; 10: # Executes its body 10 times
 <pre><code class="language-python">!!&quot;&quot; # result is false
 !!&quot;Hello&quot; # result is true
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="operator-precedence"><a class="header" href="#operator-precedence">Operator Precedence</a></h2>
+<p>The following are the precedence levels and associativity of the operators in the Pyr language. The higher the precedence, the faster the operation will be performed.</p>
+<table><thead><tr><th>Operator</th><th>Description</th><th>Associativity</th><th>Precedence</th></tr></thead><tbody>
+<tr><td><code>-</code>, <code>!</code></td><td><a href="language-reference/./arithmetic.html#negation">Negation</a></td><td>Right-to-left</td><td>7</td></tr>
+<tr><td><code>^</code></td><td><a href="language-reference/./arithmetic.html#exponent">Exponent</a></td><td>Not chainable</td><td>6</td></tr>
+<tr><td><code>*</code>, <code>/</code>, <code>%</code></td><td><a href="language-reference/./arithmetic.html#multiply">Multiply</a>, <a href="language-reference/./arithmetic.html#division">Division</a>, <a href="language-reference/./arithmetic.html#modulo">Modulo</a></td><td>Left-to-right</td><td>5</td></tr>
+<tr><td><code>+</code>, <code>-</code></td><td><a href="language-reference/./arithmetic.html#addition">Addition</a>, <a href="language-reference/./arithmetic.html#subtraction">Subtraction</a></td><td>Left-to-right</td><td>4</td></tr>
+<tr><td><code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code></td><td><a href="language-reference/./comparison.html#less-than">Less Than</a>, <a href="language-reference/./comparison.html#less-than-or-equal">Less Than or Equal</a>, <a href="language-reference/./comparison.html#greater-than">Greater Than</a>, <a href="language-reference/./comparison.html#greater-than-or-equal">Greater Than or Equal</a></td><td>Not chainable</td><td>3</td></tr>
+<tr><td><code>==</code>, <code>!=</code></td><td><a href="language-reference/./comparison.html#equal">Equal</a>, <a href="language-reference/./comparison.html#not-equal">Not Equal</a></td><td>Not chainable</td><td>2</td></tr>
+<tr><td><code>and</code>, <code>or</code></td><td><a href="language-reference/./keywords.md.html#and">Logical And</a>, <a href="language-reference/./keywords.html#or">Logical Or</a></td><td>Left-to-right</td><td>1</td></tr>
+<tr><td><code>=</code></td><td><a href="language-reference/./variables.html">Variable Assignment</a></td><td>Right-to-left</td><td>0</td></tr>
+</tbody></table>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="variable"><a class="header" href="#variable">Variable</a></h2>
+<p>Declaration and assignment in Pyr use the same syntax.</p>
+<pre><code class="language-python">foo = &quot;bar&quot;
+</code></pre>
+<p>To access a variable, use the following syntax.</p>
+<pre><code class="language-python">print var_name # prints &quot;bar&quot;
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="comments"><a class="header" href="#comments">Comments</a></h2>
+<p>Comments in Pyr starts with a <code>#</code> and go to the end of the line.</p>
+<pre><code class="language-python"># This is a comment
+
+# print &quot;Hello World&quot;
+# ^ Skipped
+</code></pre>
+<p>Multiline comments are currently not supported but are planned.</p>
 
                     </main>
 

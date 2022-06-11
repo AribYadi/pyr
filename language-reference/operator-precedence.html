@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Arithmetic - Pyr Language Reference</title>
+        <title>Operator Precedence - Pyr Language Reference</title>
         <!-- Custom HTML head -->
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
@@ -75,7 +75,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="../index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="../language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="../language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="../language-reference/arithmetic.html" class="active"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="../language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="../language-reference/truthiness.html"><strong aria-hidden="true">6.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="../language-reference/operator-precedence.html"><strong aria-hidden="true">7.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="../language-reference/variables.html"><strong aria-hidden="true">8.</strong> Variable</a></li><li class="chapter-item expanded "><a href="../language-reference/comments.html"><strong aria-hidden="true">9.</strong> Comments</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="../index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="../language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="../language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="../language-reference/arithmetic.html"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="../language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="../language-reference/truthiness.html"><strong aria-hidden="true">6.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="../language-reference/operator-precedence.html" class="active"><strong aria-hidden="true">7.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="../language-reference/variables.html"><strong aria-hidden="true">8.</strong> Variable</a></li><li class="chapter-item expanded "><a href="../language-reference/comments.html"><strong aria-hidden="true">9.</strong> Comments</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -134,68 +134,27 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="arithmetic"><a class="header" href="#arithmetic">Arithmetic</a></h2>
-<ul>
-<li><a href="#arithmetic">Arithmetic</a>
-<ul>
-<li><a href="#addition">Addition</a></li>
-<li><a href="#subtraction">Subtraction</a></li>
-<li><a href="#multiplication">Multiplication</a></li>
-<li><a href="#division">Division</a></li>
-<li><a href="#negation">Negation</a></li>
-<li><a href="#exponent">Exponent</a></li>
-<li><a href="#modulo--remainder">Modulo / Remainder</a></li>
-</ul>
-</li>
-</ul>
-<h3 id="addition"><a class="header" href="#addition">Addition</a></h3>
-<p><code>+</code> with integers will add the numbers together.</p>
-<pre><code class="language-python">1 + 2 # result is 3
-</code></pre>
-<p><code>+</code> with strings is concatenation.</p>
-<pre><code class="language-python">&quot;Hello, &quot; + &quot;World!&quot; # result is &quot;Hello, World!&quot;
-</code></pre>
-<h3 id="subtraction"><a class="header" href="#subtraction">Subtraction</a></h3>
-<p><code>-</code> will subtract the first number with the second.</p>
-<pre><code class="language-python">1 - 2 # result is -1
-</code></pre>
-<h3 id="multiplication"><a class="header" href="#multiplication">Multiplication</a></h3>
-<p><code>*</code> with integers will multiply the numbers together.</p>
-<pre><code class="language-python">1 * 2 # result is 2
-</code></pre>
-<p><code>*</code> between strings and integers is string repetition.</p>
-<pre><code class="language-python">&quot;Hello&quot; * 3 # result is &quot;HelloHelloHello&quot;
-</code></pre>
-<h3 id="division"><a class="header" href="#division">Division</a></h3>
-<p><code>/</code> with integers will divide the first number by the second.</p>
-<pre><code class="language-python">30 / 5 # result is 6
-</code></pre>
-<h3 id="negation"><a class="header" href="#negation">Negation</a></h3>
-<p><code>-</code> will either make its right hand side negative or positive. <br />
-<code>!</code> will return <code>true</code> if its right hand side is falsy, and <code>false</code> if it is truthy.</p>
-<pre><code class="language-python">-1 # result is -1
-!true # result is 0
-</code></pre>
-<p>For more information about truthiness and falsiness, see <a href="./truthiness.html">Truthiness</a>.</p>
-<h3 id="exponent"><a class="header" href="#exponent">Exponent</a></h3>
-<p><code>^</code> will multiply its left hand side by itself the number of times on the right hand side.</p>
-<pre><code class="language-python">2 ^ 3 # result is 8
-</code></pre>
-<h3 id="modulo--remainder"><a class="header" href="#modulo--remainder">Modulo / Remainder</a></h3>
-<p><code>%</code> will return the remainder of its left hand side subtracted by its right hand side multiple times until it is less than its original value.</p>
-<pre><code class="language-python">30 % 5 # result is 0
-4 % 3 # result is 1
-12 % 5 # result is 2
-</code></pre>
+                        <h2 id="operator-precedence"><a class="header" href="#operator-precedence">Operator Precedence</a></h2>
+<p>The following are the precedence levels and associativity of the operators in the Pyr language. The higher the precedence, the faster the operation will be performed.</p>
+<table><thead><tr><th>Operator</th><th>Description</th><th>Associativity</th><th>Precedence</th></tr></thead><tbody>
+<tr><td><code>-</code>, <code>!</code></td><td><a href="./arithmetic.html#negation">Negation</a></td><td>Right-to-left</td><td>7</td></tr>
+<tr><td><code>^</code></td><td><a href="./arithmetic.html#exponent">Exponent</a></td><td>Not chainable</td><td>6</td></tr>
+<tr><td><code>*</code>, <code>/</code>, <code>%</code></td><td><a href="./arithmetic.html#multiply">Multiply</a>, <a href="./arithmetic.html#division">Division</a>, <a href="./arithmetic.html#modulo">Modulo</a></td><td>Left-to-right</td><td>5</td></tr>
+<tr><td><code>+</code>, <code>-</code></td><td><a href="./arithmetic.html#addition">Addition</a>, <a href="./arithmetic.html#subtraction">Subtraction</a></td><td>Left-to-right</td><td>4</td></tr>
+<tr><td><code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code></td><td><a href="./comparison.html#less-than">Less Than</a>, <a href="./comparison.html#less-than-or-equal">Less Than or Equal</a>, <a href="./comparison.html#greater-than">Greater Than</a>, <a href="./comparison.html#greater-than-or-equal">Greater Than or Equal</a></td><td>Not chainable</td><td>3</td></tr>
+<tr><td><code>==</code>, <code>!=</code></td><td><a href="./comparison.html#equal">Equal</a>, <a href="./comparison.html#not-equal">Not Equal</a></td><td>Not chainable</td><td>2</td></tr>
+<tr><td><code>and</code>, <code>or</code></td><td><a href="./keywords.md.html#and">Logical And</a>, <a href="./keywords.html#or">Logical Or</a></td><td>Left-to-right</td><td>1</td></tr>
+<tr><td><code>=</code></td><td><a href="./variables.html">Variable Assignment</a></td><td>Right-to-left</td><td>0</td></tr>
+</tbody></table>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../language-reference/keywords.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../language-reference/truthiness.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
-                            <a rel="next" href="../language-reference/comparison.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../language-reference/variables.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         <div style="clear: both"></div>
@@ -204,10 +163,10 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../language-reference/keywords.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../language-reference/truthiness.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
-                    <a rel="next" href="../language-reference/comparison.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="../language-reference/variables.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
