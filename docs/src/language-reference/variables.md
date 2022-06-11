@@ -6,8 +6,8 @@ Declaration and assignment in Pyr use the same syntax.
 foo = "bar"
 ```
 
-To access a variable, use the following syntax:
+To access a variable, use the following syntax.
 
 ```python
-var_name # result is "bar"
+print var_name # prints "bar"
 ```

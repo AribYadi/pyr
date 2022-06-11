@@ -10,11 +10,15 @@
 
 ### Less Than
 
+`<` will return `true` if its left hand side is less than its right hand side.
+
 ```python
 1 < 2 # result is true
 ```
 
 ### Greater Than
+
+`>` will return `true` if its left hand side is greater than its right hand side.
 
 ```python
 1 > 2 # result is false
@@ -22,17 +26,23 @@
 
 ### Less Than or Equal
 
+`<=` will return `true` if its left hand side is less than or equal to its right hand side.
+
 ```python
 2 <= 2 # result is true
 ```
 
 ### Greater Than or Equal
 
+`>=` will return `true` if its left hand side is greater than or equal to its right hand side.
+
 ```python
 2 >= 2 # result is true
 ```
 
 ### Equal
+
+`==` will return `true` if its left hand side is equal to its right hand side.
 
 ```python
 1 == 2 # result is false
@@ -41,6 +51,8 @@
 ```
 
 ### Not Equal
+
+`!=` will return `true` if its left hand side is not equal to its right hand side.
 
 ```python
 1 != 2 # result is true
