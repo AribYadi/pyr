@@ -45,9 +45,12 @@ fn compile_expr() {
   assert_eq!(compile("2 <= 2"), "i64 1");
   assert_eq!(compile("\"hello\" == 2"), "i64 0");
   assert_eq!(compile("\"hello\" != \"hello\""), "i64 0");
+
+  assert_eq!(compile("2 ^ 3"), "i64 8");
+  assert_eq!(compile("-2 ^ 2"), "i64 4");
 }
 
-// Commented out because variables are pointers now
+// Commented out because variables are now pointers
 // #[test]
 // fn compile_variables() {
 //   unsafe {
