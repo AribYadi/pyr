@@ -20,8 +20,8 @@ Integers in Pyr are 64 bit signed integers.
 Booleans in Pyr are secretly integers with `true` as 1 and `false` as 0.
 
 ```python
-true # returns is 1
-false # returns is 0
+true # returns 1
+false # returns 0
 ```
 
 ### String
