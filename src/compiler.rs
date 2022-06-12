@@ -86,7 +86,7 @@ impl ValueWrapper {
   }
 
   unsafe fn new_variable(self_: &mut Compiler, inner: ValueWrapper) -> Self {
-    let v = self_.alloca_at_entry(inner.v);
+    let v = self_.alloca_global(inner.v);
     Self { v, ty: inner.ty, is_pointer: true, can_be_loaded: true, is_runtime: true }
   }
 
@@ -629,6 +629,15 @@ impl Compiler {
     }
   }
 
+  fn alloca_global(&mut self, value: LLVMValueRef) -> LLVMValueRef {
+    unsafe {
+      let name = self.cstring("");
+      let value_ptr = LLVMAddGlobal(self.module, LLVMTypeOf(value), name);
+      LLVMSetInitializer(value_ptr, value);
+      value_ptr
+    }
+  }
+
   // Later on this is gonna be a lot more complicated
   fn func_name(&mut self, name: &str, _args: &[(String, ValueType)]) -> String { name.to_string() }
 
@@ -846,13 +855,13 @@ impl Compiler {
         },
         ExprKind::VarAssign { name, expr } => {
           let expr = self.compile_expr(expr);
-          let new_val = ValueWrapper::new_variable(self, expr.clone());
           match self.variables.get_mut(&name.clone()) {
             // Since strings have a variable size, we just overwrite the value
             Some(val) if val.ty == expr.ty && val.ty != ValueType::String => {
               LLVMBuildStore(self.builder, expr.v, val.v);
             },
             _ => {
+              let new_val = ValueWrapper::new_variable(self, expr.clone());
               self.variables.assign_or_declare(name, self.indent_level, new_val);
             },
           }
@@ -869,7 +878,16 @@ impl Compiler {
           }
 
           let (func, func_ty) = self.get_func(name).unwrap();
-          let mut params = params.iter().map(|expr| self.compile_expr(expr).v).collect::<Vec<_>>();
+          let mut params = params
+            .iter()
+            .map(|expr| {
+              let expr = self.compile_expr(expr);
+              if expr.ty == ValueType::String {
+                return utils::gep_string_ptr(self, expr);
+              }
+              expr.v
+            })
+            .collect::<Vec<_>>();
           let v = LLVMBuildCall2(
             self.builder,
             func_ty,
@@ -944,6 +962,7 @@ impl Compiler {
     }
 
     LLVMBuildRet(self.builder, LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 0, 0));
+    #[cfg(debug_assertions)]
     LLVMDumpModule(self.module);
     LLVMVerifyFunction(self.main_func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
     LLVMRunFunctionPassManager(self.fpm, self.main_func);

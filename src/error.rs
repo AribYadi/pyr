@@ -65,7 +65,7 @@ pub enum RuntimeErrorKind {
   FunctionReturnsNothing(String),
   #[error("`{0}` expects {1} arguments but got {2}")]
   FunctionArgumentCountMismatch(String, usize, usize),
-  #[error("`{0}`'s argument at index {1} is of type `{2}` but expects `{3}`")]
+  #[error("argument of `{0}` at index {1} is of {2} but expects {3}")]
   FunctionArgumentTypeMismatch(String, usize, TokenKind, TokenKind),
 }
 

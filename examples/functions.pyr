@@ -4,3 +4,16 @@ func add(a: int, b: int):
 add(1, 2)
 add(3, 4)
 add(5, 6)
+
+print "----------------------------------------------------\n"
+
+b = 5
+b = 10
+
+func sub_with_b(a: int):
+  print a - b + "\n"
+
+sub_with_b(20)
+
+b = 15
+sub_with_b(30)
