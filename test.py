@@ -15,14 +15,14 @@ def print_help():
   print()
   print("\x1b[2;96m[INFO]\x1b[0m: \x1b[1;32mOptions\x1b[0m:")
   print("\x1b[2;96m[INFO]\x1b[0m:   --help,     -h: Print this help message.")
-  print("\x1b[2;96m[INFO]\x1b[0m:   --release,  -r: Test in release mode.")
+  print("\x1b[2;96m[INFO]\x1b[0m:   --debug,  -r: Test in debug mode.")
   print("\x1b[2;96m[INFO]\x1b[0m:   --always-build: Always build `pyr` even if already built.")
   print("\x1b[2;96m[INFO]\x1b[0m:   --dir,      -d: Specify test dir.")
 
 @dataclass
 class Args():
   update: bool = False
-  release: bool = False
+  debug: bool = False
   always_build: bool = False
   dir: str = "tests"
 
@@ -42,7 +42,7 @@ class Args():
           exit(0)
         elif text[0] == "u" or text[0] == "update":
           self.update = True
-        elif text[0] == "r" or text[0] == "release":
+        elif text[0] == "r" or text[0] == "debug":
           self.release = True
         elif text[0] == "always-build":
           self.always_build = True
@@ -82,9 +82,9 @@ def exe_exist(path: str) -> bool:
 
 def cargo_build():
   print("\x1b[2;96m[INFO]\x1b[0m: Building pyr..")
-  extra_args = []
-  if args.release:
-    extra_args.append("--release")
+  extra_args = ["--release"]
+  if args.debug:
+    extra_args.pop()
   output = subprocess.run(["cargo", "build", *extra_args], capture_output = True)
   if output.returncode != 0:
     print(f"\x1b[1;31m[ERR]\x1b[0m: Cargo build failed.", file = sys.stderr)
@@ -167,13 +167,18 @@ class Subcommand(Enum):
     elif self == Subcommand.Compile:
       return "compile"
 
-def relative_path(path):
-  return str(path).replace(BASE_DIR, ".")
+def relative_path(path: str) -> str:
+  return path.replace(BASE_DIR, ".")
 
 def test_file(input_path, subcommand: Subcommand, results: TestResults):
   assert input_path.endswith(PYR_EXT), f"{relative_path(input_path)} is not a pyr file."
 
-  pyr_output = subprocess.run([PYR_DEBUG_BINARY, subcommand.__str__(), input_path], capture_output = True)
+  binary = []
+  if args.debug:
+    binary.append(PYR_DEBUG_BINARY)
+  else:
+    binary.append(PYR_RELEASE_BINARY)
+  pyr_output = subprocess.run([binary[0], subcommand.__str__(), input_path], capture_output = True)
   output = []
   if pyr_output.returncode == 0 and subcommand == Subcommand.Compile:
     object_file = input_path[:-len(PYR_EXT)] + ".o"
@@ -231,9 +236,11 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
       results.failed += 1
 
 if __name__ == "__main__":
-  if not args.release and (not exe_exist(PYR_DEBUG_BINARY), args.always_build):
+  if args.debug and (not exe_exist(PYR_DEBUG_BINARY) or args.always_build):
+    print(f"\x1b[2;96m[INFO]\x1b[0m: Building `{relative_path(PYR_DEBUG_BINARY)}`..")
     subprocess.run(["cargo", "build"], capture_output = True)
-  elif args.release and (not exe_exist(PYR_RELEASE_BINARY), args.always_update):
+  elif not args.debug and (not exe_exist(PYR_RELEASE_BINARY) or args.always_build):
+    print(f"\x1b[2;96m[INFO]\x1b[0m: Building `{relative_path(PYR_RELEASE_BINARY)}`..")
     subprocess.run(["cargo", "build", "--release"], capture_output = True)
 
   print()
