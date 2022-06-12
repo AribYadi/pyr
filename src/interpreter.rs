@@ -12,6 +12,7 @@ use crate::parser::syntax::{
   TokenKind,
 };
 use crate::runtime::{
+  Function,
   IndentLevel,
   Literal,
   Variables,
@@ -20,16 +21,30 @@ use crate::runtime::{
 #[derive(Clone)]
 pub struct Interpreter {
   variables: Variables<Literal>,
+  // Functions can return something, so we need to store the return type.
+  functions: Variables<Function>,
   indent_level: IndentLevel,
+
+  // Since functions can return nothing, we need to track whether are we ignoring the return value.
+  ignore_return: bool,
+  return_value: Option<Literal>,
 }
 
 impl Interpreter {
-  pub fn new() -> Self { Self { variables: Variables::new(), indent_level: 0 } }
+  pub fn new() -> Self {
+    Self {
+      variables: Variables::new(),
+      functions: Variables::new(),
+      indent_level: 0,
+      ignore_return: false,
+      return_value: None,
+    }
+  }
 
   fn start_block(&mut self) { self.indent_level += 1; }
 
   fn end_block(&mut self) {
-    self.variables.retain(|_, (level, _)| *level != self.indent_level);
+    self.variables.remove_all_with_indent(self.indent_level);
     self.indent_level -= 1;
   }
 
@@ -42,7 +57,12 @@ impl Interpreter {
 
   pub(crate) fn interpret_stmt(&mut self, stmt: &Stmt) -> Result<()> {
     match &stmt.kind {
-      StmtKind::Expression { expr } => self.interpret_expr(expr).map(|_| ()),
+      StmtKind::Expression { expr } => {
+        self.ignore_return = true;
+        self.interpret_expr(expr)?;
+        self.ignore_return = false;
+        Ok(())
+      },
       StmtKind::If { condition, body, else_stmt } => {
         let condition = self.interpret_expr(condition)?;
         self.start_block();
@@ -72,6 +92,11 @@ impl Interpreter {
       },
       // Print statement is in a different function for testing purposes
       StmtKind::Print { expr } => self.interpret_print(expr, &mut io::stdout()),
+      StmtKind::FuncDef { name, args, body } => {
+        let args = args.iter().map(|(arg, _)| arg.clone()).collect();
+        self.functions.declare(name, self.indent_level, Function::UserDefined(args, body.to_vec()));
+        Ok(())
+      },
     }
   }
 
@@ -86,7 +111,7 @@ impl Interpreter {
       ExprKind::String(s) => Ok(Literal::String(s.to_string())),
       ExprKind::Integer(n) => Ok(Literal::Integer(*n)),
       ExprKind::Identifier(name) => match self.variables.get(name) {
-        Some((_, val)) => Ok(val.clone()),
+        Some(val) => Ok(val),
         None => unreachable!("Resolver didn't resolve variable correctly"),
       },
 
@@ -104,9 +129,56 @@ impl Interpreter {
       },
       ExprKind::VarAssign { name, expr } => {
         let value = self.interpret_expr(expr)?;
-        self.variables.entry(name.to_string()).or_insert((self.indent_level, value.clone())).1 =
-          value.clone();
+        self.variables.assign_or_declare(name, self.indent_level, value.clone());
         Ok(value)
+      },
+      ExprKind::FuncCall { name, params } => {
+        let func = match self.functions.get(name) {
+          Some(func) => func,
+          None => unreachable!("Resolver didn't resolve function correctly"),
+        };
+        let params =
+          params.iter().map(|param| self.interpret_expr(param)).collect::<Result<Vec<_>>>()?;
+
+        match func {
+          Function::Native(func, arg_len) => {
+            if params.len() != arg_len {
+              unreachable!("Native function called with wrong number of arguments");
+            }
+            match func(self, params) {
+              Some(value) => Ok(value),
+              None if !self.ignore_return => unreachable!("Native function returned nothing"),
+              None => Ok(Literal::Integer(1656)),
+            }
+          },
+          Function::UserDefined(args, body) => {
+            if params.len() != args.len() {
+              unreachable!("User defined function called with wrong number of arguments");
+            }
+
+            self.start_block();
+            for (arg, param) in args.iter().zip(params) {
+              self.variables.declare(arg, self.indent_level, param);
+            }
+
+            for stmt in body {
+              if self.return_value.is_some() {
+                break;
+              }
+              self.interpret_stmt(&stmt)?;
+            }
+            self.end_block();
+
+            match self.return_value.clone() {
+              Some(value) => {
+                self.return_value = None;
+                Ok(value)
+              },
+              None if self.ignore_return => Ok(Literal::Integer(1656)),
+              None => unreachable!("User defined function returned nothing"),
+            }
+          },
+        }
       },
     }
   }

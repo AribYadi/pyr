@@ -54,16 +54,11 @@ use crate::parser::syntax::{
   StmtKind,
   TokenKind,
 };
+use crate::resolver::ValueType;
 use crate::runtime::{
   IndentLevel,
   Variables,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ValueType {
-  Integer,
-  String,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct ValueWrapper {
@@ -327,7 +322,12 @@ pub struct Compiler {
   curr_func: LLVMValueRef,
 
   variables: Variables<ValueWrapper>,
+  // We store the return type and arg len of functions for type checking
+  function_descs: Variables<(usize, Option<ValueType>)>,
   indent_level: IndentLevel,
+
+  // Since functions can return nothing, we need to track whether are we ignoring the return value.
+  ignore_return: bool,
 }
 
 impl Compiler {
@@ -562,9 +562,11 @@ impl Compiler {
       fpm,
       cstring_cache,
       variables: Variables::new(),
+      function_descs: Variables::new(),
       indent_level: 0,
       main_func: func,
       curr_func: func,
+      ignore_return: false,
     };
 
     LLVMBuildGlobalString(builder, self_.cstring("%d"), self_.cstring("int_format"));
@@ -579,7 +581,7 @@ impl Compiler {
   fn start_block(&mut self) { self.indent_level += 1; }
 
   fn end_block(&mut self) {
-    self.variables.retain(|_, (level, _)| *level != self.indent_level);
+    self.variables.remove_all_with_indent(self.indent_level);
     self.indent_level -= 1;
   }
 
@@ -627,13 +629,27 @@ impl Compiler {
     }
   }
 
+  // Later on this is gonna be a lot more complicated
+  fn func_name(&mut self, name: &str, _args: &[(String, ValueType)]) -> String { name.to_string() }
+
+  fn compile_type(&mut self, ty: ValueType) -> LLVMTypeRef {
+    unsafe {
+      match ty {
+        ValueType::Integer => LLVMInt64TypeInContext(self.ctx),
+        ValueType::String => LLVMPointerType(LLVMInt8TypeInContext(self.ctx), 0),
+      }
+    }
+  }
+
   fn compile_stmt(&mut self, stmt: &Stmt) {
     unsafe {
       let zero = LLVMConstInt(LLVMInt64TypeInContext(self.ctx), 0, 0);
 
       match &stmt.kind {
         StmtKind::Expression { expr } => {
+          self.ignore_return = true;
           self.compile_expr(expr);
+          self.ignore_return = false;
         },
         StmtKind::Print { expr } => {
           let value = self.compile_expr(expr).load(self);
@@ -750,6 +766,58 @@ impl Compiler {
           LLVMAppendExistingBasicBlock(self.curr_func, continue_bb);
           LLVMPositionBuilderAtEnd(self.builder, continue_bb);
         },
+        StmtKind::FuncDef { name, args, body } => {
+          // TODO: allow for function overloading
+          let func_name = self.func_name(name, args);
+
+          let mut args_types =
+            args.iter().map(|(_, ty)| self.compile_type(*ty)).collect::<Vec<_>>();
+
+          let func_type = LLVMFunctionType(
+            // TODO: allow function to return something
+            LLVMVoidTypeInContext(self.ctx),
+            args_types.as_mut_ptr(),
+            args_types.len() as u32,
+            // TODO: allow function to take variadic arguments
+            0,
+          );
+          let func = LLVMAddFunction(self.module, self.cstring(&func_name), func_type);
+          self.function_descs.declare(name, self.indent_level, (args.len(), None));
+
+          let prev_builder = self.builder;
+          let prev_func = self.curr_func;
+
+          self.builder = LLVMCreateBuilderInContext(self.ctx);
+          self.curr_func = func;
+
+          let entry_bb = LLVMAppendBasicBlockInContext(self.ctx, func, self.cstring("entry"));
+          LLVMPositionBuilderAtEnd(self.builder, entry_bb);
+
+          self.start_block();
+
+          for (i, (arg, ty)) in args.iter().enumerate() {
+            let arg_ptr = LLVMGetParam(func, i as u32);
+            let arg_val = ValueWrapper {
+              v: arg_ptr,
+              ty: *ty,
+              can_be_loaded: false,
+              is_pointer: false,
+              is_runtime: true,
+            };
+            self.variables.declare(arg, self.indent_level, arg_val);
+          }
+
+          for stmt in body {
+            self.compile_stmt(stmt);
+          }
+
+          LLVMBuildRetVoid(self.builder);
+
+          self.end_block();
+
+          self.builder = prev_builder;
+          self.curr_func = prev_func;
+        },
       }
     }
   }
@@ -760,7 +828,7 @@ impl Compiler {
         ExprKind::Integer(n) => ValueWrapper::new_integer(self, *n),
         ExprKind::String(s) => ValueWrapper::new_string(self, s),
         ExprKind::Identifier(name) => match self.variables.get(name) {
-          Some((_, val)) => val.clone(),
+          Some(val) => val,
           None => unreachable!("Resolver didn't resolve variable correctly"),
         },
 
@@ -780,19 +848,44 @@ impl Compiler {
           let expr = self.compile_expr(expr);
           let new_val = ValueWrapper::new_variable(self, expr.clone());
           match self.variables.get_mut(&name.clone()) {
-            Some((_, val)) => {
-              // Since strings have a variable size, we just overwrite the value
-              if val.ty == expr.ty && val.ty != ValueType::String {
-                LLVMBuildStore(self.builder, expr.v, val.v);
-              } else {
-                *val = new_val;
-              }
+            // Since strings have a variable size, we just overwrite the value
+            Some(val) if val.ty == expr.ty && val.ty != ValueType::String => {
+              LLVMBuildStore(self.builder, expr.v, val.v);
             },
-            None => {
-              self.variables.insert(name.clone(), (self.indent_level, new_val));
+            _ => {
+              self.variables.assign_or_declare(name, self.indent_level, new_val);
             },
           }
           expr
+        },
+        ExprKind::FuncCall { name, params } => {
+          let (arg_len, return_type) = match self.function_descs.get(name) {
+            Some(func_desc) => func_desc,
+            None => unreachable!("Resolver didn't resolve function correctly"),
+          };
+
+          if params.len() != arg_len {
+            unreachable!("Function call has wrong number of arguments");
+          }
+
+          let (func, func_ty) = self.get_func(name).unwrap();
+          let mut params = params.iter().map(|expr| self.compile_expr(expr).v).collect::<Vec<_>>();
+          let v = LLVMBuildCall2(
+            self.builder,
+            func_ty,
+            func,
+            params.as_mut_ptr(),
+            params.len() as u32,
+            self.cstring(""),
+          );
+
+          match return_type {
+            Some(ty) => {
+              ValueWrapper { v, ty, can_be_loaded: false, is_pointer: false, is_runtime: true }
+            },
+            None if self.ignore_return => ValueWrapper::new_integer(self, 1656),
+            None => unreachable!("Function call has no return type"),
+          }
         },
       }
     }
@@ -851,6 +944,7 @@ impl Compiler {
     }
 
     LLVMBuildRet(self.builder, LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 0, 0));
+    LLVMDumpModule(self.module);
     LLVMVerifyFunction(self.main_func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
     LLVMRunFunctionPassManager(self.fpm, self.main_func);
 

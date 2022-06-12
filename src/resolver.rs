@@ -12,23 +12,45 @@ use crate::parser::syntax::{
 };
 use crate::runtime::{
   IndentLevel,
+  ReturnValue,
   Variables,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ValType {
+pub enum ValueType {
   Integer,
   String,
 }
 
-// Resolves variables and type checks before interpreting.
+impl ValueType {
+  pub fn to_tok(self) -> TokenKind {
+    match self {
+      ValueType::Integer => TokenKind::IntType,
+      ValueType::String => TokenKind::StringType,
+    }
+  }
+}
+
+// Resolves variables, functions, and type checks before interpreting.
 pub struct Resolver {
-  variables: Variables<ValType>,
+  variables: Variables<ValueType>,
+  // Functions can return something, so we need to store the return type.
+  pub functions: Variables<(Vec<ValueType>, ReturnValue<ValueType>)>,
   indent_level: IndentLevel,
+
+  // Since functions can return nothing, we need to track whether are we ignoring the return value.
+  ignore_return: bool,
 }
 
 impl Resolver {
-  pub fn new() -> Self { Self { variables: Variables::new(), indent_level: 0 } }
+  pub fn new() -> Self {
+    Self {
+      variables: Variables::new(),
+      functions: Variables::new(),
+      indent_level: 0,
+      ignore_return: false,
+    }
+  }
 
   fn start_block(&mut self) { self.indent_level += 1 }
 
@@ -36,7 +58,7 @@ impl Resolver {
     if self.indent_level == 0 {
       unreachable!("end_block() called without start_block()");
     }
-    self.variables.retain(|_, (level, _)| *level != self.indent_level);
+    self.variables.remove_all_with_indent(self.indent_level);
     self.indent_level -= 1;
   }
 
@@ -58,7 +80,9 @@ impl Resolver {
   pub(crate) fn resolve_stmt(&mut self, stmt: &Stmt) -> Result<()> {
     match &stmt.kind {
       StmtKind::Expression { expr } => {
+        self.ignore_return = true;
         self.resolve_expr(expr)?;
+        self.ignore_return = false;
       },
       StmtKind::If { condition, body, else_stmt } => {
         self.resolve_expr(condition)?;
@@ -84,23 +108,33 @@ impl Resolver {
       StmtKind::Print { expr } => {
         self.resolve_expr(expr)?;
       },
+      StmtKind::FuncDef { name, args, body } => {
+        // TODO: allow functions to return something.
+        // TODO: allow overloading functions.
+        let mut arg_types = Vec::new();
+        self.start_block();
+        for (arg, ty) in args {
+          self.variables.declare(arg, self.indent_level, *ty);
+          arg_types.push(*ty);
+        }
+        self.functions.declare(name, self.indent_level, (arg_types, None));
+        for stmt in body {
+          self.resolve_stmt(stmt)?;
+        }
+        self.end_block();
+      },
     }
 
     Ok(())
   }
 
-  pub(crate) fn resolve_expr(&mut self, expr: &Expr) -> Result<ValType> {
+  pub(crate) fn resolve_expr(&mut self, expr: &Expr) -> Result<ValueType> {
     match &expr.kind {
-      ExprKind::Integer(_) => Ok(ValType::Integer),
-      ExprKind::String(_) => Ok(ValType::String),
-      ExprKind::Identifier(name) => {
-        self.variables.get(name).map(|(_, val_type)| *val_type).ok_or_else(|| {
-          RuntimeError::new(
-            RuntimeErrorKind::UndefinedVariable(name.to_string()),
-            expr.span.clone(),
-          )
-        })
-      },
+      ExprKind::Integer(_) => Ok(ValueType::Integer),
+      ExprKind::String(_) => Ok(ValueType::String),
+      ExprKind::Identifier(name) => self.variables.get(name).ok_or_else(|| {
+        RuntimeError::new(RuntimeErrorKind::UndefinedVariable(name.to_string()), expr.span.clone())
+      }),
 
       ExprKind::PrefixOp { op, right } => self.resolve_prefix_op(op, right),
       ExprKind::InfixOp { op, left, right } => self.resolve_infix_op(op, left, right),
@@ -109,38 +143,82 @@ impl Resolver {
       },
       ExprKind::VarAssign { name, expr } => {
         let val_type = self.resolve_expr(expr)?;
-        self.variables.entry(name.to_string()).or_insert((self.indent_level, val_type)).1 =
-          val_type;
-        Ok(val_type)
+        Ok(self.variables.assign_or_declare(name, self.indent_level, val_type))
+      },
+      ExprKind::FuncCall { name, params } => {
+        let (arg_types, return_type) = self.functions.get(name).ok_or_else(|| {
+          RuntimeError::new(
+            RuntimeErrorKind::UndefinedFunction(name.to_string()),
+            expr.span.clone(),
+          )
+        })?;
+        if return_type.is_none() && !self.ignore_return {
+          return Err(RuntimeError::new(
+            RuntimeErrorKind::FunctionReturnsNothing(name.to_string()),
+            expr.span.clone(),
+          ));
+        }
+
+        if params.len() != arg_types.len() {
+          return Err(RuntimeError::new(
+            RuntimeErrorKind::FunctionArgumentCountMismatch(
+              name.to_string(),
+              arg_types.len(),
+              params.len(),
+            ),
+            expr.span.clone(),
+          ));
+        }
+
+        for (i, (param, arg_ty)) in params.iter().zip(arg_types).enumerate() {
+          let param_ty = self.resolve_expr(param)?;
+          if param_ty != arg_ty {
+            return Err(RuntimeError::new(
+              RuntimeErrorKind::FunctionArgumentTypeMismatch(
+                name.to_string(),
+                i,
+                param_ty.to_tok(),
+                arg_ty.to_tok(),
+              ),
+              expr.span.clone(),
+            ));
+          }
+        }
+
+        if self.ignore_return {
+          Ok(ValueType::Integer)
+        } else {
+          Ok(return_type.unwrap())
+        }
       },
     }
     .map_err(|e| RuntimeError::new(e.kind, expr.span.clone()))
   }
 
-  fn resolve_prefix_op(&mut self, op: &TokenKind, right: &Expr) -> Result<ValType> {
+  fn resolve_prefix_op(&mut self, op: &TokenKind, right: &Expr) -> Result<ValueType> {
     let right_type = self.resolve_expr(right)?;
 
     match op {
-      TokenKind::Minus if right_type == ValType::Integer => Ok(ValType::Integer),
-      TokenKind::Bang => Ok(ValType::Integer),
+      TokenKind::Minus if right_type == ValueType::Integer => Ok(ValueType::Integer),
+      TokenKind::Bang => Ok(ValueType::Integer),
 
       _ => Err(RuntimeError::new(RuntimeErrorKind::CannotApplyPrefix(right.clone(), *op), 0..0)),
     }
   }
 
-  fn resolve_infix_op(&mut self, op: &TokenKind, left: &Expr, right: &Expr) -> Result<ValType> {
+  fn resolve_infix_op(&mut self, op: &TokenKind, left: &Expr, right: &Expr) -> Result<ValueType> {
     let left_type = self.resolve_expr(left)?;
     let right_type = self.resolve_expr(right)?;
 
     match op {
-      TokenKind::Plus if left_type == ValType::String || right_type == ValType::String => {
-        Ok(ValType::String)
+      TokenKind::Plus if left_type == ValueType::String || right_type == ValueType::String => {
+        Ok(ValueType::String)
       },
       TokenKind::Star
-        if (left_type == ValType::String && right_type == ValType::Integer) ||
-          (right_type == ValType::String && left_type == ValType::Integer) =>
+        if (left_type == ValueType::String && right_type == ValueType::Integer) ||
+          (right_type == ValueType::String && left_type == ValueType::Integer) =>
       {
-        Ok(ValType::String)
+        Ok(ValueType::String)
       },
       TokenKind::Plus |
       TokenKind::Minus |
@@ -152,11 +230,11 @@ impl Resolver {
       TokenKind::GreaterEqual |
       TokenKind::Caret |
       TokenKind::Percent
-        if left_type == ValType::Integer && right_type == ValType::Integer =>
+        if left_type == ValueType::Integer && right_type == ValueType::Integer =>
       {
-        Ok(ValType::Integer)
+        Ok(ValueType::Integer)
       },
-      TokenKind::EqualEqual | TokenKind::BangEqual => Ok(ValType::Integer),
+      TokenKind::EqualEqual | TokenKind::BangEqual => Ok(ValueType::Integer),
 
       _ => Err(RuntimeError::new(
         RuntimeErrorKind::CannotApplyInfix(left.clone(), *op, right.clone()),
@@ -170,7 +248,7 @@ impl Resolver {
     op: &TokenKind,
     left: &Expr,
     right: &Expr,
-  ) -> Result<ValType> {
+  ) -> Result<ValueType> {
     let left_type = self.resolve_expr(left)?;
     let right_type = self.resolve_expr(right)?;
 
@@ -178,7 +256,7 @@ impl Resolver {
       // If left and right have the same type, then return that type
       TokenKind::And | TokenKind::Or if left_type == right_type => Ok(left_type),
       // Otherwise return a boolean
-      TokenKind::And | TokenKind::Or => Ok(ValType::Integer),
+      TokenKind::And | TokenKind::Or => Ok(ValueType::Integer),
 
       _ => Err(RuntimeError::new(
         RuntimeErrorKind::CannotApplyInfix(left.clone(), *op, right.clone()),

@@ -62,6 +62,12 @@ fn parse_binary_expr() {
           format!("({} {op} {})", to_string(*left), to_string(*right))
         },
         ExprKind::VarAssign { name, expr } => format!("({} = {})", name, to_string(*expr)),
+        ExprKind::FuncCall { name, params: args } => {
+          format!(
+            "({name}({args}))",
+            args = args.iter().map(|arg| to_string(arg.clone())).collect::<Vec<_>>().join(", ")
+          )
+        },
       }
     }
     assert!(expr.is_ok());
@@ -409,5 +415,52 @@ fn parse_block() {
         }),
       }),
     ])
+  );
+}
+
+#[test]
+fn parse_function() {
+  fn parse_expr(input: &str) -> Result<Expr> {
+    let mut parser = Parser::new(input);
+    parser.expression()
+  }
+  fn parse_stmt(input: &str) -> Result<Stmt> {
+    let mut parser = Parser::new(input);
+    parser.statement()
+  }
+
+  let stmt = parse_stmt("func foo():\n\tprint 1\n");
+  assert_eq!(
+    stmt,
+    Ok(Stmt::new_without_span(StmtKind::FuncDef {
+      name: "foo".to_string(),
+      args: vec![],
+      body: vec![Stmt::new_without_span(StmtKind::Print {
+        expr: Expr::new_without_span(ExprKind::Integer(1)),
+      })],
+    }))
+  );
+  let stmt = parse_stmt("func foo(a: int, b: string):\n\tprint a\n");
+  assert_eq!(
+    stmt,
+    Ok(Stmt::new_without_span(StmtKind::FuncDef {
+      name: "foo".to_string(),
+      args: vec![("a".to_string(), ValueType::Integer), ("b".to_string(), ValueType::String)],
+      body: vec![Stmt::new_without_span(StmtKind::Print {
+        expr: Expr::new_without_span(ExprKind::Identifier("a".to_string())),
+      })],
+    }))
+  );
+
+  let expr = parse_expr("foo(123, \"abc\")");
+  assert_eq!(
+    expr,
+    Ok(Expr::new_without_span(ExprKind::FuncCall {
+      name: "foo".to_string(),
+      params: vec![
+        Expr::new_without_span(ExprKind::Integer(123)),
+        Expr::new_without_span(ExprKind::String("abc".to_string())),
+      ],
+    }))
   );
 }

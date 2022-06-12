@@ -7,6 +7,7 @@ use logos::{
 };
 
 use crate::error::Span;
+use crate::resolver::ValueType;
 
 lazy_static::lazy_static! {
   pub static ref INDENT_SIZE: Mutex<usize> = Mutex::new(0);
@@ -129,6 +130,8 @@ pub enum TokenKind {
   And,
   #[token("or")]
   Or,
+  #[token("func")]
+  Func,
 
   // Delimiters
   #[token("(")]
@@ -136,9 +139,17 @@ pub enum TokenKind {
   #[token(")")]
   RightParen,
 
+  // Types
+  #[token("int")]
+  IntType,
+  #[token("string")]
+  StringType,
+
   // Syntax
   #[token(":")]
   Colon,
+  #[token(",")]
+  Comma,
 }
 
 impl std::fmt::Display for TokenKind {
@@ -172,9 +183,13 @@ impl std::fmt::Display for TokenKind {
       TokenKind::While => write!(f, "while"),
       TokenKind::And => write!(f, "and"),
       TokenKind::Or => write!(f, "or"),
+      TokenKind::Func => write!(f, "func"),
       TokenKind::LeftParen => write!(f, "("),
       TokenKind::RightParen => write!(f, ")"),
+      TokenKind::IntType => write!(f, "type `int`"),
+      TokenKind::StringType => write!(f, "type `string`"),
       TokenKind::Colon => write!(f, ":"),
+      TokenKind::Comma => write!(f, ","),
     }
   }
 }
@@ -219,6 +234,7 @@ pub enum ExprKind {
   InfixOp { op: TokenKind, left: Box<Expr>, right: Box<Expr> },
   ShortCircuitOp { op: TokenKind, left: Box<Expr>, right: Box<Expr> },
   VarAssign { name: String, expr: Box<Expr> },
+  FuncCall { name: String, params: Vec<Expr> },
 }
 
 #[derive(Debug, Clone)]
@@ -237,6 +253,11 @@ impl std::fmt::Display for Expr {
       ExprKind::InfixOp { op, left, right } => write!(f, "{left} {op} {right}"),
       ExprKind::ShortCircuitOp { op, left, right } => write!(f, "{left} {op} {right}"),
       ExprKind::VarAssign { name, expr } => write!(f, "{name} = {expr}"),
+      ExprKind::FuncCall { name, params } => write!(
+        f,
+        "{name}({args})",
+        args = params.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
+      ),
     }
   }
 }
@@ -258,6 +279,7 @@ pub enum StmtKind {
   If { condition: Expr, body: Vec<Stmt>, else_stmt: Vec<Stmt> },
   While { condition: Expr, body: Vec<Stmt> },
   Print { expr: Expr },
+  FuncDef { name: String, args: Vec<(String, ValueType)>, body: Vec<Stmt> },
 }
 
 #[derive(Debug, Clone)]

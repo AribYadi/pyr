@@ -33,6 +33,10 @@ pub enum ParseErrorKind {
   UnknownToken(String),
   #[error("cannot chain operator `{0}` with `{1}`")]
   InvalidChainOperator(TokenKind, TokenKind),
+  #[error("expected type but got `{0}`")]
+  ExpectedType(TokenKind),
+  #[error("`{0}` is not callable")]
+  NotCallable(Expr),
 }
 
 #[derive(Debug, PartialEq)]
@@ -55,6 +59,14 @@ pub enum RuntimeErrorKind {
   CannotApplyInfix(Expr, TokenKind, Expr),
   #[error("undefined variable `{0}` in the current scope")]
   UndefinedVariable(String),
+  #[error("undefined function `{0}` in the current scope")]
+  UndefinedFunction(String),
+  #[error("`{0}` returns nothing but is used as an expression")]
+  FunctionReturnsNothing(String),
+  #[error("`{0}` expects {1} arguments but got {2}")]
+  FunctionArgumentCountMismatch(String, usize, usize),
+  #[error("`{0}`'s argument at index {1} is of type `{2}` but expects `{3}`")]
+  FunctionArgumentTypeMismatch(String, usize, TokenKind, TokenKind),
 }
 
 #[derive(Debug, PartialEq)]

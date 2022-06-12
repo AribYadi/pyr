@@ -5,7 +5,10 @@ use crate::error::{
   RuntimeErrorKind,
 };
 use crate::parser::Parser;
-use crate::resolver::Resolver;
+use crate::resolver::{
+  Resolver,
+  ValueType,
+};
 
 use super::*;
 
@@ -202,4 +205,43 @@ fn interpret_variables() {
     result,
     Err(RuntimeError::new(RuntimeErrorKind::UndefinedVariable("a".to_string()), 0..1))
   );
+}
+
+#[test]
+fn interpret_function() {
+  let mut resolver = Resolver::new();
+  let mut interpreter = Interpreter::new();
+
+  macro_rules! interpret_stmt {
+    ($input:expr) => {{
+      let input = $input;
+      let mut parser = Parser::new(&input);
+      let stmt = parser.statement().unwrap();
+      if let Err(e) = resolver.resolve_stmt(&stmt) {
+        Err(e)
+      } else {
+        interpreter.interpret_stmt(&stmt)
+      }
+    }};
+  }
+
+  let result = interpret_stmt!("func foo(x: int):\n\tprint x + \"\n\"\n");
+  assert_eq!(result, Ok(()));
+  assert_eq!(resolver.functions.get("foo"), Some((vec![ValueType::Integer], None)));
+  assert_eq!(
+    interpreter.functions.get("foo"),
+    Some(Function::UserDefined(
+      vec!["x".to_string()],
+      vec![Stmt::new_without_span(StmtKind::Print {
+        expr: Expr::new_without_span(ExprKind::InfixOp {
+          left: Box::new(Expr::new_without_span(ExprKind::Identifier("x".to_string()))),
+          op: TokenKind::Plus,
+          right: Box::new(Expr::new_without_span(ExprKind::String("\n".to_string()))),
+        })
+      })]
+    ))
+  );
+
+  let result = interpret_stmt!("foo(1)\n");
+  assert_eq!(result, Ok(()));
 }

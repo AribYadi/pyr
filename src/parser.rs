@@ -8,6 +8,7 @@ use crate::error::{
   ParseErrorKind,
   ParseResult as Result,
 };
+use crate::resolver::ValueType;
 
 use self::syntax::{
   Expr,
@@ -73,6 +74,15 @@ impl Parser<'_> {
     }
 
     Ok(true)
+  }
+
+  fn consume_type(&mut self) -> Result<ValueType> {
+    match self.next() {
+      Tok::IntType => Ok(ValueType::Integer),
+      Tok::StringType => Ok(ValueType::String),
+
+      _ => Err(ParseError::new(ParseErrorKind::ExpectedType(self.curr), self.lexer.span())),
+    }
   }
 
   fn after_indents(&self) -> Tok {
@@ -185,6 +195,37 @@ impl Parser<'_> {
         let span_end = self.lexer.span().end;
 
         Ok(Stmt::new(StmtKind::Print { expr }, span_start..span_end))
+      },
+      Tok::Func => {
+        let span_start = self.lexer.span().start;
+
+        self.consume(Tok::Func)?;
+        let name = self.lexeme();
+        self.consume(Tok::Identifier)?;
+
+        self.consume(Tok::LeftParen)?;
+        let mut args = Vec::new();
+        while let Tok::Identifier = self.peek {
+          let name = self.lexeme();
+          self.consume(Tok::Identifier)?;
+
+          self.consume(Tok::Colon)?;
+          let ty = self.consume_type()?;
+
+          args.push((name, ty));
+
+          if self.peek != Tok::RightParen {
+            self.consume(Tok::Comma)?;
+          }
+        }
+        self.consume(Tok::RightParen)?;
+
+        self.consume(Tok::Colon)?;
+        let body = self.parse_block()?;
+
+        let span_end = self.lexer.span().end;
+
+        Ok(Stmt::new(StmtKind::FuncDef { name, args, body }, span_start..span_end))
       },
 
       Tok::Indent => Err(ParseError::new(ParseErrorKind::UnexpectedIndentBlock, self.lexer.span())),
@@ -364,8 +405,32 @@ impl Parser<'_> {
             span_start..span_end,
           );
         },
+        op @ Tok::LeftParen => {
+          if let ExprKind::Identifier(ref name) = lhs.kind {
+            self.consume(op)?;
 
-        Tok::Newline | Tok::Colon | Tok::RightParen => break,
+            let mut args = Vec::new();
+            while self.peek != Tok::RightParen {
+              args.push(self.parse_expr(0, Tok::Eof)?);
+              if self.peek != Tok::Comma {
+                break;
+              }
+              self.consume(Tok::Comma)?;
+            }
+
+            self.consume_delimiter(Tok::RightParen)?;
+            let span_start = lhs.span.start;
+            let span_end = self.lexer.span().end;
+            lhs = Expr::new(
+              ExprKind::FuncCall { name: name.to_string(), params: args },
+              span_start..span_end,
+            );
+          } else {
+            return Err(ParseError::new(ParseErrorKind::NotCallable(lhs.clone()), lhs.span));
+          }
+        },
+
+        Tok::Newline | Tok::Colon | Tok::RightParen | Tok::Comma => break,
         Tok::Error => {
           return Err(ParseError::new(
             ParseErrorKind::UnknownToken(self.lexeme()),
