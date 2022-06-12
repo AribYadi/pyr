@@ -15,7 +15,7 @@ def print_help():
   print()
   print("\x1b[2;96m[INFO]\x1b[0m: \x1b[1;32mOptions\x1b[0m:")
   print("\x1b[2;96m[INFO]\x1b[0m:   --help,     -h: Print this help message.")
-  print("\x1b[2;96m[INFO]\x1b[0m:   --debug,  -r: Test in debug mode.")
+  print("\x1b[2;96m[INFO]\x1b[0m:   --debug,    -D: Test in debug mode.")
   print("\x1b[2;96m[INFO]\x1b[0m:   --always-build: Always build `pyr` even if already built.")
   print("\x1b[2;96m[INFO]\x1b[0m:   --dir,      -d: Specify test dir.")
 
@@ -35,14 +35,14 @@ class Args():
       if arg.startswith("-"):
         text = [arg[1:]]
         if text[0].startswith("-"):
-          text[0] = text[1:]
+          text[0] = text[0][1:]
         
         if text[0] == "h" or text[0] == "help":
           print_help()
           exit(0)
         elif text[0] == "u" or text[0] == "update":
           self.update = True
-        elif text[0] == "r" or text[0] == "debug":
+        elif text[0] == "D" or text[0] == "debug":
           self.release = True
         elif text[0] == "always-build":
           self.always_build = True
