@@ -43,7 +43,7 @@ class Args():
         elif text[0] == "u" or text[0] == "update":
           self.update = True
         elif text[0] == "D" or text[0] == "debug":
-          self.release = True
+          self.debug = True
         elif text[0] == "always-build":
           self.always_build = True
         elif text[0] == "d" or text[0] == "dir":

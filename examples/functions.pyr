@@ -17,3 +17,15 @@ sub_with_b(20)
 
 b = 15
 sub_with_b(30)
+
+print "----------------------------------------------------\n"
+
+func foo(a: int, b: int):
+  func bar(a: int, b: int):
+    print a - b + "\n"
+  
+  bar(a, b)
+  bar(b, a)
+
+foo(1, 2)
+foo(7, 4)

@@ -1,0 +1,16 @@
+:exitcode 1:
+:stdout 0:
+
+:end:
+:stderr 491:
+[1;31m[ERR][0m : A runtime error has been found!
+[1;31m[ERR][0m :  -> func_scope.pyr:4:1
+[1;31m[ERR][0m :  -> undefined variable `bar` in the current scope
+[1;31m[ERR][0m : A runtime error has been found!
+[1;31m[ERR][0m :  -> func_scope.pyr:7:7
+[1;31m[ERR][0m :  -> undefined variable `foo` in the current scope
+[1;31m[ERR][0m : A runtime error has been found!
+[1;31m[ERR][0m :  -> func_scope.pyr:8:7
+[1;31m[ERR][0m :  -> `foo` returns nothing but is used as an expression
+
+:end:

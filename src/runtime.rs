@@ -19,11 +19,11 @@ impl<T: Clone> Variables<T> {
   }
 
   pub fn get(&self, name: &str) -> Option<T> {
-    self.variables.iter().find(|(n, _, _)| n == name).map(|(_, _, v)| v).cloned()
+    self.variables.iter().rev().find(|(n, _, _)| n == name).map(|(_, _, v)| v).cloned()
   }
 
   pub fn get_mut(&mut self, name: &str) -> Option<&mut T> {
-    self.variables.iter_mut().find(|(n, _, _)| n == name).map(|(_, _, v)| v)
+    self.variables.iter_mut().rev().find(|(n, _, _)| n == name).map(|(_, _, v)| v)
   }
 
   pub fn assign_or_declare(&mut self, name: &str, level: IndentLevel, value: T) -> T {

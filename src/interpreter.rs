@@ -58,9 +58,10 @@ impl Interpreter {
   pub(crate) fn interpret_stmt(&mut self, stmt: &Stmt) -> Result<()> {
     match &stmt.kind {
       StmtKind::Expression { expr } => {
+        let prev_ignore_return = self.ignore_return;
         self.ignore_return = true;
         self.interpret_expr(expr)?;
-        self.ignore_return = false;
+        self.ignore_return = prev_ignore_return;
         Ok(())
       },
       StmtKind::If { condition, body, else_stmt } => {
