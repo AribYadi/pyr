@@ -29,7 +29,7 @@
           "kind": "bin"
         }
       },
-      "args": ["compile", "${workspaceFolder}/examples/equality.pyr"],
+      "args": ["compile", "${workspaceFolder}/tests/func_scope.pyr"],
       "cwd": "${workspaceFolder}"
     },
     {

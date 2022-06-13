@@ -26,6 +26,10 @@ impl<T: Clone> Variables<T> {
     self.variables.iter_mut().rev().find(|(n, _, _)| n == name).map(|(_, _, v)| v)
   }
 
+  pub fn get_variable(&self, name: &str) -> Option<(String, IndentLevel, T)> {
+    self.variables.iter().rev().find(|(n, _, _)| n == name).cloned()
+  }
+
   pub fn assign_or_declare(&mut self, name: &str, level: IndentLevel, value: T) -> T {
     if let Some((_, _, v)) = self.variables.iter_mut().find(|(n, _, _)| n == name) {
       *v = value.clone();

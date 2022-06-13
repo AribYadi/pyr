@@ -86,7 +86,11 @@ impl ValueWrapper {
   }
 
   unsafe fn new_variable(self_: &mut Compiler, inner: ValueWrapper) -> Self {
-    let v = self_.alloca_global(inner.v);
+    let v = if self_.indent_level == 0 {
+      self_.alloca_global(inner.v)
+    } else {
+      self_.alloca_at_entry(inner.v)
+    };
     Self { v, ty: inner.ty, is_pointer: true, can_be_loaded: true, is_runtime: true }
   }
 
@@ -310,7 +314,16 @@ mod utils {
   }
 }
 
+type VarWithName = (String, ValueWrapper);
+
 #[derive(Clone)]
+struct FuncDesc {
+  args_len: IndentLevel,
+  // We store the return type for type checking
+  return_type: Option<ValueType>,
+  local_vars: Vec<VarWithName>,
+}
+
 pub struct Compiler {
   pub ctx: LLVMContextRef,
   pub module: LLVMModuleRef,
@@ -322,8 +335,7 @@ pub struct Compiler {
   curr_func: LLVMValueRef,
 
   variables: Variables<ValueWrapper>,
-  // We store the return type and arg len of functions for type checking
-  function_descs: Variables<(usize, Option<ValueType>)>,
+  function_descs: Variables<FuncDesc>,
   indent_level: IndentLevel,
 
   // Since functions can return nothing, we need to track whether are we ignoring the return value.
@@ -723,6 +735,106 @@ impl Compiler {
     }
   }
 
+  // Please i beg you don't read the code for this function, it's ugly as hell
+  // Just collapse this block and not worry about it
+  // TODO: make this prettier
+  // Gets all local variables of a function used in another function
+  fn func_get_vars(&mut self, stmts: &[Stmt]) -> Vec<VarWithName> {
+    fn expr_as_var(self_: &mut Compiler, expr: &Expr) -> Vec<VarWithName> {
+      let names = match &expr.kind {
+        ExprKind::Identifier(name) => vec![name.to_string()],
+        ExprKind::PrefixOp { right, .. } => {
+          expr_as_var(self_, right).into_iter().map(|(name, _)| name).collect()
+        },
+        ExprKind::InfixOp { left, right, .. } => {
+          let mut out = expr_as_var(self_, left);
+          out.extend(expr_as_var(self_, right));
+          out.into_iter().map(|(name, _)| name).collect()
+        },
+        ExprKind::ShortCircuitOp { left, right, .. } => {
+          let mut out = expr_as_var(self_, left);
+          out.extend(expr_as_var(self_, right));
+          out.into_iter().map(|(name, _)| name).collect()
+        },
+        ExprKind::VarAssign { name, expr } => {
+          let mut out: Vec<String> =
+            expr_as_var(self_, expr).into_iter().map(|(name, _)| name).collect();
+          out.push(name.to_string());
+          out
+        },
+        ExprKind::FuncCall { params, .. } => {
+          let mut out = vec![];
+          for param in params {
+            out.extend(expr_as_var(self_, param));
+          }
+          out.into_iter().map(|(name, _)| name).collect()
+        },
+
+        _ => vec![],
+      };
+
+      names
+        .into_iter()
+        .map(|name| (name.clone(), self_.variables.get_variable(&name)))
+        .filter_map(|(name, var)| {
+          if let Some((_, indent_level, _)) = var {
+            if indent_level < self_.indent_level {
+              return Some((name, var.unwrap().2));
+            }
+          }
+
+          None
+        })
+        .collect()
+    }
+
+    fn stmt_as_var(self_: &mut Compiler, stmt: &Stmt) -> Vec<VarWithName> {
+      let names = match &stmt.kind {
+        StmtKind::Expression { expr } => expr_as_var(self_, expr),
+        StmtKind::Print { expr } => expr_as_var(self_, expr),
+        StmtKind::If { condition, body, else_stmt } => {
+          let mut out = expr_as_var(self_, condition);
+          out.extend(stmts_as_var(self_, body));
+          out.extend(stmts_as_var(self_, else_stmt));
+          out
+        },
+        StmtKind::While { condition, body } => {
+          let mut out = expr_as_var(self_, condition);
+          out.extend(stmts_as_var(self_, body));
+          out
+        },
+        StmtKind::FuncDef { body, .. } => stmts_as_var(self_, body),
+
+        #[allow(unreachable_patterns)]
+        _ => vec![],
+      };
+
+      names
+        .into_iter()
+        .map(|(name, _)| (name.clone(), self_.variables.get_variable(&name)))
+        .filter_map(|(name, var)| {
+          if let Some((_, indent_level, _)) = var {
+            if indent_level < self_.indent_level {
+              return Some((name, var.unwrap().2));
+            }
+          }
+
+          None
+        })
+        .collect()
+    }
+
+    fn stmts_as_var(self_: &mut Compiler, stmts: &[Stmt]) -> Vec<VarWithName> {
+      let mut out = vec![];
+      for stmt in stmts {
+        out.extend(stmt_as_var(self_, stmt));
+      }
+      out
+    }
+
+    stmts_as_var(self, stmts)
+  }
+
   fn compile_stmt(&mut self, stmt: &Stmt) {
     unsafe {
       let zero = LLVMConstInt(LLVMInt64TypeInContext(self.ctx), 0, 0);
@@ -852,8 +964,15 @@ impl Compiler {
           // TODO: allow for function overloading
           let func_name = self.func_name(name, args);
 
+          let args_len = args.len();
+          self.indent_level += 1;
+          let local_vars = self.func_get_vars(body);
+          self.indent_level -= 1;
           let mut args_types =
             args.iter().map(|(_, ty)| self.compile_type(*ty)).collect::<Vec<_>>();
+          args_types.extend(
+            local_vars.iter().map(|(_, val)| LLVMPointerType(self.compile_type(val.ty), 0)),
+          );
 
           let func_type = LLVMFunctionType(
             // TODO: allow function to return something
@@ -864,7 +983,11 @@ impl Compiler {
             0,
           );
           let func = LLVMAddFunction(self.module, self.cstring(&func_name), func_type);
-          self.function_descs.declare(name, self.indent_level, (args.len(), None));
+          self.function_descs.declare(
+            name,
+            self.indent_level,
+            FuncDesc { args_len, return_type: None, local_vars: local_vars.clone() },
+          );
 
           let prev_builder = self.builder;
           let prev_func = self.curr_func;
@@ -887,6 +1010,17 @@ impl Compiler {
               is_runtime: true,
             };
             self.variables.declare(arg, self.indent_level, arg_val);
+          }
+          for (i, (name, var)) in local_vars.iter().enumerate() {
+            let var_ptr = LLVMGetParam(func, args_len as u32 + i as u32);
+            let var_val = ValueWrapper {
+              v: var_ptr,
+              ty: var.ty,
+              can_be_loaded: var.can_be_loaded,
+              is_pointer: true,
+              is_runtime: true,
+            };
+            self.variables.declare(name, self.indent_level, var_val);
           }
 
           for stmt in body {
@@ -927,7 +1061,7 @@ impl Compiler {
           self.compile_short_circuit_op(op, left, right)
         },
         ExprKind::VarAssign { name, expr } => {
-          let expr = self.compile_expr(expr);
+          let expr = self.compile_expr(expr).load(self);
           match self.variables.get_mut(&name.clone()) {
             // Since strings have a variable size, we just overwrite the value
             Some(val) if val.ty == expr.ty && val.ty != ValueType::String => {
@@ -941,10 +1075,11 @@ impl Compiler {
           expr
         },
         ExprKind::FuncCall { name, params } => {
-          let (arg_len, return_type) = match self.function_descs.get(name) {
-            Some(func_desc) => func_desc,
-            None => unreachable!("Resolver didn't resolve function correctly"),
-          };
+          let FuncDesc { args_len: arg_len, return_type, local_vars } =
+            match self.function_descs.get(name) {
+              Some(func_desc) => func_desc,
+              None => unreachable!("Resolver didn't resolve function correctly"),
+            };
 
           if params.len() != arg_len {
             unreachable!("Function call has wrong number of arguments");
@@ -961,6 +1096,13 @@ impl Compiler {
               expr.load(self).v
             })
             .collect::<Vec<_>>();
+          params.extend(local_vars.iter().map(|(_, var)| {
+            if var.ty == ValueType::String {
+              return utils::gep_string_ptr(self, var.clone());
+            }
+            var.v
+          }));
+
           let v = LLVMBuildCall2(
             self.builder,
             func_ty,
