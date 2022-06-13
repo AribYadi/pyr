@@ -27,4 +27,7 @@ foo = "baz"
 foo() # prints "baz"
 ```
 
-Currently, functions cannot return values.
+These following features are not implemented yet, but will be in the future:
+
+- [ ] Function that can return a value
+- [ ] Overloading functions
