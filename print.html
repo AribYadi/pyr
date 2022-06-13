@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="language-reference/arithmetic.html"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="language-reference/truthiness.html"><strong aria-hidden="true">6.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="language-reference/operator-precedence.html"><strong aria-hidden="true">7.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="language-reference/variables.html"><strong aria-hidden="true">8.</strong> Variable</a></li><li class="chapter-item expanded "><a href="language-reference/comments.html"><strong aria-hidden="true">9.</strong> Comments</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="language-reference/arithmetic.html"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="language-reference/truthiness.html"><strong aria-hidden="true">6.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="language-reference/operator-precedence.html"><strong aria-hidden="true">7.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="language-reference/variables.html"><strong aria-hidden="true">8.</strong> Variable</a></li><li class="chapter-item expanded "><a href="language-reference/functions.html"><strong aria-hidden="true">9.</strong> Functions</a></li><li class="chapter-item expanded "><a href="language-reference/comments.html"><strong aria-hidden="true">10.</strong> Comments</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -173,11 +173,13 @@ clang foo.o -o foo
 <p>Integers in Pyr are 64 bit signed integers.</p>
 <pre><code class="language-python">123
 </code></pre>
+<p>Type: <code>int</code></p>
 <h3 id="boolean"><a class="header" href="#boolean">Boolean</a></h3>
 <p>Booleans in Pyr are secretly integers with <code>true</code> as 1 and <code>false</code> as 0.</p>
 <pre><code class="language-python">true # returns 1
 false # returns 0
 </code></pre>
+<p>Type: <code>int</code></p>
 <h3 id="string"><a class="header" href="#string">String</a></h3>
 <p>Strings in Pyr are delimited by double quotes. <br />
 For escaping things like double quotes, you can use a backslash. <br />
@@ -185,6 +187,7 @@ Multiline strings are also supported. </p>
 <pre><code class="language-python">&quot;Hello, World!&quot;
 &quot;Newlines\n&quot;
 </code></pre>
+<p>Type: <code>string</code></p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="keywords"><a class="header" href="#keywords">Keywords</a></h2>
 <p>Keywords in Pyr are as follows:</p>
 <ul>
@@ -196,6 +199,7 @@ Multiline strings are also supported. </p>
 <li><a href="language-reference/keywords.html#while">while</a></li>
 <li><a href="language-reference/keywords.html#and">and</a></li>
 <li><a href="language-reference/keywords.html#or">or</a></li>
+<li><a href="language-reference/keywords.html#func">func</a></li>
 </ul>
 </li>
 </ul>
@@ -247,6 +251,12 @@ while i &lt; 10: # Executes its body 10 times
 <pre><code class="language-python">10 &gt; 2 or 10 &lt; 20 # result is true
 &quot;hello&quot; or &quot;world&quot; # result is &quot;hello&quot;
 123 or &quot;&quot; # result is true
+</code></pre>
+<h3 id="func"><a class="header" href="#func">func</a></h3>
+<p><code>func</code> defines a function.
+For more information, see <a href="language-reference/./functions.html">Functions</a>.</p>
+<pre><code class="language-python">func square(x: int):
+  print x * x
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="arithmetic"><a class="header" href="#arithmetic">Arithmetic</a></h2>
 <ul>
@@ -311,6 +321,7 @@ while i &lt; 10: # Executes its body 10 times
 <li><a href="language-reference/comparison.html#greater-than-or-equal">Greater Than or Equal</a></li>
 <li><a href="language-reference/comparison.html#equal">Equal</a></li>
 <li><a href="language-reference/comparison.html#not-equal">Not Equal</a></li>
+<li><a href="language-reference/comparison.html#and-and-or">And and Or</a></li>
 </ul>
 </li>
 </ul>
@@ -342,6 +353,8 @@ while i &lt; 10: # Executes its body 10 times
 &quot;Hello&quot; != &quot;Hello&quot; # result is false
 &quot;Hello&quot; != &quot;World&quot; # result is true
 </code></pre>
+<h3 id="and-and-or"><a class="header" href="#and-and-or">And and Or</a></h3>
+<p>Look at <a href="language-reference/./keywords.html">Keywords</a></p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="truthiness"><a class="header" href="#truthiness">Truthiness</a></h2>
 <h3 id="integers"><a class="header" href="#integers">Integers</a></h3>
 <p>An integer is truthy if it is equal to 1.</p>
@@ -356,16 +369,71 @@ while i &lt; 10: # Executes its body 10 times
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="operator-precedence"><a class="header" href="#operator-precedence">Operator Precedence</a></h2>
 <p>The following are the precedence levels and associativity of the operators in the Pyr language. The higher the precedence, the faster the operation will be performed.</p>
-<table><thead><tr><th>Operator</th><th>Description</th><th>Associativity</th><th>Precedence</th></tr></thead><tbody>
-<tr><td><code>-</code>, <code>!</code></td><td><a href="language-reference/./arithmetic.html#negation">Negation</a></td><td>Right-to-left</td><td>7</td></tr>
-<tr><td><code>^</code></td><td><a href="language-reference/./arithmetic.html#exponent">Exponent</a></td><td>Not chainable</td><td>6</td></tr>
-<tr><td><code>*</code>, <code>/</code>, <code>%</code></td><td><a href="language-reference/./arithmetic.html#multiply">Multiply</a>, <a href="language-reference/./arithmetic.html#division">Division</a>, <a href="language-reference/./arithmetic.html#modulo">Modulo</a></td><td>Left-to-right</td><td>5</td></tr>
-<tr><td><code>+</code>, <code>-</code></td><td><a href="language-reference/./arithmetic.html#addition">Addition</a>, <a href="language-reference/./arithmetic.html#subtraction">Subtraction</a></td><td>Left-to-right</td><td>4</td></tr>
-<tr><td><code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code></td><td><a href="language-reference/./comparison.html#less-than">Less Than</a>, <a href="language-reference/./comparison.html#less-than-or-equal">Less Than or Equal</a>, <a href="language-reference/./comparison.html#greater-than">Greater Than</a>, <a href="language-reference/./comparison.html#greater-than-or-equal">Greater Than or Equal</a></td><td>Not chainable</td><td>3</td></tr>
-<tr><td><code>==</code>, <code>!=</code></td><td><a href="language-reference/./comparison.html#equal">Equal</a>, <a href="language-reference/./comparison.html#not-equal">Not Equal</a></td><td>Not chainable</td><td>2</td></tr>
-<tr><td><code>and</code>, <code>or</code></td><td><a href="language-reference/./keywords.md.html#and">Logical And</a>, <a href="language-reference/./keywords.html#or">Logical Or</a></td><td>Left-to-right</td><td>1</td></tr>
-<tr><td><code>=</code></td><td><a href="language-reference/./variables.html">Variable Assignment</a></td><td>Right-to-left</td><td>0</td></tr>
-</tbody></table>
+<table data-line="0" class="code-line" dir="auto">
+<thead data-line="1" class="code-line" dir="auto">
+<tr data-line="0" class="code-line" dir="auto">
+<th data-line="0" class="code-line" dir="auto">Operator</th>
+<th data-line="0" class="code-line" dir="auto">Description</th>
+<th data-line="0" class="code-line" dir="auto">Associativity</th>
+<th data-line="0" class="code-line" dir="auto">Precedence</th>
+</tr>
+</thead>
+<tbody data-line="3" class="code-line" dir="auto">
+<tr data-line="2" class="code-line" dir="auto">
+<td data-line="2" class="code-line" dir="auto"><code>()</code></td>
+<td data-line="2" class="code-line" dir="auto">Function Call</td>
+<td data-line="2" class="code-line" dir="auto">Not chainable</td>
+<td data-line="2" class="code-line" dir="auto">8</td>
+</tr>
+<tr data-line="3" class="code-line" dir="auto">
+<td data-line="3" class="code-line" dir="auto"><code>-</code>, <code>!</code></td>
+<td data-line="3" class="code-line" dir="auto">Negation</td>
+<td data-line="3" class="code-line" dir="auto">Right-to-left</td>
+<td data-line="3" class="code-line" dir="auto">7</td>
+</tr>
+<tr data-line="4" class="code-line" dir="auto">
+<td data-line="4" class="code-line" dir="auto"><code>^</code></td>
+<td data-line="4" class="code-line" dir="auto">Exponent</td>
+<td data-line="4" class="code-line" dir="auto">Not chainable</td>
+<td data-line="4" class="code-line" dir="auto">6</td>
+</tr>
+<tr data-line="5" class="code-line" dir="auto">
+<td data-line="5" class="code-line" dir="auto"><code>*</code>, <code>/</code>, <code>%</code></td>
+<td data-line="5" class="code-line" dir="auto">Multiply, Division, Modulo</td>
+<td rowspan="2" data-line="5" class="code-line" dir="auto">Left-to-right</td>
+<td data-line="5" class="code-line" dir="auto">5</td>
+</tr>
+<tr data-line="6" class="code-line" dir="auto">
+<td data-line="6" class="code-line" dir="auto"><code>+</code>, <code>-</code></td>
+<td data-line="6" class="code-line" dir="auto">Addition, Subtraction</td>
+<td data-line="6" class="code-line" dir="auto">4</td>
+</tr>
+<tr data-line="7" class="code-line" dir="auto">
+<td data-line="7" class="code-line" dir="auto"><code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code></td>
+<td data-line="7" class="code-line" dir="auto">Less Than, Less Than or Equal, Greater Than, Greater Than or Equal</td>
+<td rowspan="2" data-line="7" class="code-line" dir="auto">Not chainable</td>
+<td data-line="7" class="code-line" dir="auto">3</td>
+</tr>
+<tr data-line="8" class="code-line" dir="auto">
+<td data-line="8" class="code-line" dir="auto"><code>==</code>, <code>!=</code></td>
+<td data-line="8" class="code-line" dir="auto">Equal, Not Equal</td>
+<td data-line="8" class="code-line" dir="auto">2</td>
+</tr>
+<tr data-line="9" class="code-line" dir="auto">
+<td data-line="9" class="code-line" dir="auto"><code>and</code>, <code>or</code></td>
+<td data-line="9" class="code-line" dir="auto">Logical And, Logical Or</td>
+<td data-line="9" class="code-line" dir="auto">Left-to-right</td>
+<td data-line="9" class="code-line" dir="auto">1</td>
+</tr>
+<tr data-line="10" class="code-line" dir="auto">
+<td data-line="10" class="code-line" dir="auto"><code>=</code></td>
+<td data-line="10" class="code-line" dir="auto">Variable Assignment</td>
+<td data-line="10" class="code-line" dir="auto">Right-to-left</td>
+<td data-line="10" class="code-line" dir="auto">0</td>
+</tr>
+</tbody>
+</table>
+<p>For more information about each of the operators, see <a href="language-reference/./arithmetic.html">Arithmetic</a> and <a href="language-reference/./comparison.html">Comparison</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="variable"><a class="header" href="#variable">Variable</a></h2>
 <p>Declaration and assignment in Pyr use the same syntax.</p>
 <pre><code class="language-python">foo = &quot;bar&quot;
@@ -373,6 +441,32 @@ while i &lt; 10: # Executes its body 10 times
 <p>To access a variable, use the following syntax.</p>
 <pre><code class="language-python">print var_name # prints &quot;bar&quot;
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
+<p>Functions in Pyr are defined with the <code>func</code> keyword.
+Function arguments are explicitly <a href="language-reference/./literals.html">typed</a>, and are separated by commas.</p>
+<pre><code class="language-python">func foo(a: int, b: int) -&gt; int:
+  print a + b + &quot;\n&quot;
+</code></pre>
+<p>To call a function, simply use the function name and parentheses with the arguments.</p>
+<pre><code class="language-python">foo(1, 2) # prints 3
+</code></pre>
+<p>Functions and variables have different scopes.
+So you can have both a variable named <code>foo</code> and a function named <code>foo</code>.</p>
+<pre><code class="language-python">foo = &quot;bar&quot;
+func foo():
+  print foo + &quot;\n&quot;
+
+foo() # prints &quot;bar&quot;
+foo = &quot;baz&quot;
+foo() # prints &quot;baz&quot;
+</code></pre>
+<p>These following features are not implemented yet, but will be in the future:</p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+Function that can return a value</li>
+<li><input disabled="" type="checkbox"/>
+Overloading functions</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="comments"><a class="header" href="#comments">Comments</a></h2>
 <p>Comments in Pyr starts with a <code>#</code> and go to the end of the line.</p>
 <pre><code class="language-python"># This is a comment
