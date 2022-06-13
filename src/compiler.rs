@@ -737,9 +737,9 @@ impl Compiler {
 
   // Please i beg you don't read the code for this function, it's ugly as hell
   // Just collapse this block and not worry about it
-  // TODO: make this prettier
+  // TODO: make this better
   // Gets all local variables of a function used in another function
-  fn func_get_vars(&mut self, stmts: &[Stmt]) -> Vec<VarWithName> {
+  fn func_get_vars(&mut self, declared: Vec<String>, stmts: &[Stmt]) -> Vec<VarWithName> {
     fn expr_as_var(self_: &mut Compiler, expr: &Expr) -> Vec<VarWithName> {
       let names = match &expr.kind {
         ExprKind::Identifier(name) => vec![name.to_string()],
@@ -778,7 +778,7 @@ impl Compiler {
         .map(|name| (name.clone(), self_.variables.get_variable(&name)))
         .filter_map(|(name, var)| {
           if let Some((_, indent_level, _)) = var {
-            if indent_level < self_.indent_level {
+            if indent_level < self_.indent_level && indent_level != 0 {
               return Some((name, var.unwrap().2));
             }
           }
@@ -788,22 +788,26 @@ impl Compiler {
         .collect()
     }
 
-    fn stmt_as_var(self_: &mut Compiler, stmt: &Stmt) -> Vec<VarWithName> {
+    fn stmt_as_var(self_: &mut Compiler, declared: &[String], stmt: &Stmt) -> Vec<VarWithName> {
       let names = match &stmt.kind {
         StmtKind::Expression { expr } => expr_as_var(self_, expr),
         StmtKind::Print { expr } => expr_as_var(self_, expr),
         StmtKind::If { condition, body, else_stmt } => {
           let mut out = expr_as_var(self_, condition);
-          out.extend(stmts_as_var(self_, body));
-          out.extend(stmts_as_var(self_, else_stmt));
+          out.extend(stmts_as_var(self_, vec![], body));
+          out.extend(stmts_as_var(self_, vec![], else_stmt));
           out
         },
         StmtKind::While { condition, body } => {
           let mut out = expr_as_var(self_, condition);
-          out.extend(stmts_as_var(self_, body));
+          out.extend(stmts_as_var(self_, vec![], body));
           out
         },
-        StmtKind::FuncDef { body, .. } => stmts_as_var(self_, body),
+        StmtKind::FuncDef { args, body, .. } => stmts_as_var(
+          self_,
+          args.iter().map(|(name, _)| name.to_string()).collect::<Vec<_>>(),
+          body,
+        ),
 
         #[allow(unreachable_patterns)]
         _ => vec![],
@@ -814,7 +818,7 @@ impl Compiler {
         .map(|(name, _)| (name.clone(), self_.variables.get_variable(&name)))
         .filter_map(|(name, var)| {
           if let Some((_, indent_level, _)) = var {
-            if indent_level < self_.indent_level {
+            if indent_level < self_.indent_level && indent_level != 0 && !declared.contains(&name) {
               return Some((name, var.unwrap().2));
             }
           }
@@ -824,15 +828,19 @@ impl Compiler {
         .collect()
     }
 
-    fn stmts_as_var(self_: &mut Compiler, stmts: &[Stmt]) -> Vec<VarWithName> {
+    fn stmts_as_var(
+      self_: &mut Compiler,
+      declared: Vec<String>,
+      stmts: &[Stmt],
+    ) -> Vec<VarWithName> {
       let mut out = vec![];
       for stmt in stmts {
-        out.extend(stmt_as_var(self_, stmt));
+        out.extend(stmt_as_var(self_, &declared, stmt));
       }
       out
     }
 
-    stmts_as_var(self, stmts)
+    stmts_as_var(self, declared, stmts)
   }
 
   fn compile_stmt(&mut self, stmt: &Stmt) {
@@ -966,13 +974,18 @@ impl Compiler {
 
           let args_len = args.len();
           self.indent_level += 1;
-          let local_vars = self.func_get_vars(body);
+          let local_vars =
+            self.func_get_vars(args.iter().map(|(name, _)| name.clone()).collect(), body);
           self.indent_level -= 1;
           let mut args_types =
             args.iter().map(|(_, ty)| self.compile_type(*ty)).collect::<Vec<_>>();
-          args_types.extend(
-            local_vars.iter().map(|(_, val)| LLVMPointerType(self.compile_type(val.ty), 0)),
-          );
+          args_types.extend(local_vars.iter().map(|(_, val)| {
+            if val.is_pointer {
+              LLVMPointerType(self.compile_type(val.ty), 0)
+            } else {
+              self.compile_type(val.ty)
+            }
+          }));
 
           let func_type = LLVMFunctionType(
             // TODO: allow function to return something

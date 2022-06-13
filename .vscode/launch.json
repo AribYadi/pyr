@@ -29,7 +29,7 @@
           "kind": "bin"
         }
       },
-      "args": ["compile", "${workspaceFolder}/tests/func_scope.pyr"],
+      "args": ["compile", "${workspaceFolder}/examples/functions.pyr"],
       "cwd": "${workspaceFolder}"
     },
     {
