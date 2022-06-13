@@ -7,6 +7,7 @@
   - [Greater Than or Equal](#greater-than-or-equal)
   - [Equal](#equal)
   - [Not Equal](#not-equal)
+  - [And and Or](#and-and-or)
 
 ### Less Than
 
@@ -59,3 +60,7 @@
 "Hello" != "Hello" # result is false
 "Hello" != "World" # result is true
 ```
+
+### And and Or
+
+Look at [Keywords](./keywords.md)
