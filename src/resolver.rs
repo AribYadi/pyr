@@ -3,6 +3,7 @@ use crate::error::{
   RuntimeErrorKind,
   RuntimeResult as Result,
 };
+use crate::ignore_return;
 use crate::parser::syntax::{
   Expr,
   ExprKind,
@@ -80,12 +81,10 @@ impl Resolver {
   pub(crate) fn resolve_stmt(&mut self, stmt: &Stmt) -> Result<()> {
     match &stmt.kind {
       StmtKind::Expression { expr } => {
-        self.ignore_return = true;
-        self.resolve_expr(expr)?;
-        self.ignore_return = false;
+        ignore_return!(self, expr, self.resolve_expr(expr)?);
       },
       StmtKind::If { condition, body, else_stmt } => {
-        self.resolve_expr(condition)?;
+        ignore_return!(NEVER; self, condition, self.resolve_expr(condition)?);
         self.start_block();
         for stmt in body {
           self.resolve_stmt(stmt)?;
@@ -98,7 +97,7 @@ impl Resolver {
         self.end_block();
       },
       StmtKind::While { condition, body } => {
-        self.resolve_expr(condition)?;
+        ignore_return!(NEVER; self, condition, self.resolve_expr(condition)?);
         self.start_block();
         for stmt in body {
           self.resolve_stmt(stmt)?;
@@ -106,7 +105,7 @@ impl Resolver {
         self.end_block();
       },
       StmtKind::Print { expr } => {
-        self.resolve_expr(expr)?;
+        ignore_return!(NEVER; self, expr, self.resolve_expr(expr)?);
       },
       StmtKind::FuncDef { name, args, body } => {
         // TODO: allow functions to return something.

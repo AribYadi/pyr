@@ -46,7 +46,6 @@ use llvm_sys as llvm;
 use llvm::core::*;
 use llvm::prelude::*;
 
-use crate::info;
 use crate::parser::syntax::{
   Expr,
   ExprKind,
@@ -58,6 +57,10 @@ use crate::resolver::ValueType;
 use crate::runtime::{
   IndentLevel,
   Variables,
+};
+use crate::{
+  ignore_return,
+  info,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -849,12 +852,11 @@ impl Compiler {
 
       match &stmt.kind {
         StmtKind::Expression { expr } => {
-          self.ignore_return = true;
-          self.compile_expr(expr);
-          self.ignore_return = false;
+          ignore_return!(self, expr, self.compile_expr(expr));
         },
         StmtKind::Print { expr } => {
-          let value = self.compile_expr(expr).load(self);
+          let value =
+            ignore_return!(NEVER_WITH_RET; self, expr, self.compile_expr(expr)).load(self);
           let value = if !value.is_runtime() {
             let value = ValueWrapper::new_string(self, &value.to_string()).v;
             let value_ptr = self.alloca_at_entry(value);
@@ -890,7 +892,9 @@ impl Compiler {
           );
         },
         StmtKind::If { condition, body, else_stmt } => {
-          let condition = self.compile_expr(condition).new_is_truthy(self);
+          let condition =
+            ignore_return!(NEVER_WITH_RET; self, condition, self.compile_expr(condition))
+              .new_is_truthy(self);
           let condition = LLVMBuildICmp(
             self.builder,
             llvm::LLVMIntPredicate::LLVMIntNE,
@@ -932,7 +936,9 @@ impl Compiler {
           LLVMPositionBuilderAtEnd(self.builder, continue_bb);
         },
         StmtKind::While { condition, body } => {
-          let loop_cond = self.compile_expr(condition).new_is_truthy(self);
+          let loop_cond =
+            ignore_return!(NEVER_WITH_RET; self, condition, self.compile_expr(condition))
+              .new_is_truthy(self);
           let loop_cond = LLVMBuildICmp(
             self.builder,
             llvm::LLVMIntPredicate::LLVMIntNE,
@@ -953,7 +959,9 @@ impl Compiler {
             self.compile_stmt(stmt);
           }
 
-          let loop_cond = self.compile_expr(condition).new_is_truthy(self);
+          let loop_cond =
+            ignore_return!(NEVER_WITH_RET; self, condition, self.compile_expr(condition))
+              .new_is_truthy(self);
           let loop_cond = LLVMBuildICmp(
             self.builder,
             llvm::LLVMIntPredicate::LLVMIntNE,

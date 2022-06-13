@@ -3,6 +3,29 @@ use crate::parser::syntax::Stmt;
 
 mod impl_arithmetics;
 
+#[macro_export]
+macro_rules! ignore_return {
+  (NEVER; $self:ident, $expr:expr, $($callback:tt)*) => {{
+    ignore_return!(false; $self, $expr, $($callback)*);
+  }};
+  (NEVER_WITH_RET; $self:ident, $expr:expr, $($callback:tt)*) => {{
+    let prev_ignore_return = $self.ignore_return;
+    $self.ignore_return = false;
+    let ret = $($callback)*;
+    $self.ignore_return = prev_ignore_return;
+    ret
+  }};
+  ($self:ident, $expr:expr, $($callback:tt)*) => {{
+    ignore_return!(matches!($expr.kind, ExprKind::Integer(_) | ExprKind::String(_) | ExprKind::Identifier(_) | ExprKind::FuncCall { .. }); $self, $expr, $($callback)*);
+  }};
+  ($cond:expr; $self:ident, $expr:expr, $($callback:tt)*) => {{
+    let prev_ignore_return = $self.ignore_return;
+    $self.ignore_return = $cond;
+    $($callback)*;
+    $self.ignore_return = prev_ignore_return;
+  }};
+}
+
 pub type IndentLevel = usize;
 
 #[derive(Clone)]

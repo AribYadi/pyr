@@ -4,6 +4,7 @@ use crate::error::{
   RuntimeError,
   RuntimeResult as Result,
 };
+use crate::ignore_return;
 use crate::parser::syntax::{
   Expr,
   ExprKind,
@@ -58,14 +59,12 @@ impl Interpreter {
   pub(crate) fn interpret_stmt(&mut self, stmt: &Stmt) -> Result<()> {
     match &stmt.kind {
       StmtKind::Expression { expr } => {
-        let prev_ignore_return = self.ignore_return;
-        self.ignore_return = true;
-        self.interpret_expr(expr)?;
-        self.ignore_return = prev_ignore_return;
+        ignore_return!(self, expr, self.interpret_expr(expr)?);
         Ok(())
       },
       StmtKind::If { condition, body, else_stmt } => {
-        let condition = self.interpret_expr(condition)?;
+        let condition =
+          ignore_return!(NEVER_WITH_RET; self, condition, self.interpret_expr(condition)?);
         self.start_block();
         if condition.is_truthy() {
           for stmt in body {
@@ -80,13 +79,15 @@ impl Interpreter {
         Ok(())
       },
       StmtKind::While { condition, body } => {
-        let mut condition_lit = self.interpret_expr(condition)?;
+        let mut condition_lit =
+          ignore_return!(NEVER_WITH_RET; self, condition, self.interpret_expr(condition)?);
         while condition_lit.is_truthy() {
           self.start_block();
           for stmt in body {
             self.interpret_stmt(stmt)?;
           }
-          condition_lit = self.interpret_expr(condition)?;
+          condition_lit =
+            ignore_return!(NEVER_WITH_RET; self, condition, self.interpret_expr(condition)?);
           self.end_block();
         }
         Ok(())
@@ -102,7 +103,7 @@ impl Interpreter {
   }
 
   pub(crate) fn interpret_print(&mut self, expr: &Expr, output: &mut impl io::Write) -> Result<()> {
-    let value = self.interpret_expr(expr)?;
+    let value = ignore_return!(NEVER_WITH_RET; self, expr, self.interpret_expr(expr)?);
     let _ = write!(output, "{value}");
     Ok(())
   }
