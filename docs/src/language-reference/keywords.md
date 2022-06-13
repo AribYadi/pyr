@@ -9,6 +9,7 @@ Keywords in Pyr are as follows:
   - [while](#while)
   - [and](#and)
   - [or](#or)
+  - [func](#func)
 
 ### print
 
@@ -84,4 +85,14 @@ while i < 10: # Executes its body 10 times
 10 > 2 or 10 < 20 # result is true
 "hello" or "world" # result is "hello"
 123 or "" # result is true
+```
+
+### func
+
+`func` defines a function.
+For more information, see [Functions](./functions.md).
+
+```python
+func square(x: int):
+  print x * x
 ```
