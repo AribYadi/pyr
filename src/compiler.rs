@@ -388,6 +388,7 @@ impl Compiler {
       let builder = LLVMCreateBuilderInContext(self.ctx);
 
       let start_bb = LLVMAppendBasicBlockInContext(self.ctx, int_len_func, self.cstring("start"));
+      let abs_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("abs"));
       let loop_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("loop"));
       let ret_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("ret"));
 
@@ -395,8 +396,21 @@ impl Compiler {
       let orig_val = LLVMGetParam(int_len_func, 0);
       let condition = LLVMBuildICmp(
         builder,
-        LLVMIntPredicate::LLVMIntEQ,
+        LLVMIntPredicate::LLVMIntSLE,
         orig_val,
+        LLVMConstInt(i64_type, 0, 0),
+        self.cstring(""),
+      );
+      LLVMBuildCondBr(builder, condition, abs_bb, loop_bb);
+
+      LLVMAppendExistingBasicBlock(int_len_func, abs_bb);
+      LLVMPositionBuilderAtEnd(builder, abs_bb);
+
+      let abs_val = LLVMBuildNeg(builder, orig_val, self.cstring(""));
+      let condition = LLVMBuildICmp(
+        builder,
+        LLVMIntPredicate::LLVMIntEQ,
+        abs_val,
         LLVMConstInt(i64_type, 0, 0),
         self.cstring(""),
       );
@@ -410,12 +424,17 @@ impl Compiler {
       let new_len = LLVMBuildAdd(builder, len, LLVMConstInt(i64_type, 1, 0), self.cstring(""));
       LLVMAddIncoming(
         len,
-        [LLVMConstInt(i64_type, 0, 0), new_len].as_mut_ptr(),
-        [start_bb, loop_bb].as_mut_ptr(),
-        2,
+        [LLVMConstInt(i64_type, 0, 0), LLVMConstInt(i64_type, 1, 0), new_len].as_mut_ptr(),
+        [start_bb, abs_bb, loop_bb].as_mut_ptr(),
+        3,
       );
       let new_val = LLVMBuildSDiv(builder, val, LLVMConstInt(i64_type, 10, 0), self.cstring(""));
-      LLVMAddIncoming(val, [orig_val, new_val].as_mut_ptr(), [start_bb, loop_bb].as_mut_ptr(), 2);
+      LLVMAddIncoming(
+        val,
+        [orig_val, abs_val, new_val].as_mut_ptr(),
+        [start_bb, abs_bb, loop_bb].as_mut_ptr(),
+        3,
+      );
 
       let condition = LLVMBuildAdd(builder, val, LLVMConstInt(i64_type, 9, 0), self.cstring(""));
       let condition = LLVMBuildICmp(
@@ -429,11 +448,12 @@ impl Compiler {
 
       LLVMAppendExistingBasicBlock(int_len_func, ret_bb);
       LLVMPositionBuilderAtEnd(builder, ret_bb);
+
       let len = LLVMBuildPhi(builder, i64_type, self.cstring("len"));
       LLVMAddIncoming(
         len,
         [LLVMConstInt(i64_type, 1, 0), new_len].as_mut_ptr(),
-        [start_bb, loop_bb].as_mut_ptr(),
+        [abs_bb, loop_bb].as_mut_ptr(),
         2,
       );
       LLVMBuildRet(builder, len);
@@ -456,13 +476,47 @@ impl Compiler {
 
       let start_bb =
         LLVMAppendBasicBlockInContext(self.ctx, int_as_str_func, self.cstring("start"));
+      let abs_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("abs"));
       let loop_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("loop"));
       let ret_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("ret"));
 
       LLVMPositionBuilderAtEnd(builder, start_bb);
-      let buf = LLVMGetParam(int_as_str_func, 0);
+      let orig_buf = LLVMGetParam(int_as_str_func, 0);
       let orig_val = LLVMGetParam(int_as_str_func, 1);
-      let len = LLVMGetParam(int_as_str_func, 2);
+      let orig_len = LLVMGetParam(int_as_str_func, 2);
+
+      let condition = LLVMBuildICmp(
+        builder,
+        LLVMIntPredicate::LLVMIntSLT,
+        orig_val,
+        LLVMConstInt(i64_type, 0, 0),
+        self.cstring(""),
+      );
+
+      LLVMBuildCondBr(builder, condition, abs_bb, loop_bb);
+
+      LLVMAppendExistingBasicBlock(int_as_str_func, abs_bb);
+      LLVMPositionBuilderAtEnd(builder, abs_bb);
+
+      let ch_ptr = LLVMBuildGEP2(
+        builder,
+        i8_type,
+        orig_buf,
+        [LLVMConstInt(i64_type, 0, 0)].as_mut_ptr(),
+        1,
+        self.cstring(""),
+      );
+      LLVMBuildStore(builder, LLVMConstInt(i8_type, 45, 0), ch_ptr);
+      let abs_buf = LLVMBuildGEP2(
+        builder,
+        i8_type,
+        orig_buf,
+        [LLVMConstInt(i64_type, 1, 0)].as_mut_ptr(),
+        1,
+        self.cstring(""),
+      );
+      let abs_val = LLVMBuildNeg(builder, orig_val, self.cstring(""));
+      let abs_len = LLVMBuildSub(builder, orig_len, LLVMConstInt(i64_type, 1, 0), self.cstring(""));
 
       LLVMBuildBr(builder, loop_bb);
 
@@ -470,6 +524,20 @@ impl Compiler {
       LLVMPositionBuilderAtEnd(builder, loop_bb);
       let i = LLVMBuildPhi(builder, i64_type, self.cstring("i"));
       let val = LLVMBuildPhi(builder, i64_type, self.cstring("val"));
+      let len = LLVMBuildPhi(builder, i64_type, self.cstring("len"));
+      LLVMAddIncoming(
+        len,
+        [orig_len, abs_len, len].as_mut_ptr(),
+        [start_bb, abs_bb, loop_bb].as_mut_ptr(),
+        3,
+      );
+      let buf = LLVMBuildPhi(builder, LLVMPointerType(i8_type, 0), self.cstring("buf"));
+      LLVMAddIncoming(
+        buf,
+        [orig_buf, abs_buf, buf].as_mut_ptr(),
+        [start_bb, abs_bb, loop_bb].as_mut_ptr(),
+        3,
+      );
 
       let ch = LLVMBuildSRem(builder, val, LLVMConstInt(i64_type, 10, 0), self.cstring(""));
       let ch = LLVMBuildTrunc(builder, ch, i8_type, self.cstring(""));
@@ -483,13 +551,18 @@ impl Compiler {
       let new_i = LLVMBuildAdd(builder, i, LLVMConstInt(i64_type, 1, 0), self.cstring("new_i"));
       LLVMAddIncoming(
         i,
-        [LLVMConstInt(i64_type, 0, 0), new_i].as_mut_ptr(),
-        [start_bb, loop_bb].as_mut_ptr(),
-        2,
+        [LLVMConstInt(i64_type, 0, 0), LLVMConstInt(i64_type, 0, 0), new_i].as_mut_ptr(),
+        [start_bb, abs_bb, loop_bb].as_mut_ptr(),
+        3,
       );
       let new_val =
         LLVMBuildSDiv(builder, val, LLVMConstInt(i64_type, 10, 0), self.cstring("new_int_par"));
-      LLVMAddIncoming(val, [orig_val, new_val].as_mut_ptr(), [start_bb, loop_bb].as_mut_ptr(), 2);
+      LLVMAddIncoming(
+        val,
+        [orig_val, abs_val, new_val].as_mut_ptr(),
+        [start_bb, abs_bb, loop_bb].as_mut_ptr(),
+        3,
+      );
 
       let condition = LLVMBuildAdd(builder, val, LLVMConstInt(i64_type, 9, 0), self.cstring(""));
       let condition = LLVMBuildICmp(
@@ -963,7 +1036,10 @@ impl Compiler {
 
     LLVMBuildRet(self.builder, LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 0, 0));
     #[cfg(debug_assertions)]
-    LLVMDumpModule(self.module);
+    {
+      LLVMDumpModule(self.module);
+      LLVMPrintModuleToFile(self.module, self.cstring("tmp.ll"), ptr::null_mut());
+    }
     LLVMVerifyFunction(self.main_func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
     LLVMRunFunctionPassManager(self.fpm, self.main_func);
 
