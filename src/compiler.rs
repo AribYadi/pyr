@@ -958,7 +958,7 @@ impl Compiler {
               if expr.ty == ValueType::String {
                 return utils::gep_string_ptr(self, expr);
               }
-              expr.v
+              expr.load(self).v
             })
             .collect::<Vec<_>>();
           let v = LLVMBuildCall2(
