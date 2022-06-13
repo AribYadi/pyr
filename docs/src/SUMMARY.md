@@ -13,4 +13,5 @@
 - [Truthiness](./language-reference/truthiness.md)
 - [Operator Precedence](./language-reference/operator-precedence.md)
 - [Variable](./language-reference/variables.md)
+- [Functions](./language-reference/functions.md)
 - [Comments](./language-reference/comments.md)

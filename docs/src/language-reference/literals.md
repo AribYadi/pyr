@@ -15,6 +15,8 @@ Integers in Pyr are 64 bit signed integers.
 123
 ```
 
+Type: `int`
+
 ### Boolean
 
 Booleans in Pyr are secretly integers with `true` as 1 and `false` as 0.
@@ -23,6 +25,8 @@ Booleans in Pyr are secretly integers with `true` as 1 and `false` as 0.
 true # returns 1
 false # returns 0
 ```
+
+Type: `int`
 
 ### String
 
@@ -34,3 +38,5 @@ Multiline strings are also supported. \
 "Hello, World!"
 "Newlines\n"
 ```
+
+Type: `string`
