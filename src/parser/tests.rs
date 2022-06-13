@@ -325,10 +325,11 @@ fn parse_stmt_errors() {
   let stmt = parse("1 + 2");
   assert_eq!(
     stmt,
-    Err(ParseError::new(ParseErrorKind::UnexpectedToken(Tok::Newline, Tok::Eof), 5..5))
+    Err(ParseError::new(
+      ParseErrorKind::UnexpectedToken(Tok::Newline, Tok::Eof, "".to_string()),
+      5..5
+    ))
   );
-  let stmt = parse("\tblock");
-  assert_eq!(stmt, Err(ParseError::new(ParseErrorKind::UnexpectedIndentBlock, 0..1)));
   let stmt = parse("else:\n\t1 + 2");
   assert_eq!(stmt, Err(ParseError::new(ParseErrorKind::UnmatchedElseStatement, 0..4)));
 }

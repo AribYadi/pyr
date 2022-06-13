@@ -1,0 +1,5 @@
+# this is a comment
+  # this should be ignored
+if true:
+  # this is a comment
+  print "hello\n"

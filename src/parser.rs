@@ -48,7 +48,10 @@ impl Parser<'_> {
       self.next();
       Ok(())
     } else {
-      Err(ParseError::new(ParseErrorKind::UnexpectedToken(expected, self.peek), self.lexer.span()))
+      Err(ParseError::new(
+        ParseErrorKind::UnexpectedToken(expected, self.peek, self.lexeme()),
+        self.lexer.span(),
+      ))
     }
   }
 
@@ -97,7 +100,10 @@ impl Parser<'_> {
     if self.curr == expected {
       Ok(())
     } else {
-      Err(ParseError::new(ParseErrorKind::UnexpectedToken(expected, self.curr), self.lexer.span()))
+      Err(ParseError::new(
+        ParseErrorKind::UnexpectedToken(expected, self.curr, self.lexeme()),
+        self.lexer.span(),
+      ))
     }
   }
 
@@ -228,7 +234,12 @@ impl Parser<'_> {
         Ok(Stmt::new(StmtKind::FuncDef { name, args, body }, span_start..span_end))
       },
 
-      Tok::Indent => Err(ParseError::new(ParseErrorKind::UnexpectedIndentBlock, self.lexer.span())),
+      // Ignore any lone block
+      Tok::Indent => {
+        self.consume(Tok::Indent)?;
+        self.statement()
+      },
+
       Tok::Else => Err(ParseError::new(ParseErrorKind::UnmatchedElseStatement, self.lexer.span())),
 
       _ => {
@@ -254,7 +265,7 @@ impl Parser<'_> {
     }
     if self.peek != Tok::Indent {
       return Err(ParseError::new(
-        ParseErrorKind::UnexpectedToken(Tok::Indent, self.peek),
+        ParseErrorKind::UnexpectedToken(Tok::Indent, self.peek, self.lexeme()),
         self.lexer.span(),
       ));
     }

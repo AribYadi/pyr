@@ -17,19 +17,17 @@ pub enum ParseErrorKind {
   UnknownInfixOperator(TokenKind),
   #[error("expected an expression")]
   ExpectedExpression,
-  #[error("expected `{0}` but got `{1}`")]
-  UnexpectedToken(TokenKind, TokenKind),
+  #[error("expected `{0}` but got `{1}` with lexeme {2:?}")]
+  UnexpectedToken(TokenKind, TokenKind, String),
   #[error("unclosed delimiter `{0}`")]
   UnclosedDelimiter(TokenKind),
-  #[error("unexpected indent block")]
-  UnexpectedIndentBlock,
   #[error("unmatched else statement")]
   UnmatchedElseStatement,
   #[error("`{0}` cannot be assigned to")]
   InvalidAssignment(Expr),
   #[error(transparent)]
   Unescape(#[from] snailquote::UnescapeError),
-  #[error("unknown token `{0}`")]
+  #[error("unknown token {0:?}")]
   UnknownToken(String),
   #[error("cannot chain operator `{0}` with `{1}`")]
   InvalidChainOperator(TokenKind, TokenKind),
