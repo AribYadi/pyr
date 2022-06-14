@@ -27,7 +27,13 @@ foo = "baz"
 foo() # prints "baz"
 ```
 
-These following features are not implemented yet, but will be in the future:
+Functions can also return a value.
 
-- [ ] Function that can return a value
-- [ ] Overloading functions
+```python
+func sum_of_squares(a: int, b: int) -> int:
+  return a ^ 2 + b ^ 2
+
+print sum_of_squares(2, 3) # prints 9
+```
+
+In the future, functions will be able to be overloaded.
