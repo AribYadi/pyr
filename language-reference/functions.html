@@ -159,7 +159,16 @@ foo() # prints &quot;baz&quot;
 
 print sum_of_squares(2, 3) # prints 9
 </code></pre>
-<p>In the future, functions will be able to be overloaded.</p>
+<p>To overload a function, you can define a function with the same name and different arguments.</p>
+<pre><code class="language-python">func foo(a: int) -&gt; string:
+  return &quot;int&quot;
+
+func foo(a: string) -&gt; string:
+  return &quot;string&quot;
+
+foo(1) # returns &quot;int&quot;
+foo(&quot;foo&quot;) # returns &quot;string&quot;
+</code></pre>
 
                     </main>
 
