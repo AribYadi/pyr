@@ -1,5 +1,6 @@
 use crate::interpreter::Interpreter;
 use crate::parser::syntax::Stmt;
+use crate::resolver::ValueType;
 
 mod impl_arithmetics;
 
@@ -105,14 +106,16 @@ pub type ReturnValue<T> = Option<T>;
 #[derive(Clone)]
 pub enum Function {
   Native(NativeFunction, usize),
-  UserDefined(Vec<String>, Vec<Stmt>),
+  UserDefined(Vec<String>, Vec<Stmt>, ReturnValue<ValueType>),
 }
 
 impl std::fmt::Debug for Function {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     match self {
       Function::Native(_, _) => write!(f, "Native(..)"),
-      Function::UserDefined(args, body) => write!(f, "UserDefined({:?}, {:?})", args, body),
+      Function::UserDefined(args, body, return_type) => {
+        write!(f, "UserDefined({args:?}, {body:?}, {return_type:?})")
+      },
     }
   }
 }
@@ -121,7 +124,9 @@ impl PartialEq for Function {
   fn eq(&self, other: &Self) -> bool {
     match (self, other) {
       (Function::Native(_, _), Function::Native(_, _)) => false,
-      (Function::UserDefined(a1, b1), Function::UserDefined(a2, b2)) => a1 == a2 && b1 == b2,
+      (Function::UserDefined(a1, b1, rt1), Function::UserDefined(a2, b2, rt2)) => {
+        a1 == a2 && b1 == b2 && rt1 == rt2
+      },
       _ => false,
     }
   }

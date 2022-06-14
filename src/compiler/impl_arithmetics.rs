@@ -55,6 +55,7 @@ impl ValueWrapper {
             2,
             compiler.cstring(""),
           );
+          let len = LLVMBuildAdd(compiler.builder, len, LLVMConstInt(LLVMInt64TypeInContext(compiler.ctx), 1, 0), compiler.cstring(""));
           let null_term = LLVMBuildGEP2(
             compiler.builder,
             LLVMInt8TypeInContext(compiler.ctx),
@@ -157,6 +158,7 @@ impl ValueWrapper {
           LLVMAppendExistingBasicBlock(compiler.curr_func, done_bb);
           LLVMPositionBuilderAtEnd(compiler.builder, done_bb);
 
+          let len = LLVMBuildAdd(compiler.builder, len, LLVMConstInt(LLVMInt64TypeInContext(compiler.ctx), 1, 0), compiler.cstring(""));
           let null_term = LLVMBuildGEP2(
             compiler.builder,
             LLVMInt8TypeInContext(compiler.ctx),

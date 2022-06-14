@@ -238,7 +238,8 @@ fn interpret_function() {
           op: TokenKind::Plus,
           right: Box::new(Expr::new_without_span(ExprKind::String("\n".to_string()))),
         })
-      })]
+      })],
+      None
     ))
   );
 

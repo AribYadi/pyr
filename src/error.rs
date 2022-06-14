@@ -17,8 +17,8 @@ pub enum ParseErrorKind {
   UnknownInfixOperator(TokenKind),
   #[error("expected an expression")]
   ExpectedExpression,
-  #[error("expected `{0}` but got `{1}` with lexeme {2:?}")]
-  UnexpectedToken(TokenKind, TokenKind, String),
+  #[error("expected `{0}` but got `{1}`")]
+  UnexpectedToken(TokenKind, TokenKind),
   #[error("unclosed delimiter `{0}`")]
   UnclosedDelimiter(TokenKind),
   #[error("unmatched else statement")]
@@ -65,6 +65,8 @@ pub enum RuntimeErrorKind {
   FunctionArgumentCountMismatch(String, usize, usize),
   #[error("argument of `{0}` at index {1} is of {2} but expects {3}")]
   FunctionArgumentTypeMismatch(String, usize, TokenKind, TokenKind),
+  #[error("return type of `{0}` is {1} but expects {2}")]
+  ReturnTypeMismatch(String, TokenKind, TokenKind),
 }
 
 #[derive(Debug, PartialEq)]

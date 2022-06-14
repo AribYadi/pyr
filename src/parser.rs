@@ -48,10 +48,7 @@ impl Parser<'_> {
       self.next();
       Ok(())
     } else {
-      Err(ParseError::new(
-        ParseErrorKind::UnexpectedToken(expected, self.peek, self.lexeme()),
-        self.lexer.span(),
-      ))
+      Err(ParseError::new(ParseErrorKind::UnexpectedToken(expected, self.peek), self.lexer.span()))
     }
   }
 
@@ -100,10 +97,7 @@ impl Parser<'_> {
     if self.curr == expected {
       Ok(())
     } else {
-      Err(ParseError::new(
-        ParseErrorKind::UnexpectedToken(expected, self.curr, self.lexeme()),
-        self.lexer.span(),
-      ))
+      Err(ParseError::new(ParseErrorKind::UnexpectedToken(expected, self.curr), self.lexer.span()))
     }
   }
 
@@ -226,17 +220,35 @@ impl Parser<'_> {
         }
         self.consume(Tok::RightParen)?;
 
+        let return_type = if self.peek == Tok::Arrow {
+          self.consume(Tok::Arrow)?;
+          Some(self.consume_type()?)
+        } else {
+          None
+        };
+
         self.consume(Tok::Colon)?;
         let body = self.parse_block()?;
 
         let span_end = self.lexer.span().end;
 
-        Ok(Stmt::new(StmtKind::FuncDef { name, args, body }, span_start..span_end))
+        Ok(Stmt::new(StmtKind::FuncDef { name, args, body, return_type }, span_start..span_end))
+      },
+      Tok::Ret => {
+        let span_start = self.lexer.span().start;
+
+        self.consume(Tok::Ret)?;
+        let expr = if self.peek != Tok::Newline { Some(self.expression()?) } else { None };
+        self.consume(Tok::Newline)?;
+
+        let span_end = self.lexer.span().end;
+
+        Ok(Stmt::new(StmtKind::Ret { expr }, span_start..span_end))
       },
 
       // Ignore any lone block
       Tok::Indent => {
-        self.consume(Tok::Indent)?;
+        self.consume_indents()?;
         self.statement()
       },
 
@@ -265,7 +277,7 @@ impl Parser<'_> {
     }
     if self.peek != Tok::Indent {
       return Err(ParseError::new(
-        ParseErrorKind::UnexpectedToken(Tok::Indent, self.peek, self.lexeme()),
+        ParseErrorKind::UnexpectedToken(Tok::Indent, self.peek),
         self.lexer.span(),
       ));
     }

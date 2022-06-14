@@ -325,10 +325,7 @@ fn parse_stmt_errors() {
   let stmt = parse("1 + 2");
   assert_eq!(
     stmt,
-    Err(ParseError::new(
-      ParseErrorKind::UnexpectedToken(Tok::Newline, Tok::Eof, "".to_string()),
-      5..5
-    ))
+    Err(ParseError::new(ParseErrorKind::UnexpectedToken(Tok::Newline, Tok::Eof), 5..5))
   );
   let stmt = parse("else:\n\t1 + 2");
   assert_eq!(stmt, Err(ParseError::new(ParseErrorKind::UnmatchedElseStatement, 0..4)));
@@ -439,6 +436,7 @@ fn parse_function() {
       body: vec![Stmt::new_without_span(StmtKind::Print {
         expr: Expr::new_without_span(ExprKind::Integer(1)),
       })],
+      return_type: None,
     }))
   );
   let stmt = parse_stmt("func foo(a: int, b: string):\n\tprint a\n");
@@ -450,6 +448,7 @@ fn parse_function() {
       body: vec![Stmt::new_without_span(StmtKind::Print {
         expr: Expr::new_without_span(ExprKind::Identifier("a".to_string())),
       })],
+      return_type: None,
     }))
   );
 
@@ -462,6 +461,23 @@ fn parse_function() {
         Expr::new_without_span(ExprKind::Integer(123)),
         Expr::new_without_span(ExprKind::String("abc".to_string())),
       ],
+    }))
+  );
+
+  let stmt = parse_stmt("func foo(a: int, b: string) -> int:\n\tret a + b\n");
+  assert_eq!(
+    stmt,
+    Ok(Stmt::new_without_span(StmtKind::FuncDef {
+      name: "foo".to_string(),
+      args: vec![("a".to_string(), ValueType::Integer), ("b".to_string(), ValueType::String)],
+      body: vec![Stmt::new_without_span(StmtKind::Ret {
+        expr: Some(Expr::new_without_span(ExprKind::InfixOp {
+          left: Box::new(Expr::new_without_span(ExprKind::Identifier("a".to_string()))),
+          op: Tok::Plus,
+          right: Box::new(Expr::new_without_span(ExprKind::Identifier("b".to_string()))),
+        }))
+      })],
+      return_type: Some(ValueType::Integer),
     }))
   );
 }

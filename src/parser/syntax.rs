@@ -8,6 +8,7 @@ use logos::{
 
 use crate::error::Span;
 use crate::resolver::ValueType;
+use crate::runtime::ReturnValue;
 
 lazy_static::lazy_static! {
   pub static ref INDENT_SIZE: Mutex<usize> = Mutex::new(0);
@@ -132,6 +133,8 @@ pub enum TokenKind {
   Or,
   #[token("func")]
   Func,
+  #[token("ret")]
+  Ret,
 
   // Delimiters
   #[token("(")]
@@ -144,12 +147,15 @@ pub enum TokenKind {
   IntType,
   #[token("string")]
   StringType,
+  VoidType,
 
   // Syntax
   #[token(":")]
   Colon,
   #[token(",")]
   Comma,
+  #[token("->")]
+  Arrow,
 }
 
 impl std::fmt::Display for TokenKind {
@@ -184,12 +190,15 @@ impl std::fmt::Display for TokenKind {
       TokenKind::And => write!(f, "and"),
       TokenKind::Or => write!(f, "or"),
       TokenKind::Func => write!(f, "func"),
+      TokenKind::Ret => write!(f, "ret"),
       TokenKind::LeftParen => write!(f, "("),
       TokenKind::RightParen => write!(f, ")"),
       TokenKind::IntType => write!(f, "type `int`"),
       TokenKind::StringType => write!(f, "type `string`"),
+      TokenKind::VoidType => write!(f, "type `void`"),
       TokenKind::Colon => write!(f, ":"),
       TokenKind::Comma => write!(f, ","),
+      TokenKind::Arrow => write!(f, "->"),
     }
   }
 }
@@ -275,11 +284,30 @@ impl Expr {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum StmtKind {
-  Expression { expr: Expr },
-  If { condition: Expr, body: Vec<Stmt>, else_stmt: Vec<Stmt> },
-  While { condition: Expr, body: Vec<Stmt> },
-  Print { expr: Expr },
-  FuncDef { name: String, args: Vec<(String, ValueType)>, body: Vec<Stmt> },
+  Expression {
+    expr: Expr,
+  },
+  If {
+    condition: Expr,
+    body: Vec<Stmt>,
+    else_stmt: Vec<Stmt>,
+  },
+  While {
+    condition: Expr,
+    body: Vec<Stmt>,
+  },
+  Print {
+    expr: Expr,
+  },
+  FuncDef {
+    name: String,
+    args: Vec<(String, ValueType)>,
+    body: Vec<Stmt>,
+    return_type: ReturnValue<ValueType>,
+  },
+  Ret {
+    expr: Option<Expr>,
+  },
 }
 
 #[derive(Debug, Clone)]

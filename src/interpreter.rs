@@ -16,6 +16,7 @@ use crate::runtime::{
   Function,
   IndentLevel,
   Literal,
+  ReturnValue,
   Variables,
 };
 
@@ -28,7 +29,8 @@ pub struct Interpreter {
 
   // Since functions can return nothing, we need to track whether are we ignoring the return value.
   ignore_return: bool,
-  return_value: Option<Literal>,
+  return_value: ReturnValue<Literal>,
+  return_: bool,
 }
 
 impl Interpreter {
@@ -39,6 +41,7 @@ impl Interpreter {
       indent_level: 0,
       ignore_return: false,
       return_value: None,
+      return_: false,
     }
   }
 
@@ -94,9 +97,24 @@ impl Interpreter {
       },
       // Print statement is in a different function for testing purposes
       StmtKind::Print { expr } => self.interpret_print(expr, &mut io::stdout()),
-      StmtKind::FuncDef { name, args, body } => {
+      StmtKind::FuncDef { name, args, body, return_type } => {
         let args = args.iter().map(|(arg, _)| arg.clone()).collect();
-        self.functions.declare(name, self.indent_level, Function::UserDefined(args, body.to_vec()));
+        self.functions.declare(
+          name,
+          self.indent_level,
+          Function::UserDefined(args, body.to_vec(), *return_type),
+        );
+        Ok(())
+      },
+      StmtKind::Ret { expr } => {
+        if let Some(expr) = expr {
+          self.return_value =
+            Some(ignore_return!(NEVER_WITH_RET; self, expr, self.interpret_expr(expr)?));
+        } else {
+          self.return_value = None;
+        }
+
+        self.return_ = true;
         Ok(())
       },
     }
@@ -153,7 +171,7 @@ impl Interpreter {
               None => Ok(Literal::Integer(1656)),
             }
           },
-          Function::UserDefined(args, body) => {
+          Function::UserDefined(args, body, _) => {
             if params.len() != args.len() {
               unreachable!("User defined function called with wrong number of arguments");
             }
@@ -164,18 +182,20 @@ impl Interpreter {
             }
 
             for stmt in body {
-              if self.return_value.is_some() {
+              if self.return_ {
                 break;
               }
               self.interpret_stmt(&stmt)?;
             }
             self.end_block();
 
-            match self.return_value.clone() {
-              Some(value) => {
-                self.return_value = None;
-                Ok(value)
-              },
+            let return_value = self.return_value.clone();
+
+            self.return_value = None;
+            self.return_ = false;
+
+            match return_value {
+              Some(value) => Ok(value),
               None if self.ignore_return => Ok(Literal::Integer(1656)),
               None => unreachable!("User defined function returned nothing"),
             }

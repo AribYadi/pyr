@@ -30,6 +30,13 @@ impl ValueType {
       ValueType::String => TokenKind::StringType,
     }
   }
+
+  pub fn to_tok_void(self_: Option<Self>) -> TokenKind {
+    match self_ {
+      Some(v) => v.to_tok(),
+      None => TokenKind::VoidType,
+    }
+  }
 }
 
 // Resolves variables, functions, and type checks before interpreting.
@@ -41,6 +48,7 @@ pub struct Resolver {
 
   // Since functions can return nothing, we need to track whether are we ignoring the return value.
   ignore_return: bool,
+  return_value: ReturnValue<ValueType>,
 }
 
 impl Resolver {
@@ -50,6 +58,7 @@ impl Resolver {
       functions: Variables::new(),
       indent_level: 0,
       ignore_return: false,
+      return_value: None,
     }
   }
 
@@ -107,8 +116,7 @@ impl Resolver {
       StmtKind::Print { expr } => {
         ignore_return!(NEVER; self, expr, self.resolve_expr(expr)?);
       },
-      StmtKind::FuncDef { name, args, body } => {
-        // TODO: allow functions to return something.
+      StmtKind::FuncDef { name, args, body, return_type } => {
         // TODO: allow overloading functions.
         let mut arg_types = Vec::new();
         self.start_block();
@@ -116,11 +124,47 @@ impl Resolver {
           self.variables.declare(arg, self.indent_level, *ty);
           arg_types.push(*ty);
         }
-        self.functions.declare(name, self.indent_level, (arg_types, None));
+        self.functions.declare(name, self.indent_level, (arg_types, *return_type));
         for stmt in body {
+          // Check if return value is some and if it is match it to the return type.
+          if self.return_value.is_some() &&
+            return_type.is_some() &&
+            self.return_value != *return_type
+          {
+            return Err(RuntimeError::new(
+              RuntimeErrorKind::ReturnTypeMismatch(
+                name.to_string(),
+                ValueType::to_tok_void(self.return_value),
+                ValueType::to_tok_void(*return_type),
+              ),
+              stmt.span.clone(),
+            ));
+          }
+
           self.resolve_stmt(stmt)?;
         }
+        // Check again if return value is of the correct type
+        if self.return_value != *return_type {
+          return Err(RuntimeError::new(
+            RuntimeErrorKind::ReturnTypeMismatch(
+              name.to_string(),
+              ValueType::to_tok_void(self.return_value),
+              ValueType::to_tok_void(*return_type),
+            ),
+            stmt.span.clone(),
+          ));
+        }
+
         self.end_block();
+      },
+      StmtKind::Ret { expr } => {
+        if let Some(expr) = expr {
+          self.return_value =
+            Some(ignore_return!(NEVER_WITH_RET; self, expr, self.resolve_expr(expr)?));
+          return Ok(());
+        }
+
+        self.return_value = None;
       },
     }
 
