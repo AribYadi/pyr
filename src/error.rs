@@ -67,6 +67,8 @@ pub enum RuntimeErrorKind {
   FunctionArgumentTypeMismatch(String, usize, TokenKind, TokenKind),
   #[error("return type of `{0}` is {1} but expects {2}")]
   ReturnTypeMismatch(String, TokenKind, TokenKind),
+  #[error("return but not inside a function")]
+  ReturnOutsideFunction,
 }
 
 #[derive(Debug, PartialEq)]

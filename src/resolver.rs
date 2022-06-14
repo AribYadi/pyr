@@ -39,6 +39,12 @@ impl ValueType {
   }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum State {
+  TopLevel,
+  Function,
+}
+
 // Resolves variables, functions, and type checks before interpreting.
 pub struct Resolver {
   variables: Variables<ValueType>,
@@ -49,6 +55,8 @@ pub struct Resolver {
   // Since functions can return nothing, we need to track whether are we ignoring the return value.
   ignore_return: bool,
   return_value: ReturnValue<ValueType>,
+
+  state: State,
 }
 
 impl Resolver {
@@ -59,6 +67,7 @@ impl Resolver {
       indent_level: 0,
       ignore_return: false,
       return_value: None,
+      state: State::TopLevel,
     }
   }
 
@@ -125,6 +134,10 @@ impl Resolver {
           arg_types.push(*ty);
         }
         self.functions.declare(name, self.indent_level, (arg_types, *return_type));
+
+        let prev_state = self.state;
+        self.state = State::Function;
+
         for stmt in body {
           // Check if return value is some and if it is match it to the return type.
           if self.return_value.is_some() &&
@@ -143,6 +156,9 @@ impl Resolver {
 
           self.resolve_stmt(stmt)?;
         }
+
+        self.state = prev_state;
+
         // Check again if return value is of the correct type
         if self.return_value != *return_type {
           return Err(RuntimeError::new(
@@ -158,6 +174,13 @@ impl Resolver {
         self.end_block();
       },
       StmtKind::Ret { expr } => {
+        if self.state != State::Function {
+          return Err(RuntimeError::new(
+            RuntimeErrorKind::ReturnOutsideFunction,
+            stmt.span.clone(),
+          ));
+        }
+
         if let Some(expr) = expr {
           self.return_value =
             Some(ignore_return!(NEVER_WITH_RET; self, expr, self.resolve_expr(expr)?));

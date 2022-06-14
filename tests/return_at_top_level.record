@@ -1,0 +1,10 @@
+:exitcode 1:
+:stdout 0:
+
+:end:
+:stderr 158:
+[1;31m[ERR][0m : A runtime error has been found!
+[1;31m[ERR][0m :  -> return_at_top_level.pyr:1:1
+[1;31m[ERR][0m :  -> return but not inside a function
+
+:end:
