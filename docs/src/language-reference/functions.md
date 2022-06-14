@@ -36,4 +36,15 @@ func sum_of_squares(a: int, b: int) -> int:
 print sum_of_squares(2, 3) # prints 9
 ```
 
-In the future, functions will be able to be overloaded.
+To overload a function, you can define a function with the same name and different arguments.
+
+```python
+func foo(a: int) -> string:
+  return "int"
+
+func foo(a: string) -> string:
+  return "string"
+
+foo(1) # returns "int"
+foo("foo") # returns "string"
+```
