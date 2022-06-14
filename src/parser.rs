@@ -62,9 +62,10 @@ impl Parser<'_> {
   }
 
   fn consume_indents(&mut self) -> Result<bool> {
-    if (0..self.indent_level - 1)
-      .rev()
-      .any(|i| self.lexer.clone().nth(i).unwrap_or(Tok::Eof) != Tok::Indent) ||
+    if self.indent_level > 0 &&
+      (0..self.indent_level - 1)
+        .rev()
+        .any(|i| self.lexer.clone().nth(i).unwrap_or(Tok::Eof) != Tok::Indent) ||
       self.peek != Tok::Indent
     {
       return Ok(false);
@@ -141,13 +142,6 @@ impl Parser<'_> {
 
   pub(crate) fn statement(&mut self) -> Result<Stmt> {
     match self.peek {
-      Tok::Newline => {
-        self.consume(Tok::Newline)?;
-        if self.indent_level > 0 {
-          self.consume_indents()?;
-        }
-        self.statement()
-      },
       Tok::If => {
         let span_start = self.lexer.span().start;
 
@@ -247,11 +241,11 @@ impl Parser<'_> {
       },
 
       // Ignore any lone block
-      Tok::Indent => {
+      ws @ Tok::Indent | ws @ Tok::Newline => {
+        self.consume(ws)?;
         self.consume_indents()?;
         self.statement()
       },
-
       Tok::Else => Err(ParseError::new(ParseErrorKind::UnmatchedElseStatement, self.lexer.span())),
 
       _ => {

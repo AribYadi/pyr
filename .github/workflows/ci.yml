@@ -43,6 +43,11 @@ jobs:
         with:
           command: check
           args: --release
+      - name: cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
       - name: cargo test
         uses: actions-rs/cargo@v1
         with:
@@ -55,9 +60,9 @@ jobs:
           args: -- -D warnings
       - name: test.py
         run: |
-          python ./test.py -d ./tests
-          python ./test.py -d ./examples
-        shell: sh
+          pypy ./test.py -d ./tests --always-build
+          pypy ./test.py -d ./examples --always-build
+        shell: bash
 
   fmt:
     name: cargo fmt

@@ -1,9 +1,8 @@
-:exitcode 101:
-:stdout 0:
+:exitcode 0:
+:stdout 6:
+hello
 
 :end:
-:stderr 161:
-thread 'main' panicked at 'attempt to subtract with overflow', src\parser.rs:65:12
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+:stderr 0:
 
 :end:
