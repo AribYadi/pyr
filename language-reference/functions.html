@@ -153,13 +153,13 @@ foo() # prints &quot;bar&quot;
 foo = &quot;baz&quot;
 foo() # prints &quot;baz&quot;
 </code></pre>
-<p>These following features are not implemented yet, but will be in the future:</p>
-<ul>
-<li><input disabled="" type="checkbox"/>
-Function that can return a value</li>
-<li><input disabled="" type="checkbox"/>
-Overloading functions</li>
-</ul>
+<p>Functions can also return a value.</p>
+<pre><code class="language-python">func sum_of_squares(a: int, b: int) -&gt; int:
+  return a ^ 2 + b ^ 2
+
+print sum_of_squares(2, 3) # prints 9
+</code></pre>
+<p>In the future, functions will be able to be overloaded.</p>
 
                     </main>
 
