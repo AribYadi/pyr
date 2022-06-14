@@ -15,8 +15,8 @@ impl Add for Literal {
   fn add(self, rhs: Self) -> Self::Output {
     match (self.clone(), rhs.clone()) {
       (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l + r),
-      (Literal::String(s), _) => Literal::String(format!("{s}{rhs}")),
-      (_, Literal::String(s)) => Literal::String(format!("{self}{s}")),
+      (Literal::String(s), _) => Literal::String([s, rhs.to_string()].concat()),
+      (_, Literal::String(s)) => Literal::String([self.to_string(), s].concat()),
       #[allow(unreachable_patterns)]
       _ => {
         unreachable!("Resolver didn't type check infix operator `+`");

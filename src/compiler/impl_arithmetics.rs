@@ -75,7 +75,7 @@ impl ValueWrapper {
           Self::new_integer(compiler, self.get_as_integer() + other.get_as_integer())
         },
         (ValueType::String, _) | (_, ValueType::String) => {
-          Self::new_string(compiler, &format!("{self}{other}"))
+          Self::new_string(compiler, &[self.to_string(), other.to_string()].concat())
         },
         #[allow(unreachable_patterns)]
         _ => unreachable!("Resolver didn't type check infix operator `+`"),

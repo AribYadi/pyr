@@ -13,6 +13,7 @@ use crate::parser::syntax::{
   TokenKind,
 };
 use crate::runtime::{
+  func_name,
   Function,
   IndentLevel,
   Literal,
@@ -97,12 +98,16 @@ impl Interpreter {
       },
       // Print statement is in a different function for testing purposes
       StmtKind::Print { expr } => self.interpret_print(expr, &mut io::stdout()),
-      StmtKind::FuncDef { name, args, body, return_type } => {
+      StmtKind::FuncDef { name, args, body, ret_ty } => {
+        // Clear return value first
+        self.return_value = None;
+
+        let arg_types: Vec<_> = args.iter().map(|(_, ty)| *ty).collect();
         let args = args.iter().map(|(arg, _)| arg.clone()).collect();
         self.functions.declare(
-          name,
+          &func_name(name, &arg_types),
           self.indent_level,
-          Function::UserDefined(args, body.to_vec(), *return_type),
+          Function::UserDefined(args, body.to_vec(), *ret_ty),
         );
         Ok(())
       },
@@ -153,12 +158,13 @@ impl Interpreter {
         Ok(value)
       },
       ExprKind::FuncCall { name, params } => {
-        let func = match self.functions.get(name) {
+        let params =
+          params.iter().map(|param| self.interpret_expr(param)).collect::<Result<Vec<_>>>()?;
+        let param_types: Vec<_> = params.iter().map(|param| param.get_type()).collect();
+        let func = match self.functions.get(&func_name(name, &param_types)) {
           Some(func) => func,
           None => unreachable!("Resolver didn't resolve function correctly"),
         };
-        let params =
-          params.iter().map(|param| self.interpret_expr(param)).collect::<Result<Vec<_>>>()?;
 
         match func {
           Function::Native(func, arg_len) => {

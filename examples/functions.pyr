@@ -1,3 +1,5 @@
+print "\n----------------Functions----------------\n\n"
+
 func add(a: int, b: int):
   print a + b + "\n"
 
@@ -5,7 +7,9 @@ add(1, 2)
 add(3, 4)
 add(5, 6)
 
-print "\n----------------------------------------------------\n\n"
+print "\n----------------Closures----------------\n\n"
+
+# Closures are functions that refer to variables outside their scope
 
 b = 5
 b = 10
@@ -18,7 +22,9 @@ sub_with_b(20)
 b = 15
 sub_with_b(30)
 
-print "\n---------------------------------------------------\n\n"
+print "\n----------------Meta Function Def----------------\n\n"
+
+# Function definition inside a function
 
 func foo(a: int, b: int):
   func bar(a: int, b: int):
@@ -33,7 +39,7 @@ foo(7, 4)
 foo = 10
 foo(foo, foo)
 
-print "\n---------------------------------------------------\n\n"
+print "\n----------------Returning Values----------------\n\n"
 
 func max(a: int, b: int) -> int:
   if a > b:
@@ -44,7 +50,7 @@ func max(a: int, b: int) -> int:
 print max(10, 20) + "\n"
 print max(20, 10) + "\n"
 
-print "\n---------------------------------------------------\n\n"
+print "\n----------------Returning \"void\"----------------\n\n"
 
 GREETING = "Hello"
 
@@ -56,3 +62,23 @@ func greet(name: string):
 
 greet("World")
 greet("")
+
+print "\n----------------Recursion----------------\n\n"
+
+func factorial(n: int) -> int:
+  if n == 0:
+    ret 1
+  ret n * factorial(n - 1)
+
+print factorial(5) + "\n"
+
+print "\n----------------Overloading----------------\n\n"
+
+func overloaded(a: int):
+  print "int\n"
+
+func overloaded(a: string):
+  print "string\n"
+
+overloaded(1)
+overloaded("Hello")

@@ -6,6 +6,7 @@ use crate::parser::syntax::{
   Expr,
   TokenKind,
 };
+use crate::runtime::ValueType;
 
 pub type Span = Range<usize>;
 pub type ParseResult<T> = Result<T, ParseError>;
@@ -13,6 +14,10 @@ pub type RuntimeResult<T> = Result<T, RuntimeError>;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseErrorKind {
+  // Not really an error, but used to indicate that the parser should stop.
+  #[error("this error should be unreachable")]
+  Eof,
+
   #[error("unknown infix operator `{0}`")]
   UnknownInfixOperator(TokenKind),
   #[error("expected an expression")]
@@ -57,8 +62,8 @@ pub enum RuntimeErrorKind {
   CannotApplyInfix(Expr, TokenKind, Expr),
   #[error("undefined variable `{0}` in the current scope")]
   UndefinedVariable(String),
-  #[error("undefined function `{0}` in the current scope")]
-  UndefinedFunction(String),
+  #[error("undefined function `{0}` in the current scope with params of {param_types}", param_types = .1.iter().map(|t| t.to_tok().to_string()).collect::<Vec<_>>().join(", "))]
+  UndefinedFunctionWithParams(String, Vec<ValueType>),
   #[error("`{0}` returns nothing but is used as an expression")]
   FunctionReturnsNothing(String),
   #[error("`{0}` expects {1} arguments but got {2}")]

@@ -8,7 +8,7 @@ use crate::error::{
   ParseErrorKind,
   ParseResult as Result,
 };
-use crate::resolver::ValueType;
+use crate::runtime::ValueType;
 
 use self::syntax::{
   Expr,
@@ -120,6 +120,7 @@ impl Parser<'_> {
     while self.peek != Tok::Eof {
       match self.statement() {
         Ok(stmt) => stmts.push(stmt),
+        Err(ParseError { kind: ParseErrorKind::Eof, .. }) => break,
         Err(err) => {
           errors.push(err);
           self.synchronize();
@@ -214,7 +215,7 @@ impl Parser<'_> {
         }
         self.consume(Tok::RightParen)?;
 
-        let return_type = if self.peek == Tok::Arrow {
+        let ret_ty = if self.peek == Tok::Arrow {
           self.consume(Tok::Arrow)?;
           Some(self.consume_type()?)
         } else {
@@ -226,7 +227,7 @@ impl Parser<'_> {
 
         let span_end = self.lexer.span().end;
 
-        Ok(Stmt::new(StmtKind::FuncDef { name, args, body, return_type }, span_start..span_end))
+        Ok(Stmt::new(StmtKind::FuncDef { name, args, body, ret_ty }, span_start..span_end))
       },
       Tok::Ret => {
         let span_start = self.lexer.span().start;
@@ -243,10 +244,13 @@ impl Parser<'_> {
       // Ignore any lone block
       ws @ Tok::Indent | ws @ Tok::Newline => {
         self.consume(ws)?;
-        self.consume_indents()?;
+        while let Tok::Newline | Tok::Indent = self.peek {
+          self.next();
+        }
         self.statement()
       },
       Tok::Else => Err(ParseError::new(ParseErrorKind::UnmatchedElseStatement, self.lexer.span())),
+      Tok::Eof => Err(ParseError::new(ParseErrorKind::Eof, self.lexer.span())),
 
       _ => {
         let span_start = self.lexer.span().start;
@@ -346,6 +350,7 @@ impl Parser<'_> {
       Tok::Error => {
         Err(ParseError::new(ParseErrorKind::UnknownToken(self.lexeme()), self.lexer.span()))
       },
+
       _ => Err(ParseError::new(ParseErrorKind::ExpectedExpression, self.lexer.span())),
     }?;
     while self.peek != Tok::Eof {

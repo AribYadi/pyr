@@ -12,32 +12,12 @@ use crate::parser::syntax::{
   TokenKind,
 };
 use crate::runtime::{
+  func_name,
   IndentLevel,
   ReturnValue,
+  ValueType,
   Variables,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ValueType {
-  Integer,
-  String,
-}
-
-impl ValueType {
-  pub fn to_tok(self) -> TokenKind {
-    match self {
-      ValueType::Integer => TokenKind::IntType,
-      ValueType::String => TokenKind::StringType,
-    }
-  }
-
-  pub fn to_tok_void(self_: Option<Self>) -> TokenKind {
-    match self_ {
-      Some(v) => v.to_tok(),
-      None => TokenKind::VoidType,
-    }
-  }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum State {
@@ -125,30 +105,33 @@ impl Resolver {
       StmtKind::Print { expr } => {
         ignore_return!(NEVER; self, expr, self.resolve_expr(expr)?);
       },
-      StmtKind::FuncDef { name, args, body, return_type } => {
-        // TODO: allow overloading functions.
+      StmtKind::FuncDef { name, args, body, ret_ty } => {
+        // Clear return value first
+        self.return_value = None;
+
         let mut arg_types = Vec::new();
         self.start_block();
         for (arg, ty) in args {
           self.variables.declare(arg, self.indent_level, *ty);
           arg_types.push(*ty);
         }
-        self.functions.declare(name, self.indent_level, (arg_types, *return_type));
+        self.functions.declare(
+          &func_name(name, &arg_types),
+          self.indent_level,
+          (arg_types, *ret_ty),
+        );
 
         let prev_state = self.state;
         self.state = State::Function;
 
         for stmt in body {
           // Check if return value is some and if it is match it to the return type.
-          if self.return_value.is_some() &&
-            return_type.is_some() &&
-            self.return_value != *return_type
-          {
+          if self.return_value.is_some() && ret_ty.is_some() && self.return_value != *ret_ty {
             return Err(RuntimeError::new(
               RuntimeErrorKind::ReturnTypeMismatch(
                 name.to_string(),
                 ValueType::to_tok_void(self.return_value),
-                ValueType::to_tok_void(*return_type),
+                ValueType::to_tok_void(*ret_ty),
               ),
               stmt.span.clone(),
             ));
@@ -160,12 +143,12 @@ impl Resolver {
         self.state = prev_state;
 
         // Check again if return value is of the correct type
-        if self.return_value != *return_type {
+        if self.return_value != *ret_ty {
           return Err(RuntimeError::new(
             RuntimeErrorKind::ReturnTypeMismatch(
               name.to_string(),
               ValueType::to_tok_void(self.return_value),
-              ValueType::to_tok_void(*return_type),
+              ValueType::to_tok_void(*ret_ty),
             ),
             stmt.span.clone(),
           ));
@@ -212,13 +195,16 @@ impl Resolver {
         Ok(self.variables.assign_or_declare(name, self.indent_level, val_type))
       },
       ExprKind::FuncCall { name, params } => {
-        let (arg_types, return_type) = self.functions.get(name).ok_or_else(|| {
-          RuntimeError::new(
-            RuntimeErrorKind::UndefinedFunction(name.to_string()),
-            expr.span.clone(),
-          )
-        })?;
-        if return_type.is_none() && !self.ignore_return {
+        let param_types =
+          params.iter().map(|expr| self.resolve_expr(expr)).collect::<Result<Vec<_>>>()?;
+        let (arg_types, ret_ty) =
+          self.functions.get(&func_name(name, &param_types)).ok_or_else(|| {
+            RuntimeError::new(
+              RuntimeErrorKind::UndefinedFunctionWithParams(name.to_string(), param_types.clone()),
+              expr.span.clone(),
+            )
+          })?;
+        if ret_ty.is_none() && !self.ignore_return {
           return Err(RuntimeError::new(
             RuntimeErrorKind::FunctionReturnsNothing(name.to_string()),
             expr.span.clone(),
@@ -236,9 +222,8 @@ impl Resolver {
           ));
         }
 
-        for (i, (param, arg_ty)) in params.iter().zip(arg_types).enumerate() {
-          let param_ty = self.resolve_expr(param)?;
-          if param_ty != arg_ty {
+        for (i, (param_ty, arg_ty)) in param_types.iter().zip(arg_types).enumerate() {
+          if *param_ty != arg_ty {
             return Err(RuntimeError::new(
               RuntimeErrorKind::FunctionArgumentTypeMismatch(
                 name.to_string(),
@@ -254,7 +239,7 @@ impl Resolver {
         if self.ignore_return {
           Ok(ValueType::Integer)
         } else {
-          Ok(return_type.unwrap())
+          Ok(ret_ty.unwrap())
         }
       },
     }

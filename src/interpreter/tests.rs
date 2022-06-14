@@ -5,10 +5,8 @@ use crate::error::{
   RuntimeErrorKind,
 };
 use crate::parser::Parser;
-use crate::resolver::{
-  Resolver,
-  ValueType,
-};
+use crate::resolver::Resolver;
+use crate::runtime::ValueType;
 
 use super::*;
 
@@ -227,9 +225,9 @@ fn interpret_function() {
 
   let result = interpret_stmt!("func foo(x: int):\n\tprint x + \"\n\"\n");
   assert_eq!(result, Ok(()));
-  assert_eq!(resolver.functions.get("foo"), Some((vec![ValueType::Integer], None)));
+  assert_eq!(resolver.functions.get("foo.int"), Some((vec![ValueType::Integer], None)));
   assert_eq!(
-    interpreter.functions.get("foo"),
+    interpreter.functions.get("foo.int"),
     Some(Function::UserDefined(
       vec!["x".to_string()],
       vec![Stmt::new_without_span(StmtKind::Print {

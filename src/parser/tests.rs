@@ -436,7 +436,7 @@ fn parse_function() {
       body: vec![Stmt::new_without_span(StmtKind::Print {
         expr: Expr::new_without_span(ExprKind::Integer(1)),
       })],
-      return_type: None,
+      ret_ty: None,
     }))
   );
   let stmt = parse_stmt("func foo(a: int, b: string):\n\tprint a\n");
@@ -448,7 +448,7 @@ fn parse_function() {
       body: vec![Stmt::new_without_span(StmtKind::Print {
         expr: Expr::new_without_span(ExprKind::Identifier("a".to_string())),
       })],
-      return_type: None,
+      ret_ty: None,
     }))
   );
 
@@ -477,7 +477,7 @@ fn parse_function() {
           right: Box::new(Expr::new_without_span(ExprKind::Identifier("b".to_string()))),
         }))
       })],
-      return_type: Some(ValueType::Integer),
+      ret_ty: Some(ValueType::Integer),
     }))
   );
 }

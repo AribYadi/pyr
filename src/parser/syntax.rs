@@ -7,8 +7,10 @@ use logos::{
 };
 
 use crate::error::Span;
-use crate::resolver::ValueType;
-use crate::runtime::ReturnValue;
+use crate::runtime::{
+  ReturnValue,
+  ValueType,
+};
 
 lazy_static::lazy_static! {
   pub static ref INDENT_SIZE: Mutex<usize> = Mutex::new(0);
@@ -303,7 +305,7 @@ pub enum StmtKind {
     name: String,
     args: Vec<(String, ValueType)>,
     body: Vec<Stmt>,
-    return_type: ReturnValue<ValueType>,
+    ret_ty: ReturnValue<ValueType>,
   },
   Ret {
     expr: Option<Expr>,
