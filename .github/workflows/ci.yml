@@ -42,10 +42,12 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
+          args: --release
       - name: cargo test
         uses: actions-rs/cargo@v1
         with:
           command: test
+          args: --release
       - name: cargo clippy
         uses: actions-rs/cargo@v1
         with:
