@@ -145,7 +145,9 @@ fn interpret_stmt() {
 #[test]
 fn interpret_variables() {
   let mut resolver = Resolver::new();
+  resolver.define_std();
   let mut interpreter = Interpreter::new();
+  interpreter.define_std();
 
   macro_rules! interpret_expr {
     ($input:expr) => {{
@@ -185,16 +187,18 @@ fn interpret_variables() {
   assert_eq!(result, Ok(Literal::Integer(1)));
 
   resolver = Resolver::new();
+  resolver.define_std();
   interpreter = Interpreter::new();
+  interpreter.define_std();
 
   let result = interpret_stmt!(unindent(
     "
     if false:
     \ta = 1
-    \tprint a
+    \tprint(a)
     else:
     \ta = 2
-    \tprint a
+    \tprint(a)
     ",
   ));
   assert_eq!(result, Ok(()));
@@ -208,7 +212,9 @@ fn interpret_variables() {
 #[test]
 fn interpret_function() {
   let mut resolver = Resolver::new();
+  resolver.define_std();
   let mut interpreter = Interpreter::new();
+  interpreter.define_std();
 
   macro_rules! interpret_stmt {
     ($input:expr) => {{
