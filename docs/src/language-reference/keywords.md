@@ -3,67 +3,56 @@
 Keywords in Pyr are as follows:
 
 - [Keywords](#keywords)
-  - [print](#print)
-  - [if](#if)
-  - [else](#else)
-  - [while](#while)
-  - [and](#and)
-  - [or](#or)
-  - [func](#func)
+  - [`if`](#if)
+  - [`else`](#else)
+  - [`while`](#while)
+  - [`and`](#and)
+  - [`or`](#or)
+  - [`func`](#func)
 
-### print
-
-`print` prints its right hand side to stdout.
-Currently, `print` is a keyword, but later on it will be a function.
-`print` does not automatically add a newline.
-
-```python
-print "Hello, World\n" # prints Hello, World
-```
-
-### if
+### `if`
 
 `if` evaluates its condition and if it's truthy, it executes its body.
 
 ```python
 if 34 < 56:
-  print "34 is less than 56\n" # Executes this line
+  print("34 is less than 56\n") # Executes this line
 ```
 
-### else
+### `else`
 
 `else` executes its body if the previous `if`'s condition is falsy.
 
 ```python
 if 100 < 50:
-  print "100 is less than 50\n" # Skips this line
+  print("100 is less than 50\n") # Skips this line
 else:
-  print "100 is greater than 50\n" # Executes this line
+  print("100 is greater than 50\n") # Executes this line
 ```
 
 `else` can also be continued with another `if`:
 
 ```python
 if 100 < 50:
-  print "100 is less than 50\n" # Skips this line
+  print("100 is less than 50\n") # Skips this line
 else if 100 > 50:
-  print "100 is greater than 50\n" # Executes this line
+  print("100 is greater than 50\n") # Executes this line
 else:
-  print "100 is equal to 50\n" # Skips this line
+  print("100 is equal to 50\n") # Skips this line
 ```
 
-### while
+### `while`
 
 `while` will execute its body until the condition is falsy.
 
 ```python
 i = 0
 while i < 10: # Executes its body 10 times
-  print i + "\n"
+  print(i + "\n")
   i += 1
 ```
 
-### and
+### `and`
 
 `and` with the same type of operands will return the left value if either is falsy and will return the right value if both are truthy. \
 `and` with different types of operands will return `false` if either is falsy and will `true` if both are truthy. \
@@ -75,7 +64,7 @@ while i < 10: # Executes its body 10 times
 123 and "" # result is false
 ```
 
-### or
+### `or`
 
 `or` with the same type of operands will return the left value if it is truthy otherwise it will return the right hand side. \
 `or` with different types of operands will return `true` if either is truthy and will return `false` if both are falsy. \
@@ -87,12 +76,12 @@ while i < 10: # Executes its body 10 times
 123 or "" # result is true
 ```
 
-### func
+### `func`
 
 `func` defines a function.
 For more information, see [Functions](./functions.md).
 
 ```python
 func square(x: int):
-  print x * x
+  print(x * x)
 ```

@@ -15,3 +15,7 @@
 - [Variable](./language-reference/variables.md)
 - [Functions](./language-reference/functions.md)
 - [Comments](./language-reference/comments.md)
+
+# Standard Library
+
+- [Functions](./std/functions.md)

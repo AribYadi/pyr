@@ -50,16 +50,16 @@ Hello, World!
 Hello, World:
 
 ```python
-print "Hello, World"
+print("Hello, World")
 ```
 
 If statements:
 
 ```python
 if true:
-  print 123
+  print(123)
 else:
-  print 456
+  print(456)
 ```
 
 For more examples, see the [examples directory](./examples).

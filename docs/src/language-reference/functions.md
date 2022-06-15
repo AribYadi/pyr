@@ -5,7 +5,7 @@ Function arguments are explicitly [typed](./literals.md), and are separated by c
 
 ```python
 func foo(a: int, b: int) -> int:
-  print a + b + "\n"
+  print(a + b + "\n")
 ```
 
 To call a function, simply use the function name and parentheses with the arguments.
@@ -20,7 +20,7 @@ So you can have both a variable named `foo` and a function named `foo`.
 ```python
 foo = "bar"
 func foo():
-  print foo + "\n"
+  print(foo + "\n")
 
 foo() # prints "bar"
 foo = "baz"
@@ -33,7 +33,7 @@ Functions can also return a value.
 func sum_of_squares(a: int, b: int) -> int:
   return a ^ 2 + b ^ 2
 
-print sum_of_squares(2, 3) # prints 9
+print(sum_of_squares(2, 3)) # prints 9
 ```
 
 To overload a function, you can define a function with the same name and different arguments.
