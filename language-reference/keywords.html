@@ -75,7 +75,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="../index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="../language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="../language-reference/keywords.html" class="active"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="../language-reference/arithmetic.html"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="../language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="../language-reference/truthiness.html"><strong aria-hidden="true">6.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="../language-reference/operator-precedence.html"><strong aria-hidden="true">7.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="../language-reference/variables.html"><strong aria-hidden="true">8.</strong> Variable</a></li><li class="chapter-item expanded "><a href="../language-reference/functions.html"><strong aria-hidden="true">9.</strong> Functions</a></li><li class="chapter-item expanded "><a href="../language-reference/comments.html"><strong aria-hidden="true">10.</strong> Comments</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="../index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="../language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="../language-reference/keywords.html" class="active"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="../language-reference/arithmetic.html"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="../language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="../language-reference/truthiness.html"><strong aria-hidden="true">6.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="../language-reference/operator-precedence.html"><strong aria-hidden="true">7.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="../language-reference/variables.html"><strong aria-hidden="true">8.</strong> Variable</a></li><li class="chapter-item expanded "><a href="../language-reference/functions.html"><strong aria-hidden="true">9.</strong> Functions</a></li><li class="chapter-item expanded "><a href="../language-reference/comments.html"><strong aria-hidden="true">10.</strong> Comments</a></li><li class="chapter-item expanded affix "><li class="part-title">Standard Library</li><li class="chapter-item expanded "><a href="../std/functions.html"><strong aria-hidden="true">11.</strong> Functions</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -139,50 +139,43 @@
 <ul>
 <li><a href="#keywords">Keywords</a>
 <ul>
-<li><a href="#print">print</a></li>
-<li><a href="#if">if</a></li>
-<li><a href="#else">else</a></li>
-<li><a href="#while">while</a></li>
-<li><a href="#and">and</a></li>
-<li><a href="#or">or</a></li>
-<li><a href="#func">func</a></li>
+<li><a href="#if"><code>if</code></a></li>
+<li><a href="#else"><code>else</code></a></li>
+<li><a href="#while"><code>while</code></a></li>
+<li><a href="#and"><code>and</code></a></li>
+<li><a href="#or"><code>or</code></a></li>
+<li><a href="#func"><code>func</code></a></li>
 </ul>
 </li>
 </ul>
-<h3 id="print"><a class="header" href="#print">print</a></h3>
-<p><code>print</code> prints its right hand side to stdout.
-Currently, <code>print</code> is a keyword, but later on it will be a function.
-<code>print</code> does not automatically add a newline.</p>
-<pre><code class="language-python">print &quot;Hello, World\n&quot; # prints Hello, World
-</code></pre>
-<h3 id="if"><a class="header" href="#if">if</a></h3>
+<h3 id="if"><a class="header" href="#if"><code>if</code></a></h3>
 <p><code>if</code> evaluates its condition and if it's truthy, it executes its body.</p>
 <pre><code class="language-python">if 34 &lt; 56:
-  print &quot;34 is less than 56\n&quot; # Executes this line
+  print(&quot;34 is less than 56\n&quot;) # Executes this line
 </code></pre>
-<h3 id="else"><a class="header" href="#else">else</a></h3>
+<h3 id="else"><a class="header" href="#else"><code>else</code></a></h3>
 <p><code>else</code> executes its body if the previous <code>if</code>'s condition is falsy.</p>
 <pre><code class="language-python">if 100 &lt; 50:
-  print &quot;100 is less than 50\n&quot; # Skips this line
+  print(&quot;100 is less than 50\n&quot;) # Skips this line
 else:
-  print &quot;100 is greater than 50\n&quot; # Executes this line
+  print(&quot;100 is greater than 50\n&quot;) # Executes this line
 </code></pre>
 <p><code>else</code> can also be continued with another <code>if</code>:</p>
 <pre><code class="language-python">if 100 &lt; 50:
-  print &quot;100 is less than 50\n&quot; # Skips this line
+  print(&quot;100 is less than 50\n&quot;) # Skips this line
 else if 100 &gt; 50:
-  print &quot;100 is greater than 50\n&quot; # Executes this line
+  print(&quot;100 is greater than 50\n&quot;) # Executes this line
 else:
-  print &quot;100 is equal to 50\n&quot; # Skips this line
+  print(&quot;100 is equal to 50\n&quot;) # Skips this line
 </code></pre>
-<h3 id="while"><a class="header" href="#while">while</a></h3>
+<h3 id="while"><a class="header" href="#while"><code>while</code></a></h3>
 <p><code>while</code> will execute its body until the condition is falsy.</p>
 <pre><code class="language-python">i = 0
 while i &lt; 10: # Executes its body 10 times
-  print i + &quot;\n&quot;
+  print(i + &quot;\n&quot;)
   i += 1
 </code></pre>
-<h3 id="and"><a class="header" href="#and">and</a></h3>
+<h3 id="and"><a class="header" href="#and"><code>and</code></a></h3>
 <p><code>and</code> with the same type of operands will return the left value if either is falsy and will return the right value if both are truthy. <br />
 <code>and</code> with different types of operands will return <code>false</code> if either is falsy and will <code>true</code> if both are truthy. <br />
 <code>and</code> will short circuit if left hand side is falsy. </p>
@@ -190,7 +183,7 @@ while i &lt; 10: # Executes its body 10 times
 &quot;hello&quot; and &quot;world&quot; # result is &quot;world&quot;
 123 and &quot;&quot; # result is false
 </code></pre>
-<h3 id="or"><a class="header" href="#or">or</a></h3>
+<h3 id="or"><a class="header" href="#or"><code>or</code></a></h3>
 <p><code>or</code> with the same type of operands will return the left value if it is truthy otherwise it will return the right hand side. <br />
 <code>or</code> with different types of operands will return <code>true</code> if either is truthy and will return <code>false</code> if both are falsy. <br />
 <code>or</code> will short circuit if left hand side is truthy. </p>
@@ -198,11 +191,11 @@ while i &lt; 10: # Executes its body 10 times
 &quot;hello&quot; or &quot;world&quot; # result is &quot;hello&quot;
 123 or &quot;&quot; # result is true
 </code></pre>
-<h3 id="func"><a class="header" href="#func">func</a></h3>
+<h3 id="func"><a class="header" href="#func"><code>func</code></a></h3>
 <p><code>func</code> defines a function.
 For more information, see <a href="./functions.html">Functions</a>.</p>
 <pre><code class="language-python">func square(x: int):
-  print x * x
+  print(x * x)
 </code></pre>
 
                     </main>

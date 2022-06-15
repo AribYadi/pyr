@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="language-reference/arithmetic.html"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="language-reference/truthiness.html"><strong aria-hidden="true">6.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="language-reference/operator-precedence.html"><strong aria-hidden="true">7.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="language-reference/variables.html"><strong aria-hidden="true">8.</strong> Variable</a></li><li class="chapter-item expanded "><a href="language-reference/functions.html"><strong aria-hidden="true">9.</strong> Functions</a></li><li class="chapter-item expanded "><a href="language-reference/comments.html"><strong aria-hidden="true">10.</strong> Comments</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="language-reference/arithmetic.html"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="language-reference/truthiness.html"><strong aria-hidden="true">6.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="language-reference/operator-precedence.html"><strong aria-hidden="true">7.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="language-reference/variables.html"><strong aria-hidden="true">8.</strong> Variable</a></li><li class="chapter-item expanded "><a href="language-reference/functions.html"><strong aria-hidden="true">9.</strong> Functions</a></li><li class="chapter-item expanded "><a href="language-reference/comments.html"><strong aria-hidden="true">10.</strong> Comments</a></li><li class="chapter-item expanded affix "><li class="part-title">Standard Library</li><li class="chapter-item expanded "><a href="std/functions.html"><strong aria-hidden="true">11.</strong> Functions</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -193,50 +193,43 @@ Multiline strings are also supported. </p>
 <ul>
 <li><a href="language-reference/keywords.html#keywords">Keywords</a>
 <ul>
-<li><a href="language-reference/keywords.html#print">print</a></li>
-<li><a href="language-reference/keywords.html#if">if</a></li>
-<li><a href="language-reference/keywords.html#else">else</a></li>
-<li><a href="language-reference/keywords.html#while">while</a></li>
-<li><a href="language-reference/keywords.html#and">and</a></li>
-<li><a href="language-reference/keywords.html#or">or</a></li>
-<li><a href="language-reference/keywords.html#func">func</a></li>
+<li><a href="language-reference/keywords.html#if"><code>if</code></a></li>
+<li><a href="language-reference/keywords.html#else"><code>else</code></a></li>
+<li><a href="language-reference/keywords.html#while"><code>while</code></a></li>
+<li><a href="language-reference/keywords.html#and"><code>and</code></a></li>
+<li><a href="language-reference/keywords.html#or"><code>or</code></a></li>
+<li><a href="language-reference/keywords.html#func"><code>func</code></a></li>
 </ul>
 </li>
 </ul>
-<h3 id="print"><a class="header" href="#print">print</a></h3>
-<p><code>print</code> prints its right hand side to stdout.
-Currently, <code>print</code> is a keyword, but later on it will be a function.
-<code>print</code> does not automatically add a newline.</p>
-<pre><code class="language-python">print &quot;Hello, World\n&quot; # prints Hello, World
-</code></pre>
-<h3 id="if"><a class="header" href="#if">if</a></h3>
+<h3 id="if"><a class="header" href="#if"><code>if</code></a></h3>
 <p><code>if</code> evaluates its condition and if it's truthy, it executes its body.</p>
 <pre><code class="language-python">if 34 &lt; 56:
-  print &quot;34 is less than 56\n&quot; # Executes this line
+  print(&quot;34 is less than 56\n&quot;) # Executes this line
 </code></pre>
-<h3 id="else"><a class="header" href="#else">else</a></h3>
+<h3 id="else"><a class="header" href="#else"><code>else</code></a></h3>
 <p><code>else</code> executes its body if the previous <code>if</code>'s condition is falsy.</p>
 <pre><code class="language-python">if 100 &lt; 50:
-  print &quot;100 is less than 50\n&quot; # Skips this line
+  print(&quot;100 is less than 50\n&quot;) # Skips this line
 else:
-  print &quot;100 is greater than 50\n&quot; # Executes this line
+  print(&quot;100 is greater than 50\n&quot;) # Executes this line
 </code></pre>
 <p><code>else</code> can also be continued with another <code>if</code>:</p>
 <pre><code class="language-python">if 100 &lt; 50:
-  print &quot;100 is less than 50\n&quot; # Skips this line
+  print(&quot;100 is less than 50\n&quot;) # Skips this line
 else if 100 &gt; 50:
-  print &quot;100 is greater than 50\n&quot; # Executes this line
+  print(&quot;100 is greater than 50\n&quot;) # Executes this line
 else:
-  print &quot;100 is equal to 50\n&quot; # Skips this line
+  print(&quot;100 is equal to 50\n&quot;) # Skips this line
 </code></pre>
-<h3 id="while"><a class="header" href="#while">while</a></h3>
+<h3 id="while"><a class="header" href="#while"><code>while</code></a></h3>
 <p><code>while</code> will execute its body until the condition is falsy.</p>
 <pre><code class="language-python">i = 0
 while i &lt; 10: # Executes its body 10 times
-  print i + &quot;\n&quot;
+  print(i + &quot;\n&quot;)
   i += 1
 </code></pre>
-<h3 id="and"><a class="header" href="#and">and</a></h3>
+<h3 id="and"><a class="header" href="#and"><code>and</code></a></h3>
 <p><code>and</code> with the same type of operands will return the left value if either is falsy and will return the right value if both are truthy. <br />
 <code>and</code> with different types of operands will return <code>false</code> if either is falsy and will <code>true</code> if both are truthy. <br />
 <code>and</code> will short circuit if left hand side is falsy. </p>
@@ -244,7 +237,7 @@ while i &lt; 10: # Executes its body 10 times
 &quot;hello&quot; and &quot;world&quot; # result is &quot;world&quot;
 123 and &quot;&quot; # result is false
 </code></pre>
-<h3 id="or"><a class="header" href="#or">or</a></h3>
+<h3 id="or"><a class="header" href="#or"><code>or</code></a></h3>
 <p><code>or</code> with the same type of operands will return the left value if it is truthy otherwise it will return the right hand side. <br />
 <code>or</code> with different types of operands will return <code>true</code> if either is truthy and will return <code>false</code> if both are falsy. <br />
 <code>or</code> will short circuit if left hand side is truthy. </p>
@@ -252,11 +245,11 @@ while i &lt; 10: # Executes its body 10 times
 &quot;hello&quot; or &quot;world&quot; # result is &quot;hello&quot;
 123 or &quot;&quot; # result is true
 </code></pre>
-<h3 id="func"><a class="header" href="#func">func</a></h3>
+<h3 id="func"><a class="header" href="#func"><code>func</code></a></h3>
 <p><code>func</code> defines a function.
 For more information, see <a href="language-reference/./functions.html">Functions</a>.</p>
 <pre><code class="language-python">func square(x: int):
-  print x * x
+  print(x * x)
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="arithmetic"><a class="header" href="#arithmetic">Arithmetic</a></h2>
 <ul>
@@ -439,13 +432,13 @@ For more information, see <a href="language-reference/./functions.html">Function
 <pre><code class="language-python">foo = &quot;bar&quot;
 </code></pre>
 <p>To access a variable, use the following syntax.</p>
-<pre><code class="language-python">print var_name # prints &quot;bar&quot;
+<pre><code class="language-python">print(var_name) # prints &quot;bar&quot;
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
 <p>Functions in Pyr are defined with the <code>func</code> keyword.
 Function arguments are explicitly <a href="language-reference/./literals.html">typed</a>, and are separated by commas.</p>
 <pre><code class="language-python">func foo(a: int, b: int) -&gt; int:
-  print a + b + &quot;\n&quot;
+  print(a + b + &quot;\n&quot;)
 </code></pre>
 <p>To call a function, simply use the function name and parentheses with the arguments.</p>
 <pre><code class="language-python">foo(1, 2) # prints 3
@@ -454,7 +447,7 @@ Function arguments are explicitly <a href="language-reference/./literals.html">t
 So you can have both a variable named <code>foo</code> and a function named <code>foo</code>.</p>
 <pre><code class="language-python">foo = &quot;bar&quot;
 func foo():
-  print foo + &quot;\n&quot;
+  print(foo + &quot;\n&quot;)
 
 foo() # prints &quot;bar&quot;
 foo = &quot;baz&quot;
@@ -464,7 +457,7 @@ foo() # prints &quot;baz&quot;
 <pre><code class="language-python">func sum_of_squares(a: int, b: int) -&gt; int:
   return a ^ 2 + b ^ 2
 
-print sum_of_squares(2, 3) # prints 9
+print(sum_of_squares(2, 3)) # prints 9
 </code></pre>
 <p>To overload a function, you can define a function with the same name and different arguments.</p>
 <pre><code class="language-python">func foo(a: int) -&gt; string:
@@ -480,10 +473,23 @@ foo(&quot;foo&quot;) # returns &quot;string&quot;
 <p>Comments in Pyr starts with a <code>#</code> and go to the end of the line.</p>
 <pre><code class="language-python"># This is a comment
 
-# print &quot;Hello World&quot;
+# print(&quot;Hello World&quot;)
 # ^ Skipped
 </code></pre>
 <p>Multiline comments are currently not supported but are planned.</p>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="functions-1"><a class="header" href="#functions-1">Functions</a></h2>
+<ul>
+<li><a href="std/functions.html#functions">Functions</a>
+<ul>
+<li><a href="std/functions.html#print"><code>print</code></a></li>
+</ul>
+</li>
+</ul>
+<h3 id="print"><a class="header" href="#print"><code>print</code></a></h3>
+<p><code>print</code> prints the given value to the console without appendding a newline.</p>
+<pre><code class="language-python">print(&quot;Hello, World!&quot;)
+print(123)
+</code></pre>
 
                     </main>
 
