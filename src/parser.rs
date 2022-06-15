@@ -180,17 +180,6 @@ impl Parser<'_> {
 
         Ok(Stmt::new(StmtKind::While { condition, body }, span_start..span_end))
       },
-      Tok::Print => {
-        let span_start = self.lexer.span().start;
-
-        self.consume(Tok::Print)?;
-        let expr = self.expression()?;
-        self.consume(Tok::Newline)?;
-
-        let span_end = self.lexer.span().end;
-
-        Ok(Stmt::new(StmtKind::Print { expr }, span_start..span_end))
-      },
       Tok::Func => {
         let span_start = self.lexer.span().start;
 

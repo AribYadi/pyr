@@ -40,6 +40,11 @@ pub struct Resolver {
 }
 
 impl Resolver {
+  pub fn define_std(&mut self) {
+    self.functions.declare("print.string", 0, (vec![ValueType::String], None));
+    self.functions.declare("print.int", 0, (vec![ValueType::Integer], None));
+  }
+
   pub fn new() -> Self {
     Self {
       variables: Variables::new(),
@@ -101,9 +106,6 @@ impl Resolver {
           self.resolve_stmt(stmt)?;
         }
         self.end_block();
-      },
-      StmtKind::Print { expr } => {
-        ignore_return!(NEVER; self, expr, self.resolve_expr(expr)?);
       },
       StmtKind::FuncDef { name, args, body, ret_ty } => {
         // Clear return value first

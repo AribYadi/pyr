@@ -120,9 +120,6 @@ pub enum TokenKind {
   Percent,
 
   // Keywords
-  // Currently `print` is a keyword rather than a builtin function.
-  #[token("print")]
-  Print,
   #[token("if")]
   If,
   #[token("else")]
@@ -185,7 +182,6 @@ impl std::fmt::Display for TokenKind {
       TokenKind::BangEqual => write!(f, "!="),
       TokenKind::Caret => write!(f, "^"),
       TokenKind::Percent => write!(f, "%"),
-      TokenKind::Print => write!(f, "print"),
       TokenKind::If => write!(f, "if"),
       TokenKind::Else => write!(f, "else"),
       TokenKind::While => write!(f, "while"),
@@ -297,9 +293,6 @@ pub enum StmtKind {
   While {
     condition: Expr,
     body: Vec<Stmt>,
-  },
-  Print {
-    expr: Expr,
   },
   FuncDef {
     name: String,

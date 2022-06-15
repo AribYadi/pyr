@@ -1,2 +1,2 @@
 if true:
-print "123"
+print("123")

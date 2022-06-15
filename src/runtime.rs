@@ -139,8 +139,8 @@ impl Literal {
   }
 }
 
-pub type Args = Vec<Literal>;
-pub type NativeFunction = fn(&mut Interpreter, Args) -> ReturnValue<Literal>;
+pub type Params = Vec<Literal>;
+pub type NativeFunction = fn(&mut Interpreter, Params) -> ReturnValue<Literal>;
 pub type ReturnValue<T> = Option<T>;
 
 pub fn func_name(base_name: &str, args: &[ValueType]) -> String {

@@ -1,4 +1,4 @@
 foo = "123"
-print foo + 123 + "\n" # prints "123123"
+print(foo + 123 + "\n") # prints "123123"
 foo = 123
-print foo + 123 + "\n" # prints "246"
+print(foo + 123 + "\n") # prints "246"

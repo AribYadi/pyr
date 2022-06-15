@@ -32,7 +32,7 @@ macro_rules! info {
   }};
 }
 
-struct Args {
+struct Params {
   subcommand: ArgsSubcommand,
   source_path: String,
 }
@@ -82,7 +82,10 @@ fn main() {
       process::exit(1);
     },
   };
+
   let mut resolver = resolver::Resolver::new();
+  resolver.define_std();
+
   match resolver.resolve(&stmts) {
     Ok(_) => (),
     Err(errors) => {
@@ -97,13 +100,16 @@ fn main() {
       process::exit(1);
     },
   };
+
   match args.subcommand {
     ArgsSubcommand::Compile { out, link } => {
       let obj_file = out
         .clone()
         .unwrap_or_else(|| source_path.with_extension("o").to_string_lossy().to_string());
       unsafe {
-        let compiler = Compiler::new(input_file);
+        let mut compiler = Compiler::new(input_file);
+        compiler.define_std();
+
         compiler.compile_to_obj(&obj_file, &stmts);
       }
       info!(INFO, "Compiled to `{obj_file}`");
@@ -124,7 +130,8 @@ fn main() {
           };
         if !clang_output.status.success() {
           info!(ERR, "Failed to link {obj_file}!");
-          eprintln!("{status}", status = clang_output.status);
+          info!(ERR, "exit_code: {status}", status = clang_output.status);
+          info!(ERR, "stderr: {stderr}", stderr = String::from_utf8_lossy(&clang_output.stderr));
           process::exit(1);
         }
         info!(INFO, "Successfully compiled and linked `{obj_file}` to `{exe_file}`!");
@@ -132,6 +139,8 @@ fn main() {
     },
     ArgsSubcommand::Run => {
       let mut interpreter = Interpreter::new();
+      interpreter.define_std();
+
       match interpreter.interpret(&stmts) {
         Ok(_) => (),
         Err(error) => {
@@ -148,7 +157,7 @@ fn main() {
   }
 }
 
-fn get_args() -> Args {
+fn get_args() -> Params {
   let mut args = std::env::args().skip(1);
   let mut arg_pos = 0;
 
@@ -225,7 +234,7 @@ fn get_args() -> Args {
     process::exit(1);
   }
 
-  Args { subcommand: subcommand.unwrap(), source_path: source_path.unwrap() }
+  Params { subcommand: subcommand.unwrap(), source_path: source_path.unwrap() }
 }
 
 fn print_help() {

@@ -1,8 +1,8 @@
 func foo(bar: string, baz: string):
-  print bar + baz + "\n"
+  print(bar + baz + "\n")
 
 bar
 
 foo("Hello", "World")
-print foo + "\n"
-print foo("Hello", "World") + "\n"
+print(foo + "\n")
+print(foo("Hello", "World") + "\n")

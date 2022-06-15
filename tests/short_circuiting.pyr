@@ -1,24 +1,24 @@
 foo = true
 if foo and true:
-  print "foo and true\n"
+  print("foo and true\n")
 if foo and false:
-  print "foo and false\n"
+  print("foo and false\n")
 if false and true:
-  print "false and true\n"
+  print("false and true\n")
 if foo and (foo = false):
-  print "foo and " + foo + "\n"
+  print("foo and " + foo + "\n")
 
-print ("" and "123") + "\n"
-print (1 and "") + "\n"
+print(("" and "123") + "\n")
+print((1 and "") + "\n")
 
 foo = true
 if true or (foo = false):
-  print "true or " + foo + "\n"
+  print("true or " + foo + "\n")
 if false or (foo = false) or true:
-  print "false or " + foo + " or true\n"
+  print("false or " + foo + " or true\n")
 if false or false:
-  print "false or false\n"
+  print("false or false\n")
 if true or true:
-  print "true or true\n"
+  print("true or true\n")
 
-print (true or "123") + "\n"
+print((true or "123") + "\n")

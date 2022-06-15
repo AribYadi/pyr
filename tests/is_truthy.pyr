@@ -1,19 +1,19 @@
 foo = 256
 if foo:
-  print "Broken! `256` is not supposed to be true!\n"
+  print("Broken! `256` is not supposed to be true!\n")
 foo = ""
 if foo:
-  print "Broken! `\"\"` is not supposed to be true!\n"
+  print("Broken! `\"\"` is not supposed to be true!\n")
 
 foo = 1
 if foo:
-  print "Integer is working!\n"
+  print("Integer is working!\n")
 foo = "foo"
 if foo:
-  print "String is working!\n"
+  print("String is working!\n")
 
 if !foo:
-  print "Broken! `!foo` is not supposed to be true!\n"
+  print("Broken! `!foo` is not supposed to be true!\n")
 foo = ""
 if !foo:
-  print "Negating a string is working!\n"
+  print("Negating a string is working!\n")

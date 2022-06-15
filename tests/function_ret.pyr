@@ -1,5 +1,5 @@
 func foo(x: string) -> string:
   ret x + " " + x + "!\n"
 
-print foo("Hello")
-print foo("World")
+print(foo("Hello"))
+print(foo("World"))

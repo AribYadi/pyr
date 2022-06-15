@@ -286,18 +286,6 @@ fn parse_stmt() {
     }))
   );
 
-  let stmt = parse("print 1 + 2\n");
-  assert_eq!(
-    stmt,
-    Ok(Stmt::new_without_span(StmtKind::Print {
-      expr: Expr::new_without_span(ExprKind::InfixOp {
-        left: Box::new(Expr::new_without_span(ExprKind::Integer(1))),
-        op: Tok::Plus,
-        right: Box::new(Expr::new_without_span(ExprKind::Integer(2))),
-      }),
-    }))
-  );
-
   let stmt = parse("if 1: 1 + 2\n");
   assert_eq!(
     stmt,
@@ -427,26 +415,32 @@ fn parse_function() {
     parser.statement()
   }
 
-  let stmt = parse_stmt("func foo():\n\tprint 1\n");
+  let stmt = parse_stmt("func foo():\n\tprint(1)\n");
   assert_eq!(
     stmt,
     Ok(Stmt::new_without_span(StmtKind::FuncDef {
       name: "foo".to_string(),
       args: vec![],
-      body: vec![Stmt::new_without_span(StmtKind::Print {
-        expr: Expr::new_without_span(ExprKind::Integer(1)),
+      body: vec![Stmt::new_without_span(StmtKind::Expression {
+        expr: Expr::new_without_span(ExprKind::FuncCall {
+          name: "print".to_string(),
+          params: vec![Expr::new_without_span(ExprKind::Integer(1))],
+        }),
       })],
       ret_ty: None,
     }))
   );
-  let stmt = parse_stmt("func foo(a: int, b: string):\n\tprint a\n");
+  let stmt = parse_stmt("func foo(a: int, b: string):\n\tprint(a)\n");
   assert_eq!(
     stmt,
     Ok(Stmt::new_without_span(StmtKind::FuncDef {
       name: "foo".to_string(),
       args: vec![("a".to_string(), ValueType::Integer), ("b".to_string(), ValueType::String)],
-      body: vec![Stmt::new_without_span(StmtKind::Print {
-        expr: Expr::new_without_span(ExprKind::Identifier("a".to_string())),
+      body: vec![Stmt::new_without_span(StmtKind::Expression {
+        expr: Expr::new_without_span(ExprKind::FuncCall {
+          name: "print".to_string(),
+          params: vec![Expr::new_without_span(ExprKind::Identifier("a".to_string()))],
+        }),
       })],
       ret_ty: None,
     }))

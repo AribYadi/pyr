@@ -124,23 +124,23 @@ fn interpret_stmt() {
   assert_eq!(result, Ok(()));
 }
 
-#[test]
-fn interpret_print() {
-  fn interpret_and_assert(input: &str, expected: &str) {
-    let mut buf = Vec::new();
+// #[test]
+// fn interpret_print() {
+//   fn interpret_and_assert(input: &str, expected: &str) {
+//     let mut buf = Vec::new();
 
-    let mut parser = Parser::new(input);
-    let expr = parser.expression().unwrap();
-    let mut interpreter = Interpreter::new();
-    interpreter.interpret_print(&expr, &mut buf).unwrap();
-    assert_eq!(buf, expected.as_bytes());
-  }
+//     let mut parser = Parser::new(input);
+//     let expr = parser.expression().unwrap();
+//     let mut interpreter = Interpreter::new();
+//     interpreter.interpret_print(&expr, &mut buf).unwrap();
+//     assert_eq!(buf, expected.as_bytes());
+//   }
 
-  interpret_and_assert("1", "1");
-  interpret_and_assert("\"hello\"", "hello");
-  interpret_and_assert("true", "1");
-  interpret_and_assert(r#""new\nline\"""#, "new\nline\"");
-}
+//   interpret_and_assert("1", "1");
+//   interpret_and_assert("\"hello\"", "hello");
+//   interpret_and_assert("true", "1");
+//   interpret_and_assert(r#""new\nline\"""#, "new\nline\"");
+// }
 
 #[test]
 fn interpret_variables() {
@@ -223,19 +223,22 @@ fn interpret_function() {
     }};
   }
 
-  let result = interpret_stmt!("func foo(x: int):\n\tprint x + \"\n\"\n");
+  let result = interpret_stmt!("func foo(x: int):\n\tprint(x + \"\n\")\n");
   assert_eq!(result, Ok(()));
   assert_eq!(resolver.functions.get("foo.int"), Some((vec![ValueType::Integer], None)));
   assert_eq!(
     interpreter.functions.get("foo.int"),
     Some(Function::UserDefined(
       vec!["x".to_string()],
-      vec![Stmt::new_without_span(StmtKind::Print {
-        expr: Expr::new_without_span(ExprKind::InfixOp {
-          left: Box::new(Expr::new_without_span(ExprKind::Identifier("x".to_string()))),
-          op: TokenKind::Plus,
-          right: Box::new(Expr::new_without_span(ExprKind::String("\n".to_string()))),
-        })
+      vec![Stmt::new_without_span(StmtKind::Expression {
+        expr: Expr::new_without_span(ExprKind::FuncCall {
+          name: "print".to_string(),
+          params: vec![Expr::new_without_span(ExprKind::InfixOp {
+            left: Box::new(Expr::new_without_span(ExprKind::Identifier("x".to_string()))),
+            op: TokenKind::Plus,
+            right: Box::new(Expr::new_without_span(ExprKind::String("\n".to_string())))
+          })],
+        }),
       })],
       None
     ))

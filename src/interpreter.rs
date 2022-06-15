@@ -1,5 +1,3 @@
-use std::io;
-
 use crate::error::{
   RuntimeError,
   RuntimeResult as Result,
@@ -17,6 +15,7 @@ use crate::runtime::{
   Function,
   IndentLevel,
   Literal,
+  Params,
   ReturnValue,
   Variables,
 };
@@ -35,6 +34,17 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
+  pub fn define_std(&mut self) {
+    let print_func = |_: &mut Self, params: Params| {
+      let mut params = params.into_iter();
+      let expr = params.next().unwrap().to_string();
+      print!("{expr}");
+      None
+    };
+    self.functions.declare("print.string", 0, Function::Native(print_func, 1));
+    self.functions.declare("print.int", 0, Function::Native(print_func, 1));
+  }
+
   pub fn new() -> Self {
     Self {
       variables: Variables::new(),
@@ -96,8 +106,6 @@ impl Interpreter {
         }
         Ok(())
       },
-      // Print statement is in a different function for testing purposes
-      StmtKind::Print { expr } => self.interpret_print(expr, &mut io::stdout()),
       StmtKind::FuncDef { name, args, body, ret_ty } => {
         // Clear return value first
         self.return_value = None;
@@ -123,12 +131,6 @@ impl Interpreter {
         Ok(())
       },
     }
-  }
-
-  pub(crate) fn interpret_print(&mut self, expr: &Expr, output: &mut impl io::Write) -> Result<()> {
-    let value = ignore_return!(NEVER_WITH_RET; self, expr, self.interpret_expr(expr)?);
-    let _ = write!(output, "{value}");
-    Ok(())
   }
 
   pub(crate) fn interpret_expr(&mut self, expr: &Expr) -> Result<Literal> {

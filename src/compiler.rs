@@ -336,10 +336,16 @@ type VarWithName = (String, ValueWrapper);
 
 #[derive(Clone)]
 struct FuncDesc {
-  arg_len: IndentLevel,
+  arg_len: usize,
   // We store the return type for type checking
   ret_ty: Option<ValueType>,
   local_vars: Vec<VarWithName>,
+}
+
+impl FuncDesc {
+  fn new_non_closure(arg_len: usize, ret_ty: Option<ValueType>) -> Self {
+    FuncDesc { arg_len, ret_ty, local_vars: Vec::new() }
+  }
 }
 
 pub struct Compiler {
@@ -364,6 +370,162 @@ pub struct Compiler {
 }
 
 impl Compiler {
+  pub unsafe fn define_std(&mut self) {
+    // `print` function
+    {
+      let str_format = LLVMGetNamedGlobal(self.module, self.cstring("%%str_format%%"));
+      let str_format = utils::gep_string_ptr_raw(self, str_format);
+      let int_format = LLVMGetNamedGlobal(self.module, self.cstring("%%int_format%%"));
+      let int_format = utils::gep_string_ptr_raw(self, int_format);
+
+      let void_type = LLVMVoidTypeInContext(self.ctx);
+      let i64_type = LLVMInt64TypeInContext(self.ctx);
+
+      let (int_len_func, int_len_ty) = self.get_func("%%int_len%%").unwrap();
+      let (int_as_str_func, int_as_str_ty) = self.get_func("%%int_as_str%%").unwrap();
+      let (printf_func, printf_ty) = self.get_func("printf").unwrap();
+
+      {
+        // Define a function inside llvm
+        let print_string_type = LLVMFunctionType(
+          void_type,
+          [LLVMPointerType(LLVMInt8TypeInContext(self.ctx), 0)].as_mut_ptr(),
+          1,
+          0,
+        );
+        let print_string_func =
+          LLVMAddFunction(self.module, self.cstring("print.string"), print_string_type);
+
+        let entry_bb =
+          LLVMAppendBasicBlockInContext(self.ctx, print_string_func, self.cstring("entry"));
+        let builder = LLVMCreateBuilderInContext(self.ctx);
+
+        LLVMPositionBuilderAtEnd(builder, entry_bb);
+
+        let expr = LLVMGetParam(print_string_func, 0);
+        LLVMBuildCall2(
+          builder,
+          printf_ty,
+          printf_func,
+          [str_format, expr].as_mut_ptr(),
+          2,
+          self.cstring(""),
+        );
+
+        LLVMBuildRetVoid(builder);
+
+        // Declare a function inside our own compiler
+        self.funcs.push(print_string_func);
+        self.function_descs.declare("print.string", 0, FuncDesc::new_non_closure(1, None));
+      }
+
+      {
+        // Define a function inside llvm
+        let print_int_type =
+          LLVMFunctionType(void_type, [LLVMPointerType(i64_type, 0)].as_mut_ptr(), 1, 0);
+        let print_int_func =
+          LLVMAddFunction(self.module, self.cstring("print.int"), print_int_type);
+
+        let entry_bb =
+          LLVMAppendBasicBlockInContext(self.ctx, print_int_func, self.cstring("entry"));
+        let builder = LLVMCreateBuilderInContext(self.ctx);
+
+        LLVMPositionBuilderAtEnd(builder, entry_bb);
+
+        let expr = LLVMGetParam(print_int_func, 0);
+        let expr = LLVMBuildLoad2(builder, i64_type, expr, self.cstring(""));
+
+        let orig_len = LLVMBuildCall2(
+          builder,
+          int_len_ty,
+          int_len_func,
+          [expr].as_mut_ptr(),
+          1,
+          self.cstring(""),
+        );
+        let len = LLVMBuildAdd(builder, orig_len, LLVMConstInt(i64_type, 1, 0), self.cstring(""));
+        let buf = self.malloc_str_at(builder, len);
+        LLVMBuildCall2(
+          builder,
+          int_as_str_ty,
+          int_as_str_func,
+          [buf, expr, orig_len].as_mut_ptr(),
+          3,
+          self.cstring(""),
+        );
+
+        LLVMBuildCall2(
+          builder,
+          printf_ty,
+          printf_func,
+          [int_format, buf].as_mut_ptr(),
+          2,
+          self.cstring(""),
+        );
+
+        LLVMBuildRetVoid(builder);
+
+        // Declare a function inside our own compiler
+        self.funcs.push(print_int_func);
+        self.function_descs.declare("print.int", 1, FuncDesc::new_non_closure(1, None));
+      }
+    }
+  }
+
+  pub unsafe fn new(file_name: &str) -> Compiler {
+    let mut cstring_cache = HashMap::new();
+    let cstring = CString::new(file_name).unwrap();
+    let ptr = cstring.as_ptr();
+    cstring_cache.insert(file_name.to_string(), cstring);
+
+    let ctx = LLVMContextCreate();
+    let module = LLVMModuleCreateWithNameInContext(ptr, ctx);
+    let builder = LLVMCreateBuilderInContext(ctx);
+
+    let fpm = LLVMCreateFunctionPassManagerForModule(module);
+
+    LLVMAddInstructionCombiningPass(fpm);
+    LLVMAddReassociatePass(fpm);
+    LLVMAddGVNPass(fpm);
+    LLVMAddCFGSimplificationPass(fpm);
+    LLVMAddBasicAliasAnalysisPass(fpm);
+    LLVMAddPromoteMemoryToRegisterPass(fpm);
+
+    LLVMInitializeFunctionPassManager(fpm);
+
+    let func_ty = LLVMFunctionType(LLVMInt32TypeInContext(ctx), std::ptr::null_mut(), 0, 0);
+    let cstring = CString::new("main").unwrap();
+    let ptr = cstring.as_ptr();
+    cstring_cache.insert("main".to_string(), cstring);
+    let func = LLVMAddFunction(module, ptr, func_ty);
+
+    let mut self_ = Compiler {
+      ctx,
+      module,
+      builder,
+      fpm,
+      cstring_cache,
+      funcs: Vec::new(),
+      variables: Variables::new(),
+      function_descs: Variables::new(),
+      indent_level: 0,
+      // main_func: func,
+      curr_func: func,
+      ignore_return: false,
+    };
+
+    self_.funcs.push(func);
+    self_.append_entry_bb();
+
+    LLVMBuildGlobalString(builder, self_.cstring("%d"), self_.cstring("%%int_format%%"));
+    LLVMBuildGlobalString(builder, self_.cstring("%s"), self_.cstring("%%str_format%%"));
+    self_.declare_libc_functions();
+    self_.define_helper_functions();
+    self_.declare_llvm_functions();
+
+    self_
+  }
+
   fn cstring(&mut self, s: &str) -> *const c_char {
     let s = s.to_string();
     if let Some(cstring) = self.cstring_cache.get(&s) {
@@ -630,60 +792,6 @@ impl Compiler {
     }
   }
 
-  pub unsafe fn new(file_name: &str) -> Compiler {
-    let mut cstring_cache = HashMap::new();
-    let cstring = CString::new(file_name).unwrap();
-    let ptr = cstring.as_ptr();
-    cstring_cache.insert(file_name.to_string(), cstring);
-
-    let ctx = LLVMContextCreate();
-    let module = LLVMModuleCreateWithNameInContext(ptr, ctx);
-    let builder = LLVMCreateBuilderInContext(ctx);
-
-    let fpm = LLVMCreateFunctionPassManagerForModule(module);
-
-    LLVMAddInstructionCombiningPass(fpm);
-    LLVMAddReassociatePass(fpm);
-    LLVMAddGVNPass(fpm);
-    LLVMAddCFGSimplificationPass(fpm);
-    LLVMAddBasicAliasAnalysisPass(fpm);
-    LLVMAddPromoteMemoryToRegisterPass(fpm);
-
-    LLVMInitializeFunctionPassManager(fpm);
-
-    let func_ty = LLVMFunctionType(LLVMInt32TypeInContext(ctx), std::ptr::null_mut(), 0, 0);
-    let cstring = CString::new("main").unwrap();
-    let ptr = cstring.as_ptr();
-    cstring_cache.insert("main".to_string(), cstring);
-    let func = LLVMAddFunction(module, ptr, func_ty);
-
-    let mut self_ = Compiler {
-      ctx,
-      module,
-      builder,
-      fpm,
-      cstring_cache,
-      funcs: Vec::new(),
-      variables: Variables::new(),
-      function_descs: Variables::new(),
-      indent_level: 0,
-      // main_func: func,
-      curr_func: func,
-      ignore_return: false,
-    };
-
-    self_.funcs.push(func);
-    self_.append_entry_bb();
-
-    LLVMBuildGlobalString(builder, self_.cstring("%d"), self_.cstring("int_format"));
-    LLVMBuildGlobalString(builder, self_.cstring("%s"), self_.cstring("str_format"));
-    self_.declare_libc_functions();
-    self_.define_helper_functions();
-    self_.declare_llvm_functions();
-
-    self_
-  }
-
   fn start_block(&mut self) { self.indent_level += 1; }
 
   fn end_block(&mut self) {
@@ -706,13 +814,12 @@ impl Compiler {
   }
 
   fn malloc_str(&mut self, size: LLVMValueRef) -> LLVMValueRef {
+    self.malloc_str_at(self.builder, size)
+  }
+
+  fn malloc_str_at(&mut self, builder: LLVMBuilderRef, size: LLVMValueRef) -> LLVMValueRef {
     unsafe {
-      LLVMBuildArrayMalloc(
-        self.builder,
-        LLVMInt8TypeInContext(self.ctx),
-        size,
-        self.cstring("str_arr"),
-      )
+      LLVMBuildArrayMalloc(builder, LLVMInt8TypeInContext(self.ctx), size, self.cstring("str_arr"))
     }
   }
 
@@ -824,7 +931,6 @@ impl Compiler {
     fn stmt_as_var(self_: &mut Compiler, declared: &[String], stmt: &Stmt) -> Vec<VarWithName> {
       let names = match &stmt.kind {
         StmtKind::Expression { expr } => expr_as_var(self_, expr),
-        StmtKind::Print { expr } => expr_as_var(self_, expr),
         StmtKind::If { condition, body, else_stmt } => {
           let mut out = expr_as_var(self_, condition);
           out.extend(stmts_as_var(self_, vec![], body));
@@ -883,36 +989,6 @@ impl Compiler {
       match &stmt.kind {
         StmtKind::Expression { expr } => {
           ignore_return!(self, expr, self.compile_expr(expr));
-        },
-        StmtKind::Print { expr } => {
-          let value =
-            ignore_return!(NEVER_WITH_RET; self, expr, self.compile_expr(expr)).load(self);
-          let value = if !value.is_runtime() {
-            let value = ValueWrapper::new_string(self, &value.to_string()).v;
-            let value_ptr = self.malloc(value);
-            LLVMBuildGEP2(
-              self.builder,
-              LLVMGetElementType(LLVMTypeOf(value_ptr)),
-              value_ptr,
-              [zero].as_mut_ptr(),
-              1,
-              self.cstring(""),
-            )
-          } else {
-            utils::runtime_string_of(self, value).0
-          };
-
-          let format = LLVMGetNamedGlobal(self.module, self.cstring("str_format"));
-          let format = utils::gep_string_ptr_raw(self, format);
-          let (printf_func, printf_ty) = self.get_func("printf").unwrap();
-          LLVMBuildCall2(
-            self.builder,
-            printf_ty,
-            printf_func,
-            [format, value].as_mut_ptr(),
-            2,
-            self.cstring(""),
-          );
         },
         StmtKind::If { condition, body, else_stmt } => {
           let condition =

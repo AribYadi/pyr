@@ -1,18 +1,18 @@
 ### Basic arithmetics ###
 
-print 1 + 2 + "\n" # prints 3
-print 2 + 3 * 4 + "\n" # prints 14
+print(1 + 2 + "\n") # prints 3
+print(2 + 3 * 4 + "\n") # prints 14
 
 ### Exponents ###
 
-print 2 ^ 3 + "\n" # prints 8
-print 10 ^ 2 + "\n" # prints 100
+print(2 ^ 3 + "\n") # prints 8
+print(10 ^ 2 + "\n") # prints 100
 
 ### Modulo / Remainder ###
 
-print 10 % 3 + "\n" # prints 1
-print 10 % 4 + "\n" # prints 2
-print 10 % 5 + "\n" # prints 0
+print(10 % 3 + "\n") # prints 1
+print(10 % 4 + "\n") # prints 2
+print(10 % 5 + "\n") # prints 0
 
 if 10 % 2 == 0:
-  print "10 is divisible by 2"
+  print("10 is divisible by 2")
