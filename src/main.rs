@@ -45,6 +45,7 @@ enum ArgsSubcommand {
 #[rustfmt::skip]
 // TODO: allow function to take variadic arguments
 // TODO: report the correct position of errors, right now some errors have the wrong position
+// TODO: prettify compiler code
 
 fn main() {
   let args = get_args();

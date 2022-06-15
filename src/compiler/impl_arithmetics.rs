@@ -35,7 +35,7 @@ impl ValueWrapper {
 
           let len = LLVMBuildAdd(compiler.builder, left_len, right_len, compiler.cstring(""));
           let len = LLVMBuildAdd(compiler.builder, len, LLVMConstInt(LLVMInt64TypeInContext(compiler.ctx), 1, 0), compiler.cstring(""));
-          let buf = compiler.alloca_str(len);
+          let buf = compiler.malloc_str(len);
 
           let (strcpy_func, strcpy_ty) = compiler.get_func("strcpy").unwrap();
           let (strcat_func, strcat_ty) = compiler.get_func("strcat").unwrap();
@@ -110,7 +110,7 @@ impl ValueWrapper {
           let (left, left_len) = utils::runtime_string_of(compiler, left);
 
           let len = LLVMBuildMul(compiler.builder, left_len, right.v, compiler.cstring(""));
-          let buf = compiler.alloca_str(len);
+          let buf = compiler.malloc_str(len);
 
           let (strcpy_func, strcpy_ty) = compiler.get_func("strcpy").unwrap();
           let (strcat_func, strcat_ty) = compiler.get_func("strcat").unwrap();
@@ -502,7 +502,7 @@ impl ValueWrapper {
         v_value
       };
 
-      let v = if out_ty == ValueType::String { v_value } else { compiler.alloca_at_entry(v_value) };
+      let v = if out_ty == ValueType::String { v_value } else { compiler.malloc(v_value) };
 
       Self {
         v,
@@ -597,7 +597,7 @@ impl ValueWrapper {
         v_value
       };
 
-      let v = if out_ty == ValueType::String { v_value } else { compiler.alloca_at_entry(v_value) };
+      let v = if out_ty == ValueType::String { v_value } else { compiler.malloc(v_value) };
 
       Self {
         v,

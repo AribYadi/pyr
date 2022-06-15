@@ -1,0 +1,9 @@
+:exitcode 0:
+:stdout 26:
+Hello Hello!
+World World!
+
+:end:
+:stderr 0:
+
+:end:

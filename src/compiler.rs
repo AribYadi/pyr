@@ -91,9 +91,17 @@ impl ValueWrapper {
 
   unsafe fn new_variable(self_: &mut Compiler, inner: ValueWrapper) -> Self {
     let v = if self_.indent_level == 0 {
-      self_.alloca_global(inner.v)
+      let ty = self_.compile_type(inner.ty);
+      let ptr = self_.alloca_global(ty);
+      let v = if inner.ty == ValueType::String {
+        utils::gep_string_ptr(self_, inner.clone())
+      } else {
+        inner.v
+      };
+      LLVMBuildStore(self_.builder, v, ptr);
+      ptr
     } else {
-      self_.alloca_at_entry(inner.v)
+      self_.malloc(inner.v)
     };
     Self { v, ty: inner.ty, is_pointer: true, can_be_loaded: true, is_runtime: true }
   }
@@ -166,10 +174,9 @@ impl ValueWrapper {
           };
         },
         ValueType::String => {
-          let self_ = self.load(compiler);
           let (strlen_func, strlen_ty) = compiler.get_func("strlen").unwrap();
-          let self_ =
-            if self_.is_pointer { self.v } else { utils::gep_string_ptr(compiler, self.clone()) };
+          let self_ = utils::gep_string_ptr(compiler, self.clone());
+
           let str_len = LLVMBuildCall2(
             compiler.builder,
             strlen_ty,
@@ -261,7 +268,7 @@ mod utils {
             );
             return (value.v, len);
           }
-          let v = compiler.alloca_at_entry(value.v);
+          let v = compiler.malloc(value.v);
           let v = utils::gep_string_ptr_raw(compiler, v);
           (v, LLVMConstInt(i64_type, (LLVMGetArrayLength(ty) - 1) as u64, 0))
         },
@@ -280,7 +287,7 @@ mod utils {
             LLVMConstInt(i64_type, 1, 0),
             compiler.cstring(""),
           );
-          let buf = compiler.alloca_str(len);
+          let buf = compiler.malloc_str(len);
           LLVMBuildCall2(
             compiler.builder,
             int_as_str_ty,
@@ -298,10 +305,11 @@ mod utils {
 
   pub(super) fn gep_string_ptr(compiler: &mut Compiler, value: ValueWrapper) -> LLVMValueRef {
     unsafe {
+      let value = value.load(compiler);
       if is_char_ptr(compiler, value.v) {
         return value.v;
       }
-      let value = if !value.is_pointer { compiler.alloca_at_entry(value.v) } else { value.v };
+      let value = if !value.is_pointer { compiler.malloc(value.v) } else { value.v };
       utils::gep_string_ptr_raw(compiler, value)
     }
   }
@@ -697,9 +705,9 @@ impl Compiler {
     }
   }
 
-  fn alloca_str(&mut self, size: LLVMValueRef) -> LLVMValueRef {
+  fn malloc_str(&mut self, size: LLVMValueRef) -> LLVMValueRef {
     unsafe {
-      LLVMBuildArrayAlloca(
+      LLVMBuildArrayMalloc(
         self.builder,
         LLVMInt8TypeInContext(self.ctx),
         size,
@@ -708,7 +716,7 @@ impl Compiler {
     }
   }
 
-  fn alloca_at_entry(&mut self, value: LLVMValueRef) -> LLVMValueRef {
+  fn malloc(&mut self, value: LLVMValueRef) -> LLVMValueRef {
     unsafe {
       let builder = LLVMCreateBuilderInContext(self.ctx);
       let entry = LLVMGetFirstBasicBlock(self.curr_func);
@@ -721,18 +729,18 @@ impl Compiler {
       }
 
       let name = self.cstring("");
-      let value_ptr = LLVMBuildAlloca(builder, LLVMTypeOf(value), name);
+      let value_ptr = LLVMBuildMalloc(self.builder, LLVMTypeOf(value), name);
       LLVMBuildStore(self.builder, value, value_ptr);
       value_ptr
     }
   }
 
-  fn alloca_global(&mut self, value: LLVMValueRef) -> LLVMValueRef {
+  fn alloca_global(&mut self, ty: LLVMTypeRef) -> LLVMValueRef {
     unsafe {
       let name = self.cstring("");
-      let value_ptr = LLVMAddGlobal(self.module, LLVMTypeOf(value), name);
-      LLVMSetInitializer(value_ptr, value);
-      value_ptr
+      let global = LLVMAddGlobal(self.module, ty, name);
+      LLVMSetInitializer(global, LLVMGetUndef(ty));
+      global
     }
   }
 
@@ -881,7 +889,7 @@ impl Compiler {
             ignore_return!(NEVER_WITH_RET; self, expr, self.compile_expr(expr)).load(self);
           let value = if !value.is_runtime() {
             let value = ValueWrapper::new_string(self, &value.to_string()).v;
-            let value_ptr = self.alloca_at_entry(value);
+            let value_ptr = self.malloc(value);
             LLVMBuildGEP2(
               self.builder,
               LLVMGetElementType(LLVMTypeOf(value_ptr)),
@@ -1083,10 +1091,12 @@ impl Compiler {
           if let Some(expr) = expr {
             let expr = ignore_return!(NEVER_WITH_RET; self, expr, self.compile_expr(expr));
             if expr.ty == ValueType::String {
-              let v = self.alloca_global(expr.v);
-              let v = utils::gep_string_ptr_raw(self, v);
+              let expr = expr.load(self);
+              let v = utils::gep_string_ptr(self, expr);
+              let ret_val = self.malloc(v);
+              let ret_val = LLVMBuildLoad2(self.builder, LLVMTypeOf(v), ret_val, self.cstring(""));
 
-              LLVMBuildRet(self.builder, v);
+              LLVMBuildRet(self.builder, ret_val);
             } else {
               LLVMBuildRet(self.builder, expr.load(self).v);
             }
