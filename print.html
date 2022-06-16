@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="language-reference/arithmetic.html"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="language-reference/truthiness.html"><strong aria-hidden="true">6.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="language-reference/operator-precedence.html"><strong aria-hidden="true">7.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="language-reference/variables.html"><strong aria-hidden="true">8.</strong> Variable</a></li><li class="chapter-item expanded "><a href="language-reference/functions.html"><strong aria-hidden="true">9.</strong> Functions</a></li><li class="chapter-item expanded "><a href="language-reference/comments.html"><strong aria-hidden="true">10.</strong> Comments</a></li><li class="chapter-item expanded affix "><li class="part-title">Standard Library</li><li class="chapter-item expanded "><a href="std/functions.html"><strong aria-hidden="true">11.</strong> Functions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="language-reference/arithmetic.html"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="language-reference/bitwise.html"><strong aria-hidden="true">6.</strong> Bitwise</a></li><li class="chapter-item expanded "><a href="language-reference/truthiness.html"><strong aria-hidden="true">7.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="language-reference/operator-precedence.html"><strong aria-hidden="true">8.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="language-reference/variables.html"><strong aria-hidden="true">9.</strong> Variable</a></li><li class="chapter-item expanded "><a href="language-reference/functions.html"><strong aria-hidden="true">10.</strong> Functions</a></li><li class="chapter-item expanded "><a href="language-reference/comments.html"><strong aria-hidden="true">11.</strong> Comments</a></li><li class="chapter-item expanded affix "><li class="part-title">Standard Library</li><li class="chapter-item expanded "><a href="std/functions.html"><strong aria-hidden="true">12.</strong> Functions</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -348,6 +348,41 @@ For more information, see <a href="language-reference/./functions.html">Function
 </code></pre>
 <h3 id="and-and-or"><a class="header" href="#and-and-or">And and Or</a></h3>
 <p>Look at <a href="language-reference/./keywords.html">Keywords</a></p>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="bitwise"><a class="header" href="#bitwise">Bitwise</a></h2>
+<ul>
+<li><a href="language-reference/bitwise.html#bitwise">Bitwise</a>
+<ul>
+<li><a href="language-reference/bitwise.html#"><code>&lt;&lt;</code></a></li>
+<li><a href="language-reference/bitwise.html#-1"><code>&gt;&gt;</code></a></li>
+<li><a href="language-reference/bitwise.html#-2"><code>&amp;</code></a></li>
+<li><a href="language-reference/bitwise.html#-3"><code>|</code></a></li>
+</ul>
+</li>
+</ul>
+<h3 id=""><a class="header" href="#"><code>&lt;&lt;</code></a></h3>
+<p><code>&lt;&lt;</code> shifts the bits of the left operand to the left by the number of bits specified by the right operand.</p>
+<pre><code class="language-python">a = 2 # 00000010
+b = 3
+a &lt;&lt; b # 00010000 or 16
+</code></pre>
+<h3 id="-1"><a class="header" href="#-1"><code>&gt;&gt;</code></a></h3>
+<p><code>&gt;&gt;</code> shifts the bits of the left operand to the right by the number of bits specified by the right operand.</p>
+<pre><code class="language-python">a = 2 # 00000010
+b = 1
+a &gt;&gt; b # 00000001 or 1
+</code></pre>
+<h3 id="-2"><a class="header" href="#-2"><code>&amp;</code></a></h3>
+<p><code>&amp;</code> performs a <a href="https://en.wikipedia.org/wiki/Bitwise_operation#AND">bitwise AND</a> operation on the two operands.</p>
+<pre><code class="language-python">a = 2 # 00000100
+b = 3 # 00000011
+a &amp; b # 00000000 or 0
+</code></pre>
+<h3 id="-3"><a class="header" href="#-3"><code>|</code></a></h3>
+<p><code>|</code> performs a <a href="https://en.wikipedia.org/wiki/Bitwise_operation#OR">bitwise OR</a> operation on the two operands.</p>
+<pre><code class="language-python">a = 2 # 00000100
+b = 3 # 00000011
+a | b # 00000111 or 7
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="truthiness"><a class="header" href="#truthiness">Truthiness</a></h2>
 <h3 id="integers"><a class="header" href="#integers">Integers</a></h3>
 <p>An integer is truthy if it is equal to 1.</p>
