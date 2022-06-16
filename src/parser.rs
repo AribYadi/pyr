@@ -335,6 +335,37 @@ impl Parser<'_> {
 
         Ok(Expr::new(ExprKind::PrefixOp { op, right: Box::new(right) }, span_start..span_end))
       },
+      // Arrays start with the type of the elements
+      Tok::IntType | Tok::StringType => {
+        let span_start = self.lexer.span().start;
+
+        let ty = self.consume_type()?;
+        self.consume(Tok::LeftBracket)?;
+
+        let mut len = 0;
+        let mut exprs = Vec::new();
+        while self.peek != Tok::RightBracket {
+          exprs.push(self.parse_expr(0, Tok::Eof)?);
+          if self.peek != Tok::Comma {
+            if self.peek == Tok::Semicolon {
+              self.consume(Tok::Semicolon)?;
+              let lexeme = self.lexeme();
+              self.consume(Tok::Integer)?;
+              len = lexeme.parse().unwrap();
+            }
+            self.consume_delimiter(Tok::RightBracket)?;
+            break;
+          }
+          self.consume(Tok::Comma)?;
+        }
+        if len == 0 {
+          len = exprs.len();
+        }
+
+        let span_end = self.lexer.span().end;
+
+        Ok(Expr::new(ExprKind::Array(ty, exprs, len), span_start..span_end))
+      },
 
       Tok::Error => {
         Err(ParseError::new(ParseErrorKind::UnknownToken(self.lexeme()), self.lexer.span()))
@@ -444,8 +475,26 @@ impl Parser<'_> {
             return Err(ParseError::new(ParseErrorKind::NotCallable(lhs.clone()), lhs.span));
           }
         },
+        left_bracket @ Tok::LeftBracket => {
+          let span_start = lhs.span.start;
 
-        Tok::Newline | Tok::Colon | Tok::RightParen | Tok::Comma => break,
+          self.consume(left_bracket)?;
+          let index = self.parse_expr(0, Tok::Eof)?;
+          self.consume_delimiter(Tok::RightBracket)?;
+
+          let span_end = self.lexer.span().end;
+          lhs = Expr::new(
+            ExprKind::Index { array: Box::new(lhs), index: Box::new(index) },
+            span_start..span_end,
+          );
+        },
+
+        Tok::Newline |
+        Tok::Colon |
+        Tok::RightParen |
+        Tok::Comma |
+        Tok::Semicolon |
+        Tok::RightBracket => break,
         Tok::Error => {
           return Err(ParseError::new(
             ParseErrorKind::UnknownToken(self.lexeme()),

@@ -91,7 +91,7 @@ impl ValueWrapper {
 
   unsafe fn new_variable(self_: &mut Compiler, inner: ValueWrapper) -> Self {
     let v = if self_.indent_level == 0 {
-      let ty = self_.compile_type(inner.ty);
+      let ty = self_.compile_type(inner.ty.clone());
       let ptr = self_.alloca_global(ty);
       let v = if inner.ty == ValueType::String {
         utils::gep_string_ptr(self_, inner.clone())
@@ -131,9 +131,15 @@ impl ValueWrapper {
       let ty = LLVMTypeOf(self.v);
       let ty = LLVMGetElementType(ty);
       let v = LLVMBuildLoad2(compiler.builder, ty, self.v, compiler.cstring("load"));
-      Self { v, ty: self.ty, is_pointer: false, can_be_loaded: true, is_runtime: true }
+      Self { v, ty: self.ty.clone(), is_pointer: false, can_be_loaded: true, is_runtime: true }
     } else if self.is_runtime && self.can_be_loaded {
-      Self { v: self.v, ty: self.ty, is_pointer: false, can_be_loaded: true, is_runtime: true }
+      Self {
+        v: self.v,
+        ty: self.ty.clone(),
+        is_pointer: false,
+        can_be_loaded: true,
+        is_runtime: true,
+      }
     } else {
       self.clone()
     }
@@ -145,8 +151,10 @@ impl ValueWrapper {
         return false;
       }
       match self.ty {
+        ValueType::Void => unreachable!("Void should not be used as a value"),
         ValueType::Integer => self.get_as_integer() == 1,
         ValueType::String => !self.get_as_string().is_empty(),
+        ValueType::Array(_, len) => len == 0,
       }
     }
   }
@@ -155,6 +163,7 @@ impl ValueWrapper {
     if self.is_runtime() {
       let i64_ty = LLVMInt64TypeInContext(compiler.ctx);
       match self.ty {
+        ValueType::Void => unreachable!("Void should not be used as a value"),
         ValueType::Integer => {
           let self_ = self.load(compiler);
           let v = LLVMBuildICmp(
@@ -201,8 +210,7 @@ impl ValueWrapper {
             is_runtime: true,
           };
         },
-        #[allow(unreachable_patterns)]
-        _ => unreachable!(),
+        ValueType::Array(_, len) => return ValueWrapper::new_integer(compiler, (len == 0) as i64),
       }
     }
     let v = self.is_truthy() as i64;
@@ -217,8 +225,10 @@ impl std::fmt::Display for ValueWrapper {
         unreachable!("Runtime value cannot be formatted.");
       }
       match self.ty {
+        ValueType::Void => unreachable!("Void should not be used as a value"),
         ValueType::Integer => write!(f, "{}", self.get_as_integer()),
         ValueType::String => write!(f, "{}", self.get_as_string()),
+        ValueType::Array(_, _) => unreachable!("Array are and should always be runtime values"),
       }
     }
   }
@@ -226,10 +236,6 @@ impl std::fmt::Display for ValueWrapper {
 
 mod utils {
   use super::*;
-
-  pub unsafe fn is_char_ptr(compiler: &mut Compiler, value: LLVMValueRef) -> bool {
-    LLVMTypeOf(value) == LLVMPointerType(LLVMInt8TypeInContext(compiler.ctx), 0)
-  }
 
   pub fn ptr_to_str<'a>(ptr: *const c_char, length: usize) -> Cow<'a, str> {
     if length < 2 {
@@ -249,28 +255,24 @@ mod utils {
       let i64_type = LLVMInt64TypeInContext(compiler.ctx);
 
       match &value.ty {
+        ValueType::Void => unreachable!("Void should not be used as a value"),
         ValueType::String => {
-          let ty = LLVMTypeOf(value.v);
-          if is_char_ptr(compiler, value.v) {
-            let ptr_len = LLVMBuildCall2(
-              compiler.builder,
-              strlen_ty,
-              strlen_func,
-              [value.v].as_mut_ptr(),
-              1,
-              compiler.cstring(""),
-            );
-            let len = LLVMBuildSub(
-              compiler.builder,
-              ptr_len,
-              LLVMConstInt(i64_type, 1, 0),
-              compiler.cstring(""),
-            );
-            return (value.v, len);
-          }
-          let v = compiler.malloc(value.v);
-          let v = utils::gep_string_ptr_raw(compiler, v);
-          (v, LLVMConstInt(i64_type, (LLVMGetArrayLength(ty) - 1) as u64, 0))
+          let v = utils::gep_string_ptr(compiler, value);
+          let ptr_len = LLVMBuildCall2(
+            compiler.builder,
+            strlen_ty,
+            strlen_func,
+            [v].as_mut_ptr(),
+            1,
+            compiler.cstring(""),
+          );
+          let len = LLVMBuildSub(
+            compiler.builder,
+            ptr_len,
+            LLVMConstInt(i64_type, 1, 0),
+            compiler.cstring(""),
+          );
+          (v, len)
         },
         ValueType::Integer => {
           let orig_len = LLVMBuildCall2(
@@ -299,34 +301,52 @@ mod utils {
 
           (buf, orig_len)
         },
+        // TODO: add support for arrays
+        ValueType::Array(_, _) => unreachable!("Arrays are not able to be converted to strings"),
       }
     }
   }
 
   pub(super) fn gep_string_ptr(compiler: &mut Compiler, value: ValueWrapper) -> LLVMValueRef {
+    unsafe { gep_array_ptr(compiler, LLVMInt8TypeInContext(compiler.ctx), value) }
+  }
+
+  pub fn gep_string_ptr_raw(compiler: &mut Compiler, value: LLVMValueRef) -> LLVMValueRef {
+    unsafe { gep_array_ptr_raw(compiler, LLVMInt8TypeInContext(compiler.ctx), value) }
+  }
+
+  pub(super) fn gep_array_ptr(
+    compiler: &mut Compiler,
+    ty: LLVMTypeRef,
+    value: ValueWrapper,
+  ) -> LLVMValueRef {
     unsafe {
       let value = value.load(compiler);
-      if is_char_ptr(compiler, value.v) {
+      if LLVMTypeOf(value.v) == LLVMPointerType(ty, 0) {
         return value.v;
       }
       let value = if !value.is_pointer { compiler.malloc(value.v) } else { value.v };
-      utils::gep_string_ptr_raw(compiler, value)
+      utils::gep_array_ptr_raw(compiler, ty, value)
     }
   }
 
-  pub fn gep_string_ptr_raw(self_: &mut Compiler, value: LLVMValueRef) -> LLVMValueRef {
+  pub fn gep_array_ptr_raw(
+    compiler: &mut Compiler,
+    ty: LLVMTypeRef,
+    value: LLVMValueRef,
+  ) -> LLVMValueRef {
     unsafe {
-      if LLVMTypeOf(value) == LLVMPointerType(LLVMInt8TypeInContext(self_.ctx), 0) {
+      if LLVMTypeOf(value) == LLVMPointerType(ty, 0) {
         return value;
       }
-      let zero = LLVMConstInt(LLVMInt64TypeInContext(self_.ctx), 0, 0);
+      let zero = LLVMConstInt(LLVMInt64TypeInContext(compiler.ctx), 0, 0);
       LLVMBuildGEP2(
-        self_.builder,
+        compiler.builder,
         LLVMGetElementType(LLVMTypeOf(value)),
         value,
         [zero, zero].as_mut_ptr(),
         2,
-        self_.cstring(""),
+        compiler.cstring(""),
       )
     }
   }
@@ -850,8 +870,10 @@ impl Compiler {
   fn compile_type(&mut self, ty: ValueType) -> LLVMTypeRef {
     unsafe {
       match ty {
+        ValueType::Void => LLVMVoidTypeInContext(self.ctx),
         ValueType::Integer => LLVMInt64TypeInContext(self.ctx),
         ValueType::String => LLVMPointerType(LLVMInt8TypeInContext(self.ctx), 0),
+        ValueType::Array(ty, _) => LLVMPointerType(self.compile_type(*ty), 0),
       }
     }
   }
@@ -878,6 +900,9 @@ impl Compiler {
   fn func_get_vars(&mut self, declared: Vec<String>, stmts: &[Stmt]) -> Vec<VarWithName> {
     fn expr_as_var(self_: &mut Compiler, expr: &Expr) -> Vec<VarWithName> {
       let names = match &expr.kind {
+        ExprKind::Array(_, exprs, _) => {
+          exprs.iter().flat_map(|expr| expr_as_var(self_, expr)).map(|(name, _)| name).collect()
+        },
         ExprKind::Identifier(name) => vec![name.to_string()],
         ExprKind::PrefixOp { right, .. } => {
           expr_as_var(self_, right).into_iter().map(|(name, _)| name).collect()
@@ -1072,7 +1097,7 @@ impl Compiler {
           LLVMPositionBuilderAtEnd(self.builder, continue_bb);
         },
         StmtKind::FuncDef { name, args, body, ret_ty } => {
-          let arg_types = args.iter().map(|(_, ty)| *ty).collect::<Vec<_>>();
+          let arg_types = args.iter().map(|(_, ty)| ty.clone()).collect::<Vec<_>>();
           let func_name = func_name(name, &arg_types);
 
           let args_len = args.len();
@@ -1080,18 +1105,19 @@ impl Compiler {
           let local_vars =
             self.func_get_vars(args.iter().map(|(name, _)| name.clone()).collect(), body);
           self.indent_level -= 1;
-          let mut arg_types = arg_types.iter().map(|ty| self.compile_type(*ty)).collect::<Vec<_>>();
+          let mut arg_types =
+            arg_types.iter().map(|ty| self.compile_type(ty.clone())).collect::<Vec<_>>();
           arg_types.extend(local_vars.iter().map(|(_, val)| {
             if val.is_pointer {
-              LLVMPointerType(self.compile_type(val.ty), 0)
+              LLVMPointerType(self.compile_type(val.ty.clone()), 0)
             } else {
-              self.compile_type(val.ty)
+              self.compile_type(val.ty.clone())
             }
           }));
 
           let func_type = LLVMFunctionType(
-            if let Some(ret_type) = ret_ty {
-              self.compile_type(*ret_type)
+            if let Some(ret_type) = ret_ty.clone() {
+              self.compile_type(ret_type)
             } else {
               LLVMVoidTypeInContext(self.ctx)
             },
@@ -1104,7 +1130,7 @@ impl Compiler {
           self.function_descs.declare(
             &func_name,
             self.indent_level,
-            FuncDesc { arg_len: args_len, ret_ty: *ret_ty, local_vars: local_vars.clone() },
+            FuncDesc { arg_len: args_len, ret_ty: ret_ty.clone(), local_vars: local_vars.clone() },
           );
 
           let prev_builder = self.builder;
@@ -1121,7 +1147,7 @@ impl Compiler {
             let arg_ptr = LLVMGetParam(func, i as u32);
             let arg_val = ValueWrapper {
               v: arg_ptr,
-              ty: *ty,
+              ty: ty.clone(),
               can_be_loaded: false,
               is_pointer: false,
               is_runtime: true,
@@ -1132,7 +1158,7 @@ impl Compiler {
             let var_ptr = LLVMGetParam(func, args_len as u32 + i as u32);
             let var_val = ValueWrapper {
               v: var_ptr,
-              ty: var.ty,
+              ty: var.ty.clone(),
               can_be_loaded: var.can_be_loaded,
               is_pointer: true,
               is_runtime: true,
@@ -1188,8 +1214,58 @@ impl Compiler {
         ExprKind::Integer(n) => ValueWrapper::new_integer(self, *n),
         ExprKind::String(s) => ValueWrapper::new_string(self, s),
         ExprKind::Identifier(name) => match self.variables.get(name) {
-          Some(val) => val,
+          Some(val) => val.load(self),
           None => unreachable!("Resolver didn't resolve variable correctly"),
+        },
+        ExprKind::Array(ty, exprs, len) => {
+          let i64_type = LLVMInt64TypeInContext(self.ctx);
+
+          let mut values = Vec::new();
+          if exprs.len() < *len && !exprs.is_empty() {
+            for i in 0..*len {
+              let expr = exprs.get(i % exprs.len()).unwrap();
+              let expr = self.compile_expr(expr);
+              values.push(expr.load(self));
+            }
+          } else {
+            for expr in exprs {
+              let expr = self.compile_expr(expr);
+              values.push(expr.load(self));
+            }
+          }
+
+          let runtime_ty = self.compile_type(ty.clone());
+          let arr = LLVMBuildArrayMalloc(
+            self.builder,
+            runtime_ty,
+            LLVMConstInt(i64_type, *len as u64, 0),
+            self.cstring(""),
+          );
+
+          for (i, val) in values.iter().enumerate() {
+            let gep = LLVMBuildGEP2(
+              self.builder,
+              LLVMGetElementType(LLVMTypeOf(arr)),
+              arr,
+              [LLVMConstInt(i64_type, i as u64, 0)].as_mut_ptr(),
+              1,
+              self.cstring(""),
+            );
+            let v = if val.ty == ValueType::String {
+              utils::gep_string_ptr(self, val.clone())
+            } else {
+              val.v
+            };
+            LLVMBuildStore(self.builder, v, gep);
+          }
+
+          ValueWrapper {
+            v: arr,
+            ty: ValueType::Array(Box::new(ty.clone()), *len),
+            can_be_loaded: false,
+            is_pointer: true,
+            is_runtime: true,
+          }
         },
 
         ExprKind::PrefixOp { op, right } => {
@@ -1221,7 +1297,7 @@ impl Compiler {
         ExprKind::FuncCall { name, params } => {
           let params =
             params.iter().map(|expr| self.compile_expr(expr).load(self)).collect::<Vec<_>>();
-          let param_types = params.iter().map(|val| val.ty).collect::<Vec<_>>();
+          let param_types = params.iter().map(|val| val.ty.clone()).collect::<Vec<_>>();
 
           let func_name = func_name(name, &param_types);
           let FuncDesc { arg_len, ret_ty, local_vars } = match self.function_descs.get(&func_name) {
@@ -1270,6 +1346,11 @@ impl Compiler {
             false if self.ignore_return => ValueWrapper::new_integer(self, 1656),
             false => unreachable!("Function call has no return type"),
           }
+        },
+        ExprKind::Index { array, index } => {
+          let array = self.compile_expr(array);
+          let index = self.compile_expr(index);
+          self.compile_index(array, index).load(self)
         },
       }
     }
@@ -1323,6 +1404,79 @@ impl Compiler {
       TokenKind::Or => ValueWrapper::or(self, left, right),
 
       _ => unreachable!("{op} is not a short circuit operator"),
+    }
+  }
+
+  fn compile_index(&mut self, array: ValueWrapper, index: ValueWrapper) -> ValueWrapper {
+    unsafe {
+      let array_ty = array.ty.clone();
+      let index_ty = index.ty.clone();
+
+      let index = index.load(self);
+
+      match (&array_ty, &index_ty) {
+        (ValueType::Array(ty, _), ValueType::Integer) => {
+          let array_ptr = LLVMBuildGEP2(
+            self.builder,
+            LLVMGetElementType(LLVMTypeOf(array.v)),
+            array.v,
+            [index.v].as_mut_ptr(),
+            1,
+            self.cstring(""),
+          );
+          ValueWrapper {
+            v: array_ptr,
+            ty: *ty.clone(),
+            can_be_loaded: true,
+            is_pointer: true,
+            is_runtime: true,
+          }
+        },
+        (ValueType::String, ValueType::Integer) => {
+          let array_ptr = utils::gep_string_ptr(self, array);
+          let array_ptr = LLVMBuildGEP2(
+            self.builder,
+            LLVMGetElementType(LLVMTypeOf(array_ptr)),
+            array_ptr,
+            [index.v].as_mut_ptr(),
+            1,
+            self.cstring(""),
+          );
+          let array_ptr = LLVMBuildLoad2(
+            self.builder,
+            LLVMGetElementType(LLVMTypeOf(array_ptr)),
+            array_ptr,
+            self.cstring(""),
+          );
+
+          // TODO: allow for slicing of strings
+          let out = self.malloc_str(LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 2, 0));
+          LLVMBuildStore(self.builder, array_ptr, out);
+          let null_ptr = LLVMBuildGEP2(
+            self.builder,
+            LLVMGetElementType(LLVMTypeOf(out)),
+            out,
+            [LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 1, 0)].as_mut_ptr(),
+            1,
+            self.cstring(""),
+          );
+          LLVMBuildStore(
+            self.builder,
+            LLVMConstInt(LLVMInt8TypeInContext(self.ctx), 0, 0),
+            null_ptr,
+          );
+
+          ValueWrapper {
+            v: out,
+            ty: array_ty.clone(),
+            can_be_loaded: false,
+            is_pointer: true,
+            is_runtime: true,
+          }
+        },
+
+        _ => unreachable!("Resolver didn't resolve indexing correctly"),
+      }
     }
   }
 

@@ -29,7 +29,7 @@
           "kind": "bin"
         }
       },
-      "args": ["compile", "${workspaceFolder}/tests/is_truthy.pyr"],
+      "args": ["compile", "${workspaceFolder}/examples/arrays.pyr"],
       "cwd": "${workspaceFolder}"
     },
     {

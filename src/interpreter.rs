@@ -110,12 +110,12 @@ impl Interpreter {
         // Clear return value first
         self.return_value = None;
 
-        let arg_types: Vec<_> = args.iter().map(|(_, ty)| *ty).collect();
+        let arg_types: Vec<_> = args.iter().map(|(_, ty)| ty.clone()).collect();
         let args = args.iter().map(|(arg, _)| arg.clone()).collect();
         self.functions.declare(
           &func_name(name, &arg_types),
           self.indent_level,
-          Function::UserDefined(args, body.to_vec(), *ret_ty),
+          Function::UserDefined(args, body.to_vec(), ret_ty.clone()),
         );
         Ok(())
       },
@@ -140,6 +140,19 @@ impl Interpreter {
       ExprKind::Identifier(name) => match self.variables.get(name) {
         Some(val) => Ok(val),
         None => unreachable!("Resolver didn't resolve variable correctly"),
+      },
+      ExprKind::Array(_, exprs, len) => {
+        let mut values = Vec::new();
+        if exprs.len() < *len && !exprs.is_empty() {
+          for i in 0..*len {
+            values.push(self.interpret_expr(exprs.get(i % exprs.len()).unwrap())?);
+          }
+        } else {
+          for expr in exprs {
+            values.push(self.interpret_expr(expr)?);
+          }
+        }
+        Ok(Literal::Array(values))
       },
 
       ExprKind::PrefixOp { op, right } => {
@@ -210,6 +223,11 @@ impl Interpreter {
           },
         }
       },
+      ExprKind::Index { array, index } => {
+        let array = self.interpret_expr(array)?;
+        let index = self.interpret_expr(index)?;
+        self.interpret_index(array, index)
+      },
     }
   }
 
@@ -274,6 +292,27 @@ impl Interpreter {
       TokenKind::Or => Ok(Literal::Integer(self.interpret_expr(&right)?.is_truthy() as i64)),
 
       _ => unreachable!("{op} is not a short circuit operator"),
+    }
+  }
+
+  fn interpret_index(&self, array: Literal, index: Literal) -> Result<Literal> {
+    match (array, index) {
+      (Literal::Array(array), Literal::Integer(index)) => {
+        if index < 0 || index >= array.len() as i64 {
+          eprintln!("Index out of bounds.");
+          std::process::exit(1);
+        }
+        Ok(array[index as usize].clone())
+      },
+      (Literal::String(string), Literal::Integer(index)) => {
+        if index < 0 || index >= string.len() as i64 {
+          eprintln!("Index out of bounds.");
+          std::process::exit(1);
+        }
+        Ok(Literal::String(string[index as usize..index as usize + 1].to_string()))
+      },
+
+      _ => unreachable!("Resolver didn't resolve indexing correctly"),
     }
   }
 }

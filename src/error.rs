@@ -62,18 +62,26 @@ pub enum RuntimeErrorKind {
   CannotApplyInfix(Expr, TokenKind, Expr),
   #[error("undefined variable `{0}` in the current scope")]
   UndefinedVariable(String),
-  #[error("undefined function `{0}` in the current scope with params of {param_types}", param_types = .1.iter().map(|t| t.to_tok().to_string()).collect::<Vec<_>>().join(", "))]
+  #[error("undefined function `{0}` in the current scope with params of type `{param_types}`", param_types = .1.iter().map(ToString::to_string).collect::<Vec<_>>().join("`, type `"))]
   UndefinedFunctionWithParams(String, Vec<ValueType>),
   #[error("`{0}` returns nothing but is used as an expression")]
   FunctionReturnsNothing(String),
   #[error("`{0}` expects {1} arguments but got {2}")]
   FunctionArgumentCountMismatch(String, usize, usize),
-  #[error("argument of `{0}` at index {1} is of {2} but expects {3}")]
-  FunctionArgumentTypeMismatch(String, usize, TokenKind, TokenKind),
-  #[error("return type of `{0}` is {1} but expects {2}")]
-  ReturnTypeMismatch(String, TokenKind, TokenKind),
+  #[error("argument of `{0}` at index {1} is of type `{2}` but expects type `{3}`")]
+  FunctionArgumentTypeMismatch(String, usize, ValueType, ValueType),
+  #[error("return type of `{0}` is type `{1}` but expects type `{2}`")]
+  ReturnTypeMismatch(String, ValueType, ValueType),
   #[error("return but not inside a function")]
   ReturnOutsideFunction,
+  #[error("array is of type `{1}` but got type `{0}`")]
+  ArrayTypeMismatch(ValueType, ValueType),
+  #[error("type `{0}` cannot be indexed by type `{1}`")]
+  CannotIndexWith(ValueType, ValueType),
+  #[error("array has len {0} but have no values")]
+  ArrayEmptyWithExplicitLen(usize),
+  #[error("array has len {1} but was given {0} values")]
+  ArrayLenMismatch(usize, usize),
 }
 
 #[derive(Debug, PartialEq)]

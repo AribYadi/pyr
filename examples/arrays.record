@@ -1,0 +1,12 @@
+:exitcode 0:
+:stdout 18:
+2
+hello
+world
+h
+e
+
+:end:
+:stderr 0:
+
+:end:

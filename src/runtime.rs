@@ -1,8 +1,5 @@
 use crate::interpreter::Interpreter;
-use crate::parser::syntax::{
-  Stmt,
-  TokenKind,
-};
+use crate::parser::syntax::Stmt;
 
 mod impl_arithmetics;
 
@@ -29,33 +26,30 @@ macro_rules! ignore_return {
   }};
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValueType {
+  Void,
   Integer,
   String,
-}
-
-impl ValueType {
-  pub fn to_tok(self) -> TokenKind {
-    match self {
-      ValueType::Integer => TokenKind::IntType,
-      ValueType::String => TokenKind::StringType,
-    }
-  }
-
-  pub fn to_tok_void(self_: Option<Self>) -> TokenKind {
-    match self_ {
-      Some(v) => v.to_tok(),
-      None => TokenKind::VoidType,
-    }
-  }
+  Array(Box<ValueType>, usize),
 }
 
 impl std::fmt::Display for ValueType {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
+      ValueType::Void => write!(f, "void"),
       ValueType::Integer => write!(f, "int"),
       ValueType::String => write!(f, "string"),
+      ValueType::Array(t, len) => write!(f, "{t}[{len}]"),
+    }
+  }
+}
+
+impl From<ReturnValue<ValueType>> for ValueType {
+  fn from(ret: ReturnValue<ValueType>) -> Self {
+    match ret {
+      Some(v) => v,
+      None => ValueType::Void,
     }
   }
 }
@@ -105,6 +99,7 @@ impl<T: Clone> Variables<T> {
 pub enum Literal {
   String(String),
   Integer(i64),
+  Array(Vec<Literal>),
 }
 
 impl std::fmt::Display for Literal {
@@ -112,6 +107,11 @@ impl std::fmt::Display for Literal {
     match self {
       Literal::String(s) => write!(f, "{s}"),
       Literal::Integer(n) => write!(f, "{n}"),
+      Literal::Array(elems) => write!(
+        f,
+        "{elems}",
+        elems = elems.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
+      ),
     }
   }
 }
@@ -121,13 +121,16 @@ impl Literal {
     match self {
       Literal::Integer(n) => *n == 1,
       Literal::String(s) => !s.is_empty(),
+      Literal::Array(elems) => !elems.is_empty(),
     }
   }
 
   pub fn is_same_variant(&self, other: &Self) -> bool {
     matches!(
       (self, other),
-      (Literal::String(_), Literal::String(_)) | (Literal::Integer(_), Literal::Integer(_))
+      (Literal::String(_), Literal::String(_)) |
+        (Literal::Integer(_), Literal::Integer(_)) |
+        (Literal::Array(_), Literal::Array(_))
     )
   }
 
@@ -135,6 +138,7 @@ impl Literal {
     match self {
       Literal::String(_) => ValueType::String,
       Literal::Integer(_) => ValueType::Integer,
+      Literal::Array(elems) => ValueType::Array(Box::new(elems[0].get_type()), elems.len()),
     }
   }
 }

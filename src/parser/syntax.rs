@@ -148,13 +148,16 @@ pub enum TokenKind {
   LeftParen,
   #[token(")")]
   RightParen,
+  #[token("[")]
+  LeftBracket,
+  #[token("]")]
+  RightBracket,
 
   // Types
   #[token("int")]
   IntType,
   #[token("string")]
   StringType,
-  VoidType,
 
   // Syntax
   #[token(":")]
@@ -163,6 +166,8 @@ pub enum TokenKind {
   Comma,
   #[token("->")]
   Arrow,
+  #[token(";")]
+  Semicolon,
 }
 
 impl std::fmt::Display for TokenKind {
@@ -203,12 +208,14 @@ impl std::fmt::Display for TokenKind {
       TokenKind::Ret => write!(f, "ret"),
       TokenKind::LeftParen => write!(f, "("),
       TokenKind::RightParen => write!(f, ")"),
+      TokenKind::LeftBracket => write!(f, "["),
+      TokenKind::RightBracket => write!(f, "]"),
       TokenKind::IntType => write!(f, "type `int`"),
       TokenKind::StringType => write!(f, "type `string`"),
-      TokenKind::VoidType => write!(f, "type `void`"),
       TokenKind::Colon => write!(f, ":"),
       TokenKind::Comma => write!(f, ","),
       TokenKind::Arrow => write!(f, "->"),
+      TokenKind::Semicolon => write!(f, ";"),
     }
   }
 }
@@ -251,12 +258,14 @@ pub enum ExprKind {
   String(String),
   Integer(i64),
   Identifier(String),
+  Array(ValueType, Vec<Expr>, usize),
 
   PrefixOp { op: TokenKind, right: Box<Expr> },
   InfixOp { op: TokenKind, left: Box<Expr>, right: Box<Expr> },
   ShortCircuitOp { op: TokenKind, left: Box<Expr>, right: Box<Expr> },
   VarAssign { name: String, expr: Box<Expr> },
   FuncCall { name: String, params: Vec<Expr> },
+  Index { array: Box<Expr>, index: Box<Expr> },
 }
 
 #[derive(Debug, Clone)]
@@ -271,6 +280,12 @@ impl std::fmt::Display for Expr {
       ExprKind::String(s) => write!(f, "{s}"),
       ExprKind::Integer(n) => write!(f, "{n}"),
       ExprKind::Identifier(s) => write!(f, "{s}"),
+      ExprKind::Array(ty, elems, len) => write!(
+        f,
+        "{ty}[{elems}{len}]",
+        elems = elems.iter().map(ToString::to_string).collect::<Vec<_>>().join(", "),
+        len = if *len == elems.len() { "".to_string() } else { format!("; {len}") }
+      ),
       ExprKind::PrefixOp { op, right } => write!(f, "{op}{right}"),
       ExprKind::InfixOp { op, left, right } => write!(f, "{left} {op} {right}"),
       ExprKind::ShortCircuitOp { op, left, right } => write!(f, "{left} {op} {right}"),
@@ -280,6 +295,7 @@ impl std::fmt::Display for Expr {
         "{name}({args})",
         args = params.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
       ),
+      ExprKind::Index { array, index } => write!(f, "{array}[{index}]"),
     }
   }
 }

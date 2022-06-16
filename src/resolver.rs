@@ -114,13 +114,13 @@ impl Resolver {
         let mut arg_types = Vec::new();
         self.start_block();
         for (arg, ty) in args {
-          self.variables.declare(arg, self.indent_level, *ty);
-          arg_types.push(*ty);
+          self.variables.declare(arg, self.indent_level, ty.clone());
+          arg_types.push(ty.clone());
         }
         self.functions.declare(
           &func_name(name, &arg_types),
           self.indent_level,
-          (arg_types, *ret_ty),
+          (arg_types, ret_ty.clone()),
         );
 
         let prev_state = self.state;
@@ -132,8 +132,8 @@ impl Resolver {
             return Err(RuntimeError::new(
               RuntimeErrorKind::ReturnTypeMismatch(
                 name.to_string(),
-                ValueType::to_tok_void(self.return_value),
-                ValueType::to_tok_void(*ret_ty),
+                self.return_value.clone().into(),
+                ret_ty.clone().into(),
               ),
               stmt.span.clone(),
             ));
@@ -149,8 +149,8 @@ impl Resolver {
           return Err(RuntimeError::new(
             RuntimeErrorKind::ReturnTypeMismatch(
               name.to_string(),
-              ValueType::to_tok_void(self.return_value),
-              ValueType::to_tok_void(*ret_ty),
+              self.return_value.clone().into(),
+              ret_ty.clone().into(),
             ),
             stmt.span.clone(),
           ));
@@ -186,6 +186,31 @@ impl Resolver {
       ExprKind::Identifier(name) => self.variables.get(name).ok_or_else(|| {
         RuntimeError::new(RuntimeErrorKind::UndefinedVariable(name.to_string()), expr.span.clone())
       }),
+      ExprKind::Array(ty, exprs, len) => {
+        if exprs.is_empty() && *len > 0 {
+          return Err(RuntimeError::new(
+            RuntimeErrorKind::ArrayEmptyWithExplicitLen(*len),
+            expr.span.clone(),
+          ));
+        }
+        if exprs.len() > *len {
+          return Err(RuntimeError::new(
+            RuntimeErrorKind::ArrayLenMismatch(exprs.len(), *len),
+            expr.span.clone(),
+          ));
+        }
+
+        for expr in exprs {
+          let expr_ty = ignore_return!(NEVER_WITH_RET; self, expr, self.resolve_expr(expr)?);
+          if expr_ty != ty.clone() {
+            return Err(RuntimeError::new(
+              RuntimeErrorKind::ArrayTypeMismatch(expr_ty, ty.clone()),
+              expr.span.clone(),
+            ));
+          }
+        }
+        Ok(ValueType::Array(Box::new(ty.clone()), *len))
+      },
 
       ExprKind::PrefixOp { op, right } => self.resolve_prefix_op(op, right),
       ExprKind::InfixOp { op, left, right } => self.resolve_infix_op(op, left, right),
@@ -230,8 +255,8 @@ impl Resolver {
               RuntimeErrorKind::FunctionArgumentTypeMismatch(
                 name.to_string(),
                 i,
-                param_ty.to_tok(),
-                arg_ty.to_tok(),
+                param_ty.clone(),
+                arg_ty,
               ),
               expr.span.clone(),
             ));
@@ -242,6 +267,21 @@ impl Resolver {
           Ok(ValueType::Integer)
         } else {
           Ok(ret_ty.unwrap())
+        }
+      },
+      ExprKind::Index { array, index } => {
+        let array_ty = self.resolve_expr(array)?;
+        let index_ty = self.resolve_expr(index)?;
+
+        // Since indexing is truly a runtime operation, we can't do bounds checking
+
+        match (&array_ty, &index_ty) {
+          (ValueType::Array(ty, _), ValueType::Integer) => Ok(*ty.clone()),
+          (ValueType::String, ValueType::Integer) => Ok(ValueType::String),
+          _ => Err(RuntimeError::new(
+            RuntimeErrorKind::CannotIndexWith(array_ty, index_ty),
+            expr.span.clone(),
+          )),
         }
       },
     }

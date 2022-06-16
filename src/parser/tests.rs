@@ -54,6 +54,13 @@ fn parse_binary_expr() {
         ExprKind::Integer(i) => i.to_string(),
         ExprKind::String(s) => format!("\"{s}\""),
         ExprKind::Identifier(s) => s,
+        ExprKind::Array(ty, exprs, len) => {
+          format!(
+            "{ty}[{exprs}{len}]",
+            len = if len == exprs.len() { "".to_string() } else { format!(" ; {len}") },
+            exprs = exprs.into_iter().map(to_string).collect::<Vec<_>>().join(", "),
+          )
+        },
         ExprKind::PrefixOp { op, right } => format!("({op} {})", to_string(*right)),
         ExprKind::InfixOp { left, op, right } => {
           format!("({} {op} {})", to_string(*left), to_string(*right))
@@ -65,8 +72,11 @@ fn parse_binary_expr() {
         ExprKind::FuncCall { name, params: args } => {
           format!(
             "({name}({args}))",
-            args = args.iter().map(|arg| to_string(arg.clone())).collect::<Vec<_>>().join(", ")
+            args = args.into_iter().map(to_string).collect::<Vec<_>>().join(", ")
           )
+        },
+        ExprKind::Index { array, index } => {
+          format!("({array}[{index}])", array = to_string(*array), index = to_string(*index))
         },
       }
     }

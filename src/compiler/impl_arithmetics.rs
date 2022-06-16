@@ -5,15 +5,15 @@ use super::*;
 macro_rules! impl_arithmetics_for_runtime {
   (
     $compiler:ident, $self:ident, $other:ident;
-    $($pattern:pat => $pattern_out:expr;)*
+    $($pattern:pat $(if $condition:expr)? => $pattern_out:expr;)*
   ) => {
     if $self.is_runtime() || $other.is_runtime() {
       let self_ = $self.load($compiler);
       let other_ = $other.load($compiler);
       #[allow(clippy::redundant_closure_call)]
       #[allow(unreachable_patterns)]
-      match (&self_.ty, &other_.ty) {
-        $($pattern => {
+      match (self_.ty.clone(), other_.ty.clone()) {
+        $($pattern $(if $condition)? => {
           let (v, ty, is_pointer, can_be_loaded) = ($pattern_out)(self_, other_);
           return Self { v, ty, is_pointer, can_be_loaded, is_runtime: true }
         },)*
@@ -29,6 +29,7 @@ impl ValueWrapper {
       impl_arithmetics_for_runtime! {
         compiler, self, other;
         (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| (LLVMBuildAdd(compiler.builder, self_.v, other_.v, compiler.cstring("")), ValueType::Integer, false, true);
+        (ValueType::String, ValueType::Array(_, _)) | (ValueType::Array(_, _), ValueType::String) => |_, _| unreachable!("Resolver didn't type check infix operator `+`");
         (ValueType::String, _) | (_, ValueType::String) => |left: Self, right: Self| {
           let (left, left_len) = utils::runtime_string_of(compiler, left);
           let (right, right_len) = utils::runtime_string_of(compiler, right);
@@ -365,6 +366,25 @@ impl ValueWrapper {
           let v = LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring(""));
           (v, ValueType::Integer, false, true)
         };
+        (ValueType::Array(ty1, len1), ValueType::Array(ty2, len2)) if len1 == len2 && ty1 == ty2 => |_, _| {
+          let ty1 = compiler.compile_type(*ty1.clone());
+          let self_ = utils::gep_array_ptr(compiler, ty1, self);
+          let ty2 = compiler.compile_type(*ty2.clone());
+          let other_ = utils::gep_array_ptr(compiler, ty2, other);
+
+          let (memcmp_func, memcmp_ty) = compiler.get_func("memcmp").unwrap();
+          let match_ = LLVMBuildCall2(
+            compiler.builder,
+            memcmp_ty,
+            memcmp_func,
+            [self_, other_].as_mut_ptr(),
+            2,
+            compiler.cstring(""),
+          );
+          let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntEQ, match_, LLVMConstInt(LLVMInt32TypeInContext(compiler.ctx), 0, 0), compiler.cstring(""));
+          let v = LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring(""));
+          (v, ValueType::Integer, false, true)
+        };
         _ => |_, _| (LLVMConstInt(LLVMInt64TypeInContext(compiler.ctx), 0, 0), ValueType::Integer, false, true);
       };
 
@@ -374,6 +394,9 @@ impl ValueWrapper {
         },
         (ValueType::String, ValueType::String) => {
           Self::new_integer(compiler, (self.get_as_string() == other.get_as_string()) as i64)
+        },
+        (ValueType::Array(_, _), _) | (_, ValueType::Array(_, _)) => {
+          unreachable!("Array are always runtime values")
         },
         _ => Self::new_integer(compiler, 0),
       }
@@ -405,6 +428,25 @@ impl ValueWrapper {
           let v = LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring(""));
           (v, ValueType::Integer, false, true)
         };
+        (ValueType::Array(ty1, len1), ValueType::Array(ty2, len2)) if len1 == len2 && ty1 == ty2 => |_, _| {
+          let ty1 = compiler.compile_type(*ty1.clone());
+          let self_ = utils::gep_array_ptr(compiler, ty1, self);
+          let ty2 = compiler.compile_type(*ty2.clone());
+          let other_ = utils::gep_array_ptr(compiler, ty2, other);
+
+          let (memcmp_func, memcmp_ty) = compiler.get_func("memcmp").unwrap();
+          let match_ = LLVMBuildCall2(
+            compiler.builder,
+            memcmp_ty,
+            memcmp_func,
+            [self_, other_].as_mut_ptr(),
+            2,
+            compiler.cstring(""),
+          );
+          let v = LLVMBuildICmp(compiler.builder, LLVMIntPredicate::LLVMIntNE, match_, LLVMConstInt(LLVMInt32TypeInContext(compiler.ctx), 0, 0), compiler.cstring(""));
+          let v = LLVMBuildIntCast2(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), 0, compiler.cstring(""));
+          (v, ValueType::Integer, false, true)
+        };
         _ => |_, _| (LLVMConstInt(LLVMInt64TypeInContext(compiler.ctx), 1, 0), ValueType::Integer, false, true);
       };
 
@@ -414,6 +456,9 @@ impl ValueWrapper {
         },
         (ValueType::String, ValueType::String) => {
           Self::new_integer(compiler, (self.get_as_string() != other.get_as_string()) as i64)
+        },
+        (ValueType::Array(_, _), _) | (_, ValueType::Array(_, _)) => {
+          unreachable!("Array are always runtime values")
         },
         _ => Self::new_integer(compiler, 1),
       }
@@ -476,12 +521,14 @@ impl ValueWrapper {
       let out_ty = match (&left.ty, &right.ty) {
         (ValueType::Integer, ValueType::Integer) => ValueType::Integer,
         (ValueType::String, ValueType::String) => ValueType::String,
+        (ValueType::Array(ty1, len1), ValueType::Array(ty2, len2))
+          if len1 == len2 && ty1 == ty2 =>
+        {
+          ValueType::Array(Box::new(*ty1.clone()), *len1)
+        },
         _ => ValueType::Integer,
       };
-      let v_ty = match out_ty {
-        ValueType::Integer => i64_type,
-        ValueType::String => LLVMPointerType(LLVMInt8TypeInContext(compiler.ctx), 0),
-      };
+      let v_ty = compiler.compile_type(out_ty.clone());
       let v_value = if left.ty == right.ty {
         let v_value = LLVMBuildPhi(compiler.builder, v_ty, compiler.cstring(""));
         LLVMAddIncoming(
@@ -502,14 +549,18 @@ impl ValueWrapper {
         v_value
       };
 
-      let v = if out_ty == ValueType::String { v_value } else { compiler.malloc(v_value) };
+      let v = if matches!(out_ty, ValueType::String | ValueType::Array(_, _)) {
+        v_value
+      } else {
+        compiler.malloc(v_value)
+      };
 
       Self {
         v,
+        can_be_loaded: matches!(out_ty, ValueType::Integer),
         ty: out_ty,
         is_pointer: true,
         is_runtime: true,
-        can_be_loaded: matches!(out_ty, ValueType::Integer),
       }
     }
   }
@@ -571,12 +622,14 @@ impl ValueWrapper {
       let out_ty = match (&left.ty, &right.ty) {
         (ValueType::Integer, ValueType::Integer) => ValueType::Integer,
         (ValueType::String, ValueType::String) => ValueType::String,
+        (ValueType::Array(ty1, len1), ValueType::Array(ty2, len2))
+          if len1 == len2 && ty1 == ty2 =>
+        {
+          ValueType::Array(Box::new(*ty1.clone()), *len1)
+        },
         _ => ValueType::Integer,
       };
-      let v_ty = match out_ty {
-        ValueType::Integer => i64_type,
-        ValueType::String => LLVMPointerType(LLVMInt8TypeInContext(compiler.ctx), 0),
-      };
+      let v_ty = compiler.compile_type(out_ty.clone());
       let v_value = if left.ty == right.ty {
         let v_value = LLVMBuildPhi(compiler.builder, v_ty, compiler.cstring(""));
         LLVMAddIncoming(
@@ -597,14 +650,18 @@ impl ValueWrapper {
         v_value
       };
 
-      let v = if out_ty == ValueType::String { v_value } else { compiler.malloc(v_value) };
+      let v = if matches!(out_ty, ValueType::String | ValueType::Array(_, _)) {
+        v_value
+      } else {
+        compiler.malloc(v_value)
+      };
 
       Self {
         v,
+        can_be_loaded: matches!(out_ty, ValueType::Integer),
         ty: out_ty,
         is_pointer: true,
         is_runtime: true,
-        can_be_loaded: matches!(out_ty, ValueType::Integer),
       }
     }
   }

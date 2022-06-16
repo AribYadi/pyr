@@ -262,3 +262,64 @@ fn interpret_function() {
   let result = interpret_stmt!("foo(1)\n");
   assert_eq!(result, Ok(()));
 }
+
+#[test]
+fn interpret_array() {
+  let mut resolver = Resolver::new();
+  resolver.define_std();
+  let mut interpreter = Interpreter::new();
+  interpreter.define_std();
+
+  macro_rules! interpret_expr {
+    ($input:expr) => {{
+      let input = $input;
+      let mut parser = Parser::new(&input);
+      let expr = parser.expression().unwrap();
+      if let Err(e) = resolver.resolve_expr(&expr) {
+        Err(e)
+      } else {
+        interpreter.interpret_expr(&expr)
+      }
+    }};
+  }
+
+  let expr = interpret_expr!("int[1, 2, 3]");
+  assert_eq!(
+    expr,
+    Ok(Literal::Array(vec![Literal::Integer(1), Literal::Integer(2), Literal::Integer(3)]))
+  );
+
+  let expr = interpret_expr!("int[1, 2, 3; 9]");
+  assert_eq!(
+    expr,
+    Ok(Literal::Array(vec![
+      Literal::Integer(1),
+      Literal::Integer(2),
+      Literal::Integer(3),
+      Literal::Integer(1),
+      Literal::Integer(2),
+      Literal::Integer(3),
+      Literal::Integer(1),
+      Literal::Integer(2),
+      Literal::Integer(3)
+    ]))
+  );
+
+  let expr = interpret_expr!("int[1, 2, 3; 2]");
+  assert_eq!(expr, Err(RuntimeError::new(RuntimeErrorKind::ArrayLenMismatch(3, 2), 0..1)));
+
+  let expr = interpret_expr!("string[1]");
+  assert_eq!(
+    expr,
+    Err(RuntimeError::new(
+      RuntimeErrorKind::ArrayTypeMismatch(ValueType::Integer, ValueType::String),
+      0..1
+    ))
+  );
+
+  let expr = interpret_expr!("int[1, 2, 3][0]");
+  assert_eq!(expr, Ok(Literal::Integer(1)));
+
+  let expr = interpret_expr!("\"abc\"[0]");
+  assert_eq!(expr, Ok(Literal::String("a".to_string())));
+}

@@ -1,0 +1,11 @@
+print(int[1, 2, 3][1] + "\n") # prints 2
+
+arr = string["hello", "world"]
+print(arr[0] + "\n") # prints hello
+print(arr[1] + "\n") # prints world
+
+str = "hello"
+print(str[0] + "\n") # prints h
+print(str[1] + "\n") # prints e
+
+arr = int[0; 30] # creates an array of 30 elements with value 0
