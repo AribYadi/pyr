@@ -14,6 +14,7 @@ For more information, see [the documentation](https://aribyadi.github.io/pyr/).
   - [Usage](#usage)
   - [Examples](#examples)
   - [Testing](#testing)
+  - [Documentation](#documentation)
   - [Editor Support](#editor-support)
   - [License](#license)
 
@@ -39,9 +40,8 @@ Hello, World!
 To compile the source code, run the following command:
 
 ```bash
-$ pyr compile ./examples/hello.pyr
-$ clang -o hello hello.o
-$ ./hello
+$ pyr compile ./examples/hello.pyr --link
+$ ./examples/hello
 Hello, World!
 ```
 
@@ -66,18 +66,29 @@ For more examples, see the [examples directory](./examples).
 
 ## Testing
 
-To test, you can either do
+To run unit test the source code, run the following command:
 
 ```bash
 cargo test
 ```
 
-or
+To run end-to-end tests, run the following command:
 
 ```bash
-python test.py -d tests
-python test.py -d examples
+./run_tests.py
 ```
+
+## Documentation
+
+For the online documentation, <https://aribyadi.github.io/pyr/>. \
+Or you can build it locally and run it with the following command:
+
+```bash
+cd docs
+mdbook serve --open
+```
+
+Note: To build it locally you need to install [mdbook](https://rust-lang.github.io/mdBook/guide/installation.html).
 
 ## Editor Support
 
