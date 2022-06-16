@@ -98,6 +98,9 @@ fn parse_binary_expr() {
   let expr = parse("2 + 4 % 2");
   check_precedence(expr, "(2 + (4 % 2))");
 
+  let expr = parse("2 >> 2 << 2 & 3 | 4");
+  check_precedence(expr, "((((2 >> 2) << 2) & 3) | 4)");
+
   let expr = parse("1 > 0 < 2");
   assert_eq!(
     expr,

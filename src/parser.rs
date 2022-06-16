@@ -355,7 +355,11 @@ impl Parser<'_> {
         op @ Tok::EqualEqual |
         op @ Tok::BangEqual |
         op @ Tok::Caret |
-        op @ Tok::Percent => {
+        op @ Tok::Percent |
+        op @ Tok::LeftShift |
+        op @ Tok::RightShift |
+        op @ Tok::Ampersand |
+        op @ Tok::Pipe => {
           let (lbp, rbp) = op.infix_bp();
           if lbp < bp {
             break;

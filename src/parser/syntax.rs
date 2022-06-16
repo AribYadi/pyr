@@ -118,6 +118,14 @@ pub enum TokenKind {
   Caret,
   #[token("%")]
   Percent,
+  #[token("<<")]
+  LeftShift,
+  #[token(">>")]
+  RightShift,
+  #[token("&")]
+  Ampersand,
+  #[token("|")]
+  Pipe,
 
   // Keywords
   #[token("if")]
@@ -182,6 +190,10 @@ impl std::fmt::Display for TokenKind {
       TokenKind::BangEqual => write!(f, "!="),
       TokenKind::Caret => write!(f, "^"),
       TokenKind::Percent => write!(f, "%"),
+      TokenKind::LeftShift => write!(f, "<<"),
+      TokenKind::RightShift => write!(f, ">>"),
+      TokenKind::Ampersand => write!(f, "&"),
+      TokenKind::Pipe => write!(f, "|"),
       TokenKind::If => write!(f, "if"),
       TokenKind::Else => write!(f, "else"),
       TokenKind::While => write!(f, "while"),
@@ -218,13 +230,16 @@ impl Operator for TokenKind {
     match self {
       TokenKind::Equal => (2, 1),
       TokenKind::And | TokenKind::Or => (3, 4),
-      TokenKind::EqualEqual | TokenKind::BangEqual => (5, 5),
+      TokenKind::Pipe => (5, 6),
+      TokenKind::Ampersand => (7, 8),
+      TokenKind::EqualEqual | TokenKind::BangEqual => (9, 9),
       TokenKind::Less | TokenKind::Greater | TokenKind::LessEqual | TokenKind::GreaterEqual => {
-        (6, 6)
+        (10, 10)
       },
-      TokenKind::Plus | TokenKind::Minus => (7, 8),
-      TokenKind::Star | TokenKind::Slash | TokenKind::Percent => (9, 10),
-      TokenKind::Caret => (11, 11),
+      TokenKind::LeftShift | TokenKind::RightShift => (11, 12),
+      TokenKind::Plus | TokenKind::Minus => (13, 14),
+      TokenKind::Star | TokenKind::Slash | TokenKind::Percent => (15, 16),
+      TokenKind::Caret => (18, 17),
 
       _ => unreachable!("{self} is not an infix operator"),
     }

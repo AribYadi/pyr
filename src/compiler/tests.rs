@@ -47,10 +47,15 @@ fn compile_expr() {
   assert_eq!(compile("\"hello\" != \"hello\""), "i64 0");
 
   assert_eq!(compile("2 ^ 3"), "i64 8");
-  assert_eq!(compile("-2 ^ 2"), "i64 4");
+  assert_eq!(compile("-2 ^ 2"), "i64 -4");
 
   assert_eq!(compile("3 % 2"), "i64 1");
   assert_eq!(compile("3 % -2"), "i64 1");
+
+  assert_eq!(compile("1 << 2"), "i64 4");
+  assert_eq!(compile("4 >> 1"), "i64 2");
+  assert_eq!(compile("4 & 2"), "i64 0");
+  assert_eq!(compile("4 | 2"), "i64 6");
 }
 
 // Commented out because variables are now pointers

@@ -282,7 +282,11 @@ impl Resolver {
       TokenKind::LessEqual |
       TokenKind::GreaterEqual |
       TokenKind::Caret |
-      TokenKind::Percent
+      TokenKind::Percent |
+      TokenKind::LeftShift |
+      TokenKind::RightShift |
+      TokenKind::Ampersand |
+      TokenKind::Pipe
         if left_type == ValueType::Integer && right_type == ValueType::Integer =>
       {
         Ok(ValueType::Integer)

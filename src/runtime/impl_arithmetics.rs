@@ -1,9 +1,13 @@
 use std::ops::{
   Add,
+  BitAnd,
+  BitOr,
   Div,
   Mul,
   Neg,
   Not,
+  Shl,
+  Shr,
   Sub,
 };
 
@@ -155,6 +159,58 @@ impl Literal {
       (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l % r),
       _ => {
         unreachable!("Resolver didn't type check infix operator `%`");
+      },
+    }
+  }
+}
+
+impl Shl for Literal {
+  type Output = Self;
+
+  fn shl(self, rhs: Self) -> Self::Output {
+    match (self, rhs) {
+      (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l << r),
+      _ => {
+        unreachable!("Resolver didn't type check infix operator `<<`");
+      },
+    }
+  }
+}
+
+impl Shr for Literal {
+  type Output = Self;
+
+  fn shr(self, rhs: Self) -> Self::Output {
+    match (self, rhs) {
+      (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l >> r),
+      _ => {
+        unreachable!("Resolver didn't type check infix operator `>>`");
+      },
+    }
+  }
+}
+
+impl BitAnd for Literal {
+  type Output = Self;
+
+  fn bitand(self, rhs: Self) -> Self::Output {
+    match (self, rhs) {
+      (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l & r),
+      _ => {
+        unreachable!("Resolver didn't type check infix operator `&`");
+      },
+    }
+  }
+}
+
+impl BitOr for Literal {
+  type Output = Self;
+
+  fn bitor(self, rhs: Self) -> Self::Output {
+    match (self, rhs) {
+      (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l | r),
+      _ => {
+        unreachable!("Resolver didn't type check infix operator `|`");
       },
     }
   }

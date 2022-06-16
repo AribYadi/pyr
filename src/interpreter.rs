@@ -236,6 +236,10 @@ impl Interpreter {
       TokenKind::BangEqual => Ok(left.ne(right)),
       TokenKind::Caret => Ok(left.pow(right)),
       TokenKind::Percent => Ok(left.mod_(right)),
+      TokenKind::LeftShift => Ok(left << right),
+      TokenKind::RightShift => Ok(left >> right),
+      TokenKind::Ampersand => Ok(left & right),
+      TokenKind::Pipe => Ok(left | right),
 
       _ => unreachable!("{op} is not an infix operator"),
     }

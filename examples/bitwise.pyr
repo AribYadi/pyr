@@ -1,0 +1,11 @@
+# Left shift
+print(1 << 2) # prints 5
+
+# Right shift
+print(16 >> 2) # prints 4
+
+# Bitwise AND
+print(1 & 2) # prints 0
+
+# Bitwise OR
+print(1 | 2) # prints 3

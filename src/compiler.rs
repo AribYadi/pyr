@@ -375,8 +375,6 @@ impl Compiler {
     {
       let str_format = LLVMGetNamedGlobal(self.module, self.cstring("%%str_format%%"));
       let str_format = utils::gep_string_ptr_raw(self, str_format);
-      let int_format = LLVMGetNamedGlobal(self.module, self.cstring("%%int_format%%"));
-      let int_format = utils::gep_string_ptr_raw(self, int_format);
 
       let void_type = LLVMVoidTypeInContext(self.ctx);
       let i64_type = LLVMInt64TypeInContext(self.ctx);
@@ -421,8 +419,7 @@ impl Compiler {
 
       {
         // Define a function inside llvm
-        let print_int_type =
-          LLVMFunctionType(void_type, [LLVMPointerType(i64_type, 0)].as_mut_ptr(), 1, 0);
+        let print_int_type = LLVMFunctionType(void_type, [i64_type].as_mut_ptr(), 1, 0);
         let print_int_func =
           LLVMAddFunction(self.module, self.cstring("print.int"), print_int_type);
 
@@ -433,7 +430,6 @@ impl Compiler {
         LLVMPositionBuilderAtEnd(builder, entry_bb);
 
         let expr = LLVMGetParam(print_int_func, 0);
-        let expr = LLVMBuildLoad2(builder, i64_type, expr, self.cstring(""));
 
         let orig_len = LLVMBuildCall2(
           builder,
@@ -458,7 +454,7 @@ impl Compiler {
           builder,
           printf_ty,
           printf_func,
-          [int_format, buf].as_mut_ptr(),
+          [str_format, buf].as_mut_ptr(),
           2,
           self.cstring(""),
         );
@@ -1223,7 +1219,8 @@ impl Compiler {
           expr
         },
         ExprKind::FuncCall { name, params } => {
-          let params = params.iter().map(|expr| self.compile_expr(expr)).collect::<Vec<_>>();
+          let params =
+            params.iter().map(|expr| self.compile_expr(expr).load(self)).collect::<Vec<_>>();
           let param_types = params.iter().map(|val| val.ty).collect::<Vec<_>>();
 
           let func_name = func_name(name, &param_types);
@@ -1306,6 +1303,10 @@ impl Compiler {
       TokenKind::BangEqual => left.ne(self, right),
       TokenKind::Caret => left.pow(self, right),
       TokenKind::Percent => left.mod_(self, right),
+      TokenKind::LeftShift => left.shl(self, right),
+      TokenKind::RightShift => left.shr(self, right),
+      TokenKind::Ampersand => left.band(self, right),
+      TokenKind::Pipe => left.bor(self, right),
 
       _ => unreachable!("{op} is not an infix operator"),
     }

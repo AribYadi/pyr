@@ -656,4 +656,84 @@ impl ValueWrapper {
       }
     }
   }
+
+  pub fn shl(self, compiler: &mut Compiler, other: Self) -> Self {
+    unsafe {
+      impl_arithmetics_for_runtime! {
+        compiler, self, other;
+        (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| {
+          let v = LLVMBuildShl(compiler.builder, self_.v, other_.v, compiler.cstring(""));
+          (v, ValueType::Integer, false, false)
+        };
+      };
+
+      match (&self.ty, &other.ty) {
+        (ValueType::Integer, ValueType::Integer) => {
+          Self::new_integer(compiler, self.get_as_integer() << other.get_as_integer())
+        },
+
+        _ => unreachable!("Resolver didn't type check infix operator `<<`"),
+      }
+    }
+  }
+
+  pub fn shr(self, compiler: &mut Compiler, other: Self) -> Self {
+    unsafe {
+      impl_arithmetics_for_runtime! {
+        compiler, self, other;
+        (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| {
+          let v = LLVMBuildAShr(compiler.builder, self_.v, other_.v, compiler.cstring(""));
+          (v, ValueType::Integer, false, false)
+        };
+      };
+
+      match (&self.ty, &other.ty) {
+        (ValueType::Integer, ValueType::Integer) => {
+          Self::new_integer(compiler, self.get_as_integer() >> other.get_as_integer())
+        },
+
+        _ => unreachable!("Resolver didn't type check infix operator `>>`"),
+      }
+    }
+  }
+
+  pub fn band(self, compiler: &mut Compiler, other: Self) -> Self {
+    unsafe {
+      impl_arithmetics_for_runtime! {
+        compiler, self, other;
+        (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| {
+          let v = LLVMBuildAnd(compiler.builder, self_.v, other_.v, compiler.cstring(""));
+          (v, ValueType::Integer, false, false)
+        };
+      };
+
+      match (&self.ty, &other.ty) {
+        (ValueType::Integer, ValueType::Integer) => {
+          Self::new_integer(compiler, self.get_as_integer() & other.get_as_integer())
+        },
+
+        _ => unreachable!("Resolver didn't type check infix operator `&`"),
+      }
+    }
+  }
+
+  pub fn bor(self, compiler: &mut Compiler, other: Self) -> Self {
+    unsafe {
+      impl_arithmetics_for_runtime! {
+        compiler, self, other;
+        (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| {
+          let v = LLVMBuildOr(compiler.builder, self_.v, other_.v, compiler.cstring(""));
+          (v, ValueType::Integer, false, false)
+        };
+      };
+
+      match (&self.ty, &other.ty) {
+        (ValueType::Integer, ValueType::Integer) => {
+          Self::new_integer(compiler, self.get_as_integer() | other.get_as_integer())
+        },
+
+        _ => unreachable!("Resolver didn't type check infix operator `|`"),
+      }
+    }
+  }
 }
