@@ -13,8 +13,8 @@ The following are the precedence levels and associativity of the operators in th
 </thead>
 <tbody data-line="3" class="code-line" dir="auto">
 <tr data-line="2" class="code-line" dir="auto">
-<td data-line="2" class="code-line" dir="auto"><code>()</code></td>
-<td data-line="2" class="code-line" dir="auto">Function Call</td>
+<td data-line="2" class="code-line" dir="auto"><code>()</code>, <code>[]</code></td>
+<td data-line="2" class="code-line" dir="auto">Function Call, Indexing</td>
 <td data-line="2" class="code-line" dir="auto">Not chainable</td>
 <td data-line="2" class="code-line" dir="auto">11</td>
 </tr>
@@ -81,4 +81,4 @@ The following are the precedence levels and associativity of the operators in th
 </tbody>
 </table>
 
-For more information about each of the operators, see [Arithmetic](./arithmetic.md) and [Comparison](./comparison.md).
+For more information about each of the operators, see [Arithmetic](./arithmetic.md), [Comparison](./comparison.md) and [Bitwise](./bitwise.md).

@@ -6,6 +6,7 @@ Pyr currently supports the following literals:
   - [Integer](#integer)
   - [Boolean](#boolean)
   - [String](#string)
+  - [Arrays](#arrays)
 
 ### Integer
 
@@ -39,4 +40,35 @@ Multiline strings are also supported. \
 "Newlines\n"
 ```
 
+You can also index into strings.
+
+```python
+"Hello, World!"[0] # returns "H"
+```
+
 Type: `string`
+
+### Arrays
+
+Arrays in Pyr starts with the types of the elements, followed by the elements delimited with square brackets and separated by commas.
+
+```python
+int[] # returns an empty array of integers
+int[123, 456] # returns an array of integers with two elements
+string["Hello, World!"] # returns an array of strings with one element
+```
+
+When initializing an array, you can specify an element then clone the element by the given length.
+
+```python
+int[0; 30] # returns an array of 30 zeros
+int[1, 2, 3; 10] # returns int[1, 2, 3, 1, 2, 3, 1, 2, 3, 1]
+```
+
+You can index into an array with the index.
+
+```python
+int[1, 2, 3; 10][1] # returns 2
+```
+
+Type: `[type]` where `type` is the type of the elements.
