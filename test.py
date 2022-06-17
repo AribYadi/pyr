@@ -249,6 +249,11 @@ if __name__ == "__main__":
   results = TestResults()
   for entry in os.scandir(TEST_DIR):
     if entry.is_file() and entry.path.endswith(PYR_EXT):
+      with open(entry.path, "rb") as f:
+        if f.readline().strip() == b"### tester-ignore ###":
+          results.skipped += 1
+          continue;
+
       test_file(entry.path, Subcommand.Run, results)
       if not args.update:
         test_file(entry.path, Subcommand.Compile, results)

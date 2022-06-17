@@ -1,2 +1,4 @@
+### tester-ignore ###
+
 arr = int[1]
-print(int[1] + "\n") # Uh oh, arr has length 1, so this will cause an runtime error
+print(arr[1]) # Uh oh, arr has length 1, so this will cause undefined behavior
