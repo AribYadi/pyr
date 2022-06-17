@@ -303,6 +303,13 @@ impl Resolver {
     let left_type = self.resolve_expr(left)?;
     let right_type = self.resolve_expr(right)?;
 
+    if matches!(left_type, ValueType::Array(_, _)) || matches!(right_type, ValueType::Array(_, _)) {
+      return Err(RuntimeError::new(
+        RuntimeErrorKind::CannotApplyInfix(left.clone(), *op, right.clone()),
+        0..0,
+      ));
+    }
+
     match op {
       TokenKind::Plus if left_type == ValueType::String || right_type == ValueType::String => {
         Ok(ValueType::String)

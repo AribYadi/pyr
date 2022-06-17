@@ -107,11 +107,14 @@ impl std::fmt::Display for Literal {
     match self {
       Literal::String(s) => write!(f, "{s}"),
       Literal::Integer(n) => write!(f, "{n}"),
-      Literal::Array(elems) => write!(
-        f,
-        "{elems}",
-        elems = elems.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
-      ),
+
+      // Commented out because in the compiler, we currently don't support arrays
+      // Literal::Array(elems) => write!(
+      //   f,
+      //   "{elems}",
+      //   elems = elems.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
+      // ),
+      Literal::Array(_) => unreachable!("Resolver didn't resolve array to string conversion"),
     }
   }
 }

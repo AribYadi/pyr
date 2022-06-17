@@ -1,0 +1,10 @@
+:exitcode 1:
+:stdout 0:
+
+:end:
+:stderr 174:
+[1;31m[ERR][0m : A runtime error has been found!
+[1;31m[ERR][0m :  -> out_of_bounds.pyr:2:7
+[1;31m[ERR][0m :  -> cannot apply infix operator `+` to `int[1]` and `"\n"`
+
+:end:

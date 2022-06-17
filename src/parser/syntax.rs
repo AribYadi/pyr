@@ -276,7 +276,7 @@ pub struct Expr {
 impl std::fmt::Display for Expr {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match &self.kind {
-      ExprKind::String(s) => write!(f, "{s}"),
+      ExprKind::String(s) => write!(f, "{s:?}"),
       ExprKind::Integer(n) => write!(f, "{n}"),
       ExprKind::Identifier(s) => write!(f, "{s}"),
       ExprKind::Array(ty, elems, len) => write!(

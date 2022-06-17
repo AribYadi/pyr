@@ -56,7 +56,7 @@ impl ParseError {
 pub enum RuntimeErrorKind {
   #[error("cannot apply prefix operator `{1}` using `{0}`")]
   CannotApplyPrefix(Expr, TokenKind),
-  #[error("cannot apply infix operator `{1}` to {0} and {2}")]
+  #[error("cannot apply infix operator `{1}` to `{0}` and `{2}`")]
   CannotApplyInfix(Expr, TokenKind, Expr),
   #[error("undefined variable `{0}` in the current scope")]
   UndefinedVariable(String),

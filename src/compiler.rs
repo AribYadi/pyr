@@ -302,7 +302,9 @@ mod utils {
           (buf, orig_len)
         },
         // TODO: add support for arrays
-        ValueType::Array(_, _) => unreachable!("Arrays are not able to be converted to strings"),
+        ValueType::Array(_, _) => {
+          unreachable!("Resolver didn't resolve array to string conversion")
+        },
       }
     }
   }
