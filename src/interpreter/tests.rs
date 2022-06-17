@@ -306,14 +306,14 @@ fn interpret_array() {
   );
 
   let expr = interpret_expr!("int[1, 2, 3; 2]");
-  assert_eq!(expr, Err(RuntimeError::new(RuntimeErrorKind::ArrayLenMismatch(3, 2), 0..1)));
+  assert_eq!(expr, Err(RuntimeError::new(RuntimeErrorKind::ArrayLenMismatch(3, 2), 0..15)));
 
   let expr = interpret_expr!("string[1]");
   assert_eq!(
     expr,
     Err(RuntimeError::new(
       RuntimeErrorKind::ArrayTypeMismatch(ValueType::Integer, ValueType::String),
-      0..1
+      7..8
     ))
   );
 

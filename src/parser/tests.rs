@@ -79,7 +79,8 @@ fn parse_binary_expr() {
         },
       }
     }
-    assert!(expr.is_ok());
+
+    assert!(expr.is_ok(), "{err:?}", err = expr.unwrap_err());
     assert_eq!(to_string(expr.unwrap()), expected);
   }
 
@@ -103,6 +104,9 @@ fn parse_binary_expr() {
 
   let expr = parse("2 + 4 ^ 2");
   check_precedence(expr, "(2 + (4 ^ 2))");
+
+  let expr = parse("2 ^ 2 ^ 2");
+  check_precedence(expr, "(2 ^ (2 ^ 2))");
 
   let expr = parse("2 + 4 % 2");
   check_precedence(expr, "(2 + (4 % 2))");

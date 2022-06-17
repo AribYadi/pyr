@@ -409,7 +409,8 @@ impl Parser<'_> {
           if lbp < bp {
             break;
           }
-          if lbp == bp || rbp == bp {
+
+          if (lbp == bp || rbp == bp) && lbp <= rbp {
             return Err(ParseError::new(
               ParseErrorKind::InvalidChainOperator(op, last_op),
               self.lexer.span(),
