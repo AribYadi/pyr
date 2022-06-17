@@ -1,0 +1,33 @@
+# This example proves that Pyr is turing complete by simulating Rule 110.
+# To learn more about Rule 110, see:
+#   http://en.wikipedia.org/wiki/Rule_110
+# This example is based on my Rule110 implementation in Rust.
+#   https://gist.github.com/AribYadi/52a4d09eb52f42656bb01cba9255b036
+
+
+BOARD_SIZE=100
+
+board = int[0; 100]
+
+# Initialize initial board state
+board[BOARD_SIZE - 2] = 1
+
+# Run the automaton
+i = 0
+while i < BOARD_SIZE - 2:
+  # Render the board
+  j = 0
+  while j < BOARD_SIZE:
+    print(" #"[board[j]])
+    j = j + 1
+  print("\n")
+  
+  # Generate the next board state
+  pat = (board[0] << 1) | board[1]
+  j = 1
+  while j < BOARD_SIZE - 1:
+    pat = ((pat << 1) & 7) | board[j + 1]
+    board[j] = (110 >> pat) & 1
+    j = j + 1
+  
+  i = i + 1
