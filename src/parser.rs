@@ -390,7 +390,8 @@ impl Parser<'_> {
         op @ Tok::LeftShift |
         op @ Tok::RightShift |
         op @ Tok::Ampersand |
-        op @ Tok::Pipe => {
+        op @ Tok::Pipe |
+        op @ Tok::Equal => {
           let (lbp, rbp) = op.infix_bp();
           if lbp < bp {
             break;
@@ -410,25 +411,6 @@ impl Parser<'_> {
             ExprKind::InfixOp { left: Box::new(lhs), op, right: Box::new(right) },
             span_start..span_end,
           );
-        },
-        op @ Tok::Equal => {
-          if let ExprKind::Identifier(ref name) = lhs.kind {
-            let (lbp, rbp) = op.infix_bp();
-            if lbp < bp {
-              break;
-            }
-
-            self.consume(op)?;
-            let right = self.parse_expr(rbp, op)?;
-            let span_start = lhs.span.start;
-            let span_end = right.span.end;
-            lhs = Expr::new(
-              ExprKind::VarAssign { name: name.to_string(), expr: Box::new(right) },
-              span_start..span_end,
-            );
-          } else {
-            return Err(ParseError::new(ParseErrorKind::InvalidAssignment(lhs.clone()), lhs.span));
-          }
         },
         op @ Tok::And | op @ Tok::Or => {
           let (lbp, rbp) = op.infix_bp();
@@ -452,6 +434,7 @@ impl Parser<'_> {
           );
         },
         op @ Tok::LeftParen => {
+          // TODO: make anything be callable
           if let ExprKind::Identifier(ref name) = lhs.kind {
             self.consume(op)?;
 

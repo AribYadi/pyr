@@ -28,8 +28,6 @@ pub enum ParseErrorKind {
   UnclosedDelimiter(TokenKind),
   #[error("unmatched else statement")]
   UnmatchedElseStatement,
-  #[error("`{0}` cannot be assigned to")]
-  InvalidAssignment(Expr),
   #[error(transparent)]
   Unescape(#[from] snailquote::UnescapeError),
   #[error("unknown token {0:?}")]
@@ -82,6 +80,10 @@ pub enum RuntimeErrorKind {
   ArrayEmptyWithExplicitLen(usize),
   #[error("array has len {1} but was given {0} values")]
   ArrayLenMismatch(usize, usize),
+  #[error("`{0}` is not assignable")]
+  NotAssignable(Expr),
+  #[error("`cannot assign `{0}` with `{1}`")]
+  AssignmentMismatch(Expr, Expr),
 }
 
 #[derive(Debug, PartialEq)]

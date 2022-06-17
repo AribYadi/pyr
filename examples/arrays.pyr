@@ -9,3 +9,9 @@ print(str[0] + "\n") # prints h
 print(str[1] + "\n") # prints e
 
 arr = int[0; 30] # creates an array of 30 elements with value 0
+arr[1] = 256 # sets the second element to 256
+print(arr[1] + "\n") # prints 256
+
+str = "hello"
+str[0] = "cat" # sets the first to third element to "cat"
+print(str) # prints catlo

@@ -160,17 +160,15 @@ impl Interpreter {
         self.interpret_prefix_op(op, right)
       },
       ExprKind::InfixOp { op, left, right } => {
+        if *op == TokenKind::Equal {
+          return self.interpret_assignment(left, right);
+        }
         let left = self.interpret_expr(left)?;
         let right = self.interpret_expr(right)?;
         self.interpret_infix_op(op, left, right)
       },
       ExprKind::ShortCircuitOp { op, left, right } => {
         self.interpret_short_circuit_op(op, *left.clone(), *right.clone())
-      },
-      ExprKind::VarAssign { name, expr } => {
-        let value = self.interpret_expr(expr)?;
-        self.variables.assign_or_declare(name, self.indent_level, value.clone());
-        Ok(value)
       },
       ExprKind::FuncCall { name, params } => {
         let params =
@@ -313,6 +311,51 @@ impl Interpreter {
       },
 
       _ => unreachable!("Resolver didn't resolve indexing correctly"),
+    }
+  }
+
+  fn interpret_assignment(&mut self, left: &Expr, right: &Expr) -> Result<Literal> {
+    let right = self.interpret_expr(right)?;
+
+    match &left.kind {
+      ExprKind::Identifier(name) => {
+        Ok(self.variables.assign_or_declare(name, self.indent_level, right))
+      },
+      ExprKind::Index { array, index } => {
+        if let ExprKind::Identifier(name) = &array.kind {
+          let index = self.interpret_expr(index)?;
+          let array = match self.variables.get_mut(name) {
+            Some(value) => value,
+            None => unreachable!("Resolver didn't resolve indexing correctly"),
+          };
+
+          match (array, index) {
+            (Literal::Array(array), Literal::Integer(index)) => {
+              if index < 0 || index >= array.len() as i64 {
+                eprintln!("Index out of bounds.");
+                std::process::exit(1);
+              }
+              *array.get_mut(index as usize).unwrap() = right.clone();
+            },
+            (Literal::String(string), Literal::Integer(index)) => {
+              if index < 0 || index >= string.len() as i64 {
+                eprintln!("Index out of bounds.");
+                std::process::exit(1);
+              }
+              string.replace_range(
+                index as usize..index as usize + right.to_string().len(),
+                right.to_string().as_str(),
+              );
+            },
+
+            _ => unreachable!("Resolver didn't resolve indexing correctly"),
+          }
+        }
+
+        Ok(right)
+      },
+
+      _ => unreachable!("Resolver didn't resolve assignment correctly"),
     }
   }
 }

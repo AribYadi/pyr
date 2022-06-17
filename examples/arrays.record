@@ -1,11 +1,12 @@
 :exitcode 0:
-:stdout 18:
+:stdout 27:
 2
 hello
 world
 h
 e
-
+256
+catlo
 :end:
 :stderr 0:
 

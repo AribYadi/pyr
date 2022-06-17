@@ -217,10 +217,6 @@ impl Resolver {
       ExprKind::ShortCircuitOp { op, left, right } => {
         self.resolve_short_circuit_op(op, left, right)
       },
-      ExprKind::VarAssign { name, expr } => {
-        let val_type = self.resolve_expr(expr)?;
-        Ok(self.variables.assign_or_declare(name, self.indent_level, val_type))
-      },
       ExprKind::FuncCall { name, params } => {
         let param_types =
           params.iter().map(|expr| self.resolve_expr(expr)).collect::<Result<Vec<_>>>()?;
@@ -300,6 +296,10 @@ impl Resolver {
   }
 
   fn resolve_infix_op(&mut self, op: &TokenKind, left: &Expr, right: &Expr) -> Result<ValueType> {
+    if *op == TokenKind::Equal {
+      return self.resolve_assignment(left, right);
+    }
+
     let left_type = self.resolve_expr(left)?;
     let right_type = self.resolve_expr(right)?;
 
@@ -360,5 +360,33 @@ impl Resolver {
         0..0,
       )),
     }
+  }
+
+  fn resolve_assignment(&mut self, left: &Expr, right: &Expr) -> Result<ValueType> {
+    let right_type = self.resolve_expr(right)?;
+
+    match &left.kind {
+      ExprKind::Identifier(name) => {
+        return Ok(self.variables.assign_or_declare(name, self.indent_level, right_type));
+      },
+      ExprKind::Index { .. } => (),
+      _ => {
+        return Err(RuntimeError::new(
+          RuntimeErrorKind::NotAssignable(left.clone()),
+          left.span.clone(),
+        ))
+      },
+    }
+
+    let left_type = self.resolve_expr(left)?;
+
+    if left_type != right_type {
+      return Err(RuntimeError::new(
+        RuntimeErrorKind::AssignmentMismatch(left.clone(), right.clone()),
+        left.span.clone(),
+      ));
+    }
+
+    Ok(left_type)
   }
 }

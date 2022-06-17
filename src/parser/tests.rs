@@ -68,11 +68,10 @@ fn parse_binary_expr() {
         ExprKind::ShortCircuitOp { op, left, right } => {
           format!("({} {op} {})", to_string(*left), to_string(*right))
         },
-        ExprKind::VarAssign { name, expr } => format!("({} = {})", name, to_string(*expr)),
-        ExprKind::FuncCall { name, params: args } => {
+        ExprKind::FuncCall { name, params } => {
           format!(
-            "({name}({args}))",
-            args = args.into_iter().map(to_string).collect::<Vec<_>>().join(", ")
+            "({name}({params}))",
+            params = params.into_iter().map(to_string).collect::<Vec<_>>().join(", ")
           )
         },
         ExprKind::Index { array, index } => {

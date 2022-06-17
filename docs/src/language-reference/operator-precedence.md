@@ -15,7 +15,7 @@ The following are the precedence levels and associativity of the operators in th
 <tr data-line="2" class="code-line" dir="auto">
 <td data-line="2" class="code-line" dir="auto"><code>()</code>, <code>[]</code></td>
 <td data-line="2" class="code-line" dir="auto">Function Call, Indexing</td>
-<td data-line="2" class="code-line" dir="auto">Not chainable</td>
+<td data-line="2" class="code-line" dir="auto">Left-to-right</td>
 <td data-line="2" class="code-line" dir="auto">11</td>
 </tr>
 <tr data-line="3" class="code-line" dir="auto">

@@ -15,7 +15,7 @@
           "kind": "bin"
         }
       },
-      "args": ["run", "${workspaceFolder}/tests/comments.pyr"],
+      "args": ["run", "${workspaceFolder}/examples/arrays.pyr"],
       "cwd": "${workspaceFolder}"
     },
     {

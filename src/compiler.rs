@@ -586,6 +586,15 @@ impl Compiler {
       );
       let strcmp_func = LLVMAddFunction(self.module, self.cstring("strcmp"), strcmp_type);
       LLVMSetFunctionCallConv(strcmp_func, LLVMCallConv::LLVMCCallConv as u32);
+
+      let memcmp_type = LLVMFunctionType(
+        LLVMInt32TypeInContext(self.ctx),
+        [char_ptr_ty, char_ptr_ty, LLVMInt64TypeInContext(self.ctx)].as_mut_ptr(),
+        3,
+        0,
+      );
+      let memcmp_func = LLVMAddFunction(self.module, self.cstring("memcmp"), memcmp_type);
+      LLVMSetFunctionCallConv(memcmp_func, LLVMCallConv::LLVMCCallConv as u32);
     }
   }
 
@@ -805,6 +814,25 @@ impl Compiler {
       let powi_i64_i64_func =
         LLVMAddFunction(self.module, self.cstring("llvm.powi.i64.i64"), powi_i64_i64_type);
       LLVMSetFunctionCallConv(powi_i64_i64_func, LLVMCallConv::LLVMCCallConv as u32);
+
+      let memcpy_p0i8_p0i8_i64_type = LLVMFunctionType(
+        LLVMVoidTypeInContext(self.ctx),
+        [
+          LLVMPointerType(LLVMInt8TypeInContext(self.ctx), 0),
+          LLVMPointerType(LLVMInt8TypeInContext(self.ctx), 0),
+          i64_type,
+          LLVMInt1TypeInContext(self.ctx),
+        ]
+        .as_mut_ptr(),
+        4,
+        0,
+      );
+      let memcpy_p0i8_p0i8_i64_func = LLVMAddFunction(
+        self.module,
+        self.cstring("llvm.memcpy.p0i8.p0i8.i64"),
+        memcpy_p0i8_p0i8_i64_type,
+      );
+      LLVMSetFunctionCallConv(memcpy_p0i8_p0i8_i64_func, LLVMCallConv::LLVMCCallConv as u32);
     }
   }
 
@@ -916,12 +944,6 @@ impl Compiler {
           let mut out = expr_as_var(self_, left);
           out.extend(expr_as_var(self_, right));
           out.into_iter().map(|(name, _)| name).collect()
-        },
-        ExprKind::VarAssign { name, expr } => {
-          let mut out: Vec<String> =
-            expr_as_var(self_, expr).into_iter().map(|(name, _)| name).collect();
-          out.push(name.to_string());
-          out
         },
         ExprKind::FuncCall { params, .. } => {
           let mut out = vec![];
@@ -1273,26 +1295,15 @@ impl Compiler {
           self.compile_prefix_op(op, right)
         },
         ExprKind::InfixOp { op, left, right } => {
+          if *op == TokenKind::Equal {
+            return self.compile_assignment(left, right);
+          }
           let left = self.compile_expr(left);
           let right = self.compile_expr(right);
           self.compile_infix_op(op, left, right)
         },
         ExprKind::ShortCircuitOp { op, left, right } => {
           self.compile_short_circuit_op(op, left, right)
-        },
-        ExprKind::VarAssign { name, expr } => {
-          let expr = self.compile_expr(expr).load(self);
-          match self.variables.get_mut(&name.clone()) {
-            // Since strings have a variable size, we just overwrite the value
-            Some(val) if val.ty == expr.ty && val.ty != ValueType::String => {
-              LLVMBuildStore(self.builder, expr.v, val.v);
-            },
-            _ => {
-              let new_val = ValueWrapper::new_variable(self, expr.clone());
-              self.variables.assign_or_declare(name, self.indent_level, new_val);
-            },
-          }
-          expr
         },
         ExprKind::FuncCall { name, params } => {
           let params =
@@ -1350,7 +1361,38 @@ impl Compiler {
         ExprKind::Index { array, index } => {
           let array = self.compile_expr(array);
           let index = self.compile_expr(index);
-          self.compile_index(array, index).load(self)
+          let (out, is_array) = self.compile_index(array, index);
+          let mut out = out.load(self);
+
+          if !is_array && out.ty == ValueType::String {
+            out.v = {
+              let array_ptr = LLVMBuildLoad2(
+                self.builder,
+                LLVMGetElementType(LLVMTypeOf(out.v)),
+                out.v,
+                self.cstring(""),
+              );
+
+              let out = self.malloc_str(LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 2, 0));
+              LLVMBuildStore(self.builder, array_ptr, out);
+              let null_ptr = LLVMBuildGEP2(
+                self.builder,
+                LLVMGetElementType(LLVMTypeOf(out)),
+                out,
+                [LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 1, 0)].as_mut_ptr(),
+                1,
+                self.cstring(""),
+              );
+              LLVMBuildStore(
+                self.builder,
+                LLVMConstInt(LLVMInt8TypeInContext(self.ctx), 0, 0),
+                null_ptr,
+              );
+              out
+            };
+          }
+
+          out
         },
       }
     }
@@ -1407,7 +1449,9 @@ impl Compiler {
     }
   }
 
-  fn compile_index(&mut self, array: ValueWrapper, index: ValueWrapper) -> ValueWrapper {
+  //
+  // indexed     is_array
+  fn compile_index(&mut self, array: ValueWrapper, index: ValueWrapper) -> (ValueWrapper, bool) {
     unsafe {
       let array_ty = array.ty.clone();
       let index_ty = index.ty.clone();
@@ -1424,14 +1468,19 @@ impl Compiler {
             1,
             self.cstring(""),
           );
-          ValueWrapper {
-            v: array_ptr,
-            ty: *ty.clone(),
-            can_be_loaded: true,
-            is_pointer: true,
-            is_runtime: true,
-          }
+
+          (
+            ValueWrapper {
+              v: array_ptr,
+              ty: *ty.clone(),
+              can_be_loaded: true,
+              is_pointer: true,
+              is_runtime: true,
+            },
+            true,
+          )
         },
+        // TODO: allow for slicing of strings
         (ValueType::String, ValueType::Integer) => {
           let array_ptr = utils::gep_string_ptr(self, array);
           let array_ptr = LLVMBuildGEP2(
@@ -1442,41 +1491,89 @@ impl Compiler {
             1,
             self.cstring(""),
           );
-          let array_ptr = LLVMBuildLoad2(
-            self.builder,
-            LLVMGetElementType(LLVMTypeOf(array_ptr)),
-            array_ptr,
-            self.cstring(""),
-          );
 
-          // TODO: allow for slicing of strings
-          let out = self.malloc_str(LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 2, 0));
-          LLVMBuildStore(self.builder, array_ptr, out);
-          let null_ptr = LLVMBuildGEP2(
-            self.builder,
-            LLVMGetElementType(LLVMTypeOf(out)),
-            out,
-            [LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 1, 0)].as_mut_ptr(),
-            1,
-            self.cstring(""),
-          );
-          LLVMBuildStore(
-            self.builder,
-            LLVMConstInt(LLVMInt8TypeInContext(self.ctx), 0, 0),
-            null_ptr,
-          );
-
-          ValueWrapper {
-            v: out,
-            ty: array_ty.clone(),
-            can_be_loaded: false,
-            is_pointer: true,
-            is_runtime: true,
-          }
+          (
+            ValueWrapper {
+              v: array_ptr,
+              ty: array_ty.clone(),
+              can_be_loaded: false,
+              is_pointer: true,
+              is_runtime: true,
+            },
+            false,
+          )
         },
 
         _ => unreachable!("Resolver didn't resolve indexing correctly"),
       }
+    }
+  }
+
+  fn compile_assignment(&mut self, left: &Expr, right: &Expr) -> ValueWrapper {
+    unsafe {
+      let right = self.compile_expr(right).load(self).load(self);
+      let right_v = if right.ty == ValueType::String {
+        utils::gep_string_ptr(self, right.clone())
+      } else {
+        right.v
+      };
+
+      match &left.kind {
+        ExprKind::Identifier(name) => {
+          match self.variables.get_mut(&name.clone()) {
+            // Since strings have a variable size, we just overwrite the value
+            Some(val) if val.ty == right.ty && val.ty != ValueType::String => {
+              LLVMBuildStore(self.builder, right_v, val.v);
+            },
+            _ => {
+              let new_val = ValueWrapper::new_variable(self, right.clone());
+              self.variables.assign_or_declare(name, self.indent_level, new_val);
+            },
+          }
+        },
+        ExprKind::Index { array, index } => {
+          let array = self.compile_expr(array);
+          let array_ty = array.ty.clone();
+
+          let index = self.compile_expr(index);
+          let (lhs, _) = self.compile_index(array, index);
+
+          match array_ty {
+            ValueType::Array(_, _) => {
+              LLVMBuildStore(self.builder, right_v, lhs.v);
+            },
+            ValueType::String => {
+              let (memcpy_func, memcmp_ty) = self.get_func("llvm.memcpy.p0i8.p0i8.i64").unwrap();
+              let (strlen_func, strlen_ty) = self.get_func("strlen").unwrap();
+
+              let len = LLVMBuildCall2(
+                self.builder,
+                strlen_ty,
+                strlen_func,
+                [right_v].as_mut_ptr(),
+                1,
+                self.cstring(""),
+              );
+
+              LLVMBuildCall2(
+                self.builder,
+                memcmp_ty,
+                memcpy_func,
+                [lhs.v, right_v, len, LLVMConstInt(LLVMInt1TypeInContext(self.ctx), 0, 0)]
+                  .as_mut_ptr(),
+                4,
+                self.cstring(""),
+              );
+            },
+
+            _ => unreachable!("Resolver didn't resolve indexing correctly"),
+          }
+        },
+
+        _ => unreachable!("Resolver didn't resolve assignment correctly"),
+      }
+
+      right
     }
   }
 

@@ -263,7 +263,6 @@ pub enum ExprKind {
   PrefixOp { op: TokenKind, right: Box<Expr> },
   InfixOp { op: TokenKind, left: Box<Expr>, right: Box<Expr> },
   ShortCircuitOp { op: TokenKind, left: Box<Expr>, right: Box<Expr> },
-  VarAssign { name: String, expr: Box<Expr> },
   FuncCall { name: String, params: Vec<Expr> },
   Index { array: Box<Expr>, index: Box<Expr> },
 }
@@ -289,7 +288,6 @@ impl std::fmt::Display for Expr {
       ExprKind::PrefixOp { op, right } => write!(f, "{op}{right}"),
       ExprKind::InfixOp { op, left, right } => write!(f, "{left} {op} {right}"),
       ExprKind::ShortCircuitOp { op, left, right } => write!(f, "{left} {op} {right}"),
-      ExprKind::VarAssign { name, expr } => write!(f, "{name} = {expr}"),
       ExprKind::FuncCall { name, params } => write!(
         f,
         "{name}({args})",
