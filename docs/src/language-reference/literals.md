@@ -71,5 +71,5 @@ You can index into an array with the index.
 int[1, 2, 3; 10][1] # returns 2
 ```
 
-Type: `[type]` where `type` is the type of the elements. \
+Type: `[type; len]` where `type` is the type of the elements and `len` is the length of the array. \
 Note: Currently, arrays cannot be converted to strings.
