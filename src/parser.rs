@@ -81,6 +81,19 @@ impl Parser<'_> {
     match self.next() {
       Tok::IntType => Ok(ValueType::Integer),
       Tok::StringType => Ok(ValueType::String),
+      Tok::LeftBracket => {
+        let ty = self.consume_type()?;
+
+        self.consume(Tok::Semicolon)?;
+        let lexeme = self.lexeme();
+        self.consume(Tok::Integer)?;
+
+        self.consume_delimiter(Tok::RightBracket)?;
+
+        let len = lexeme.parse().unwrap();
+
+        Ok(ValueType::Array(Box::new(ty), len))
+      },
 
       _ => Err(ParseError::new(ParseErrorKind::ExpectedType(self.curr), self.lexer.span())),
     }
