@@ -166,6 +166,7 @@ clang foo.o -o foo
 <li><a href="language-reference/literals.html#integer">Integer</a></li>
 <li><a href="language-reference/literals.html#boolean">Boolean</a></li>
 <li><a href="language-reference/literals.html#string">String</a></li>
+<li><a href="language-reference/literals.html#arrays">Arrays</a></li>
 </ul>
 </li>
 </ul>
@@ -187,7 +188,25 @@ Multiline strings are also supported. </p>
 <pre><code class="language-python">&quot;Hello, World!&quot;
 &quot;Newlines\n&quot;
 </code></pre>
+<p>You can also index into strings.</p>
+<pre><code class="language-python">&quot;Hello, World!&quot;[0] # returns &quot;H&quot;
+</code></pre>
 <p>Type: <code>string</code></p>
+<h3 id="arrays"><a class="header" href="#arrays">Arrays</a></h3>
+<p>Arrays in Pyr starts with the types of the elements, followed by the elements delimited with square brackets and separated by commas.</p>
+<pre><code class="language-python">int[] # returns an empty array of integers
+int[123, 456] # returns an array of integers with two elements
+string[&quot;Hello, World!&quot;] # returns an array of strings with one element
+</code></pre>
+<p>When initializing an array, you can specify an element then clone the element by the given length.</p>
+<pre><code class="language-python">int[0; 30] # returns an array of 30 zeros
+int[1, 2, 3; 10] # returns int[1, 2, 3, 1, 2, 3, 1, 2, 3, 1]
+</code></pre>
+<p>You can index into an array with the index.</p>
+<pre><code class="language-python">int[1, 2, 3; 10][1] # returns 2
+</code></pre>
+<p>Type: <code>[type; len]</code> where <code>type</code> is the type of the elements and <code>len</code> is the length of the array. <br />
+Note: Currently, arrays cannot be converted to strings.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="keywords"><a class="header" href="#keywords">Keywords</a></h2>
 <p>Keywords in Pyr are as follows:</p>
 <ul>
@@ -408,9 +427,9 @@ a | b # 00000111 or 7
 </thead>
 <tbody data-line="3" class="code-line" dir="auto">
 <tr data-line="2" class="code-line" dir="auto">
-<td data-line="2" class="code-line" dir="auto"><code>()</code></td>
-<td data-line="2" class="code-line" dir="auto">Function Call</td>
-<td data-line="2" class="code-line" dir="auto">Not chainable</td>
+<td data-line="2" class="code-line" dir="auto"><code>()</code>, <code>[]</code></td>
+<td data-line="2" class="code-line" dir="auto">Function Call, Indexing</td>
+<td data-line="2" class="code-line" dir="auto">Left-to-right</td>
 <td data-line="2" class="code-line" dir="auto">11</td>
 </tr>
 <tr data-line="3" class="code-line" dir="auto">
@@ -475,7 +494,7 @@ a | b # 00000111 or 7
 </tr>
 </tbody>
 </table>
-<p>For more information about each of the operators, see <a href="language-reference/./arithmetic.html">Arithmetic</a> and <a href="language-reference/./comparison.html">Comparison</a>.</p>
+<p>For more information about each of the operators, see <a href="language-reference/./arithmetic.html">Arithmetic</a>, <a href="language-reference/./comparison.html">Comparison</a> and <a href="language-reference/./bitwise.html">Bitwise</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="variable"><a class="header" href="#variable">Variable</a></h2>
 <p>Declaration and assignment in Pyr use the same syntax.</p>
 <pre><code class="language-python">foo = &quot;bar&quot;
