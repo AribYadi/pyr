@@ -14,6 +14,7 @@ For more information, see [the documentation](https://aribyadi.github.io/pyr/).
   - [Usage](#usage)
   - [Examples](#examples)
   - [Testing](#testing)
+  - [Turing Completeness](#turing-completeness)
   - [Documentation](#documentation)
   - [Editor Support](#editor-support)
   - [License](#license)
@@ -77,6 +78,10 @@ To run end-to-end tests, run the following command:
 ```bash
 ./run_tests.py
 ```
+
+## Turing Completeness
+
+We have proved a [Turing Completeness](https://en.wikipedia.org/wiki/Turing_completeness) for Pyr by implementing [Rule 110](https://en.wikipedia.org/wiki/Rule_110) which you can see [here](./examples/rule110.pyr).
 
 ## Documentation
 

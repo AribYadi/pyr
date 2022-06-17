@@ -32,6 +32,10 @@ pyr compile foo.pyr
 clang foo.o -o foo
 ```
 
+## Turing Completeness
+
+We have proved a [Turing Completeness](https://en.wikipedia.org/wiki/Turing_completeness) for Pyr by implementing [Rule 110](https://en.wikipedia.org/wiki/Rule_110) which you can see [here](./examples/rule110.pyr).
+
 ## License
 
 Pyr is under the license of [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0).
