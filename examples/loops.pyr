@@ -10,3 +10,12 @@ while true:
   print(i + "\n")
   i = i - 1
   if i == -1: break
+
+print("\n-----------------------------------------------------\n\n")
+
+while true:
+  while true:
+    print("Break 1\n")
+    break
+  print("Break 2\n")
+  break

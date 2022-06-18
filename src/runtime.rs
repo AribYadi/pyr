@@ -37,18 +37,15 @@ pub enum State {
 pub struct StateStack {
   pub stack: Vec<State>,
   pub last_rewind: Option<State>,
-  pub last_last_rewind: Option<State>,
 }
 
 impl StateStack {
-  pub fn new() -> Self {
-    Self { stack: vec![State::TopLevel], last_rewind: None, last_last_rewind: None }
-  }
+  pub fn new() -> Self { Self { stack: vec![State::TopLevel], last_rewind: None } }
 
   pub fn push(&mut self, state: State) { self.stack.push(state); }
 
   pub fn pop(&mut self, state: State) {
-    if self.last_rewind == Some(state) {
+    if self.last_rewind != Some(state) {
       self.stack.pop();
     }
     self.last_rewind = None;
@@ -57,10 +54,9 @@ impl StateStack {
   pub fn contains(&self, state: State) -> bool { self.stack.contains(&state) }
 
   pub fn pop_until(&mut self, state: State) {
-    while self.stack.last().unwrap() != &state {
+    while self.stack.last() != Some(&state) {
       self.stack.pop();
     }
-    self.last_last_rewind = self.last_rewind;
     self.last_rewind = self.stack.pop();
   }
 }

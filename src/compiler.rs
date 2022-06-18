@@ -1097,6 +1097,7 @@ impl Compiler {
             LLVMAppendBasicBlockInContext(self.ctx, self.curr_func, self.cstring("loop"));
           let continue_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("continue"));
 
+          let prev_break_label = self.break_label;
           self.break_label = Some(continue_bb);
 
           LLVMBuildCondBr(self.builder, loop_cond, loop_bb, continue_bb);
@@ -1119,7 +1120,7 @@ impl Compiler {
           );
           self.end_block();
 
-          self.break_label = None;
+          self.break_label = prev_break_label;
 
           LLVMBuildCondBr(self.builder, loop_cond, loop_bb, continue_bb);
 

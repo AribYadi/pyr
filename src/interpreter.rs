@@ -101,11 +101,11 @@ impl Interpreter {
         self.start_block();
 
         self.state_stack.push(State::Loop);
-        while condition_lit.is_truthy() {
-          if self.state_stack.last_rewind == Some(State::Loop) {
-            break;
-          }
+        'while_loop: while condition_lit.is_truthy() {
           for stmt in body {
+            if self.state_stack.last_rewind == Some(State::Loop) {
+              break 'while_loop;
+            }
             self.interpret_stmt(stmt)?;
           }
           condition_lit =
