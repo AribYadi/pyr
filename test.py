@@ -235,6 +235,21 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
       print(f"  stderr: {test_case.stderr}", file = sys.stderr)
       results.failed += 1
 
+def run_on_dir(dir_path: str, results: TestResults):
+  for root, dirs, files in os.walk(dir_path):
+    for file in filter(lambda path: path.endswith(".pyr"), files):
+      path = os.path.join(root, file)
+      with open(path, "rb") as f:
+        if f.readline().strip() == b"### tester-ignore ###":
+          results.skipped += 1
+          continue;
+      if file.endswith(PYR_EXT):
+        test_file(path, Subcommand.Run, results)
+      if not args.update:
+        test_file(path, Subcommand.Compile, results)
+    for dir in dirs:
+      run_on_dir(os.path.join(root, dir), results)
+
 if __name__ == "__main__":
   if args.debug and (not exe_exist(PYR_DEBUG_BINARY) or args.always_build):
     print(f"\x1b[2;96m[INFO]\x1b[0m: Building `{relative_path(PYR_DEBUG_BINARY)}`..")
@@ -247,16 +262,7 @@ if __name__ == "__main__":
 
   os.chdir(BASE_DIR)
   results = TestResults()
-  for entry in os.scandir(TEST_DIR):
-    if entry.is_file() and entry.path.endswith(PYR_EXT):
-      with open(entry.path, "rb") as f:
-        if f.readline().strip() == b"### tester-ignore ###":
-          results.skipped += 1
-          continue;
-
-      test_file(entry.path, Subcommand.Run, results)
-      if not args.update:
-        test_file(entry.path, Subcommand.Compile, results)
+  run_on_dir(args.dir, results)
 
   if args.update:
     print()
@@ -269,7 +275,10 @@ if __name__ == "__main__":
     print(f"\x1b[2;96m[INFO]\x1b[0m: {results.failed} failed.")
     print(f"\x1b[2;96m[INFO]\x1b[0m: {results.skipped} skipped.")
     for file in results.to_be_deleted:
-      os.remove(file)
+      try:
+        os.remove(file)
+      except FileNotFoundError:
+        pass
 
   if results.failed > 0:
     exit(1)
