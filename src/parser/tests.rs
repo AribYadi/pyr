@@ -302,6 +302,20 @@ fn parse_stmt() {
     }))
   );
 
+  let stmt = parse(&unindent(
+    "
+    while true:
+    \tbreak
+    ",
+  ));
+  assert_eq!(
+    stmt,
+    Ok(Stmt::new_without_span(StmtKind::While {
+      condition: Expr::new_without_span(ExprKind::Integer(1)),
+      body: vec![Stmt::new_without_span(StmtKind::Break),],
+    }))
+  );
+
   let stmt = parse("if 1: 1 + 2\n");
   assert_eq!(
     stmt,

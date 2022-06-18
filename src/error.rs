@@ -84,6 +84,8 @@ pub enum RuntimeErrorKind {
   NotAssignable(Expr),
   #[error("`cannot assign `{0}` with `{1}`")]
   AssignmentMismatch(Expr, Expr),
+  #[error("break but not inside a loop")]
+  BreakOutsideLoop,
 }
 
 #[derive(Debug, PartialEq)]

@@ -26,6 +26,45 @@ macro_rules! ignore_return {
   }};
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum State {
+  TopLevel,
+  Function,
+  Loop,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StateStack {
+  pub stack: Vec<State>,
+  pub last_rewind: Option<State>,
+  pub last_last_rewind: Option<State>,
+}
+
+impl StateStack {
+  pub fn new() -> Self {
+    Self { stack: vec![State::TopLevel], last_rewind: None, last_last_rewind: None }
+  }
+
+  pub fn push(&mut self, state: State) { self.stack.push(state); }
+
+  pub fn pop(&mut self, state: State) {
+    if self.last_rewind == Some(state) {
+      self.stack.pop();
+    }
+    self.last_rewind = None;
+  }
+
+  pub fn contains(&self, state: State) -> bool { self.stack.contains(&state) }
+
+  pub fn pop_until(&mut self, state: State) {
+    while self.stack.last().unwrap() != &state {
+      self.stack.pop();
+    }
+    self.last_last_rewind = self.last_rewind;
+    self.last_rewind = self.stack.pop();
+  }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValueType {
   Void,

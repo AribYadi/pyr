@@ -2,3 +2,11 @@ i = 0
 while i < 10: # executes the body 10 times
   print(i + "\n")
   i = i + 1
+
+print("\n-----------------------------------------------------\n\n")
+
+i = 5
+while true:
+  print(i + "\n")
+  i = i - 1
+  if i == -1: break

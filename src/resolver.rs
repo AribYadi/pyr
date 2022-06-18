@@ -15,15 +15,11 @@ use crate::runtime::{
   func_name,
   IndentLevel,
   ReturnValue,
+  State,
+  StateStack,
   ValueType,
   Variables,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum State {
-  TopLevel,
-  Function,
-}
 
 // Resolves variables, functions, and type checks before interpreting.
 pub struct Resolver {
@@ -36,7 +32,7 @@ pub struct Resolver {
   ignore_return: bool,
   return_value: ReturnValue<ValueType>,
 
-  state: State,
+  state_stack: StateStack,
 }
 
 impl Resolver {
@@ -52,7 +48,7 @@ impl Resolver {
       indent_level: 0,
       ignore_return: false,
       return_value: None,
-      state: State::TopLevel,
+      state_stack: StateStack::new(),
     }
   }
 
@@ -101,10 +97,15 @@ impl Resolver {
       },
       StmtKind::While { condition, body } => {
         ignore_return!(NEVER; self, condition, self.resolve_expr(condition)?);
+
         self.start_block();
+
+        self.state_stack.push(State::Loop);
         for stmt in body {
           self.resolve_stmt(stmt)?;
         }
+        self.state_stack.pop(State::Loop);
+
         self.end_block();
       },
       StmtKind::FuncDef { name, args, body, ret_ty } => {
@@ -123,8 +124,7 @@ impl Resolver {
           (arg_types, ret_ty.clone()),
         );
 
-        let prev_state = self.state;
-        self.state = State::Function;
+        self.state_stack.push(State::Function);
 
         for stmt in body {
           // Check if return value is some and if it is match it to the return type.
@@ -142,7 +142,7 @@ impl Resolver {
           self.resolve_stmt(stmt)?;
         }
 
-        self.state = prev_state;
+        self.state_stack.pop(State::Function);
 
         // Check again if return value is of the correct type
         if self.return_value != *ret_ty {
@@ -156,10 +156,12 @@ impl Resolver {
           ));
         }
 
+        self.return_value = None;
+
         self.end_block();
       },
       StmtKind::Ret { expr } => {
-        if self.state != State::Function {
+        if !self.state_stack.contains(State::Function) {
           return Err(RuntimeError::new(
             RuntimeErrorKind::ReturnOutsideFunction,
             stmt.span.clone(),
@@ -173,6 +175,11 @@ impl Resolver {
         }
 
         self.return_value = None;
+      },
+      StmtKind::Break => {
+        if !self.state_stack.contains(State::Loop) {
+          return Err(RuntimeError::new(RuntimeErrorKind::BreakOutsideLoop, stmt.span.clone()));
+        }
       },
     }
 

@@ -242,6 +242,16 @@ impl Parser<'_> {
 
         Ok(Stmt::new(StmtKind::Ret { expr }, span_start..span_end))
       },
+      Tok::Break => {
+        let span_start = self.lexer.span().start;
+
+        self.consume(Tok::Break)?;
+        self.consume(Tok::Newline)?;
+
+        let span_end = self.lexer.span().end;
+
+        Ok(Stmt::new(StmtKind::Break, span_start..span_end))
+      },
 
       // Ignore any lone block
       ws @ Tok::Indent | ws @ Tok::Newline => {

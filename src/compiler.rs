@@ -389,6 +389,7 @@ pub struct Compiler {
 
   // Since functions can return nothing, we need to track whether are we ignoring the return value.
   ignore_return: bool,
+  break_label: Option<LLVMBasicBlockRef>,
 }
 
 impl Compiler {
@@ -530,6 +531,7 @@ impl Compiler {
       // main_func: func,
       curr_func: func,
       ignore_return: false,
+      break_label: None,
     };
 
     self_.funcs.push(func);
@@ -1095,6 +1097,8 @@ impl Compiler {
             LLVMAppendBasicBlockInContext(self.ctx, self.curr_func, self.cstring("loop"));
           let continue_bb = LLVMCreateBasicBlockInContext(self.ctx, self.cstring("continue"));
 
+          self.break_label = Some(continue_bb);
+
           LLVMBuildCondBr(self.builder, loop_cond, loop_bb, continue_bb);
           LLVMPositionBuilderAtEnd(self.builder, loop_bb);
 
@@ -1114,6 +1118,8 @@ impl Compiler {
             self.cstring(""),
           );
           self.end_block();
+
+          self.break_label = None;
 
           LLVMBuildCondBr(self.builder, loop_cond, loop_bb, continue_bb);
 
@@ -1227,6 +1233,14 @@ impl Compiler {
           }
 
           LLVMPositionBuilderAtEnd(self.builder, unused_bb);
+        },
+        StmtKind::Break => {
+          if let Some(break_label) = self.break_label {
+            LLVMBuildBr(self.builder, break_label);
+            LLVMPositionBuilderAtEnd(self.builder, self.get_unused_bb());
+          } else {
+            unreachable!("Resolver didn't catch break stmt outside of loop");
+          }
         },
       }
     }

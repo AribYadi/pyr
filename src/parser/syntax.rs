@@ -142,6 +142,8 @@ pub enum TokenKind {
   Func,
   #[token("ret")]
   Ret,
+  #[token("break")]
+  Break,
 
   // Delimiters
   #[token("(")]
@@ -206,6 +208,7 @@ impl std::fmt::Display for TokenKind {
       TokenKind::Or => write!(f, "or"),
       TokenKind::Func => write!(f, "func"),
       TokenKind::Ret => write!(f, "ret"),
+      TokenKind::Break => write!(f, "break"),
       TokenKind::LeftParen => write!(f, "("),
       TokenKind::RightParen => write!(f, ")"),
       TokenKind::LeftBracket => write!(f, "["),
@@ -332,6 +335,7 @@ pub enum StmtKind {
   Ret {
     expr: Option<Expr>,
   },
+  Break,
 }
 
 #[derive(Debug, Clone)]

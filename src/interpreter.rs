@@ -17,6 +17,8 @@ use crate::runtime::{
   Literal,
   Params,
   ReturnValue,
+  State,
+  StateStack,
   Variables,
 };
 
@@ -30,7 +32,8 @@ pub struct Interpreter {
   // Since functions can return nothing, we need to track whether are we ignoring the return value.
   ignore_return: bool,
   return_value: ReturnValue<Literal>,
-  return_: bool,
+
+  state_stack: StateStack,
 }
 
 impl Interpreter {
@@ -52,7 +55,7 @@ impl Interpreter {
       indent_level: 0,
       ignore_return: false,
       return_value: None,
-      return_: false,
+      state_stack: StateStack::new(),
     }
   }
 
@@ -95,15 +98,22 @@ impl Interpreter {
       StmtKind::While { condition, body } => {
         let mut condition_lit =
           ignore_return!(NEVER_WITH_RET; self, condition, self.interpret_expr(condition)?);
+        self.start_block();
+
+        self.state_stack.push(State::Loop);
         while condition_lit.is_truthy() {
-          self.start_block();
+          if self.state_stack.last_rewind == Some(State::Loop) {
+            break;
+          }
           for stmt in body {
             self.interpret_stmt(stmt)?;
           }
           condition_lit =
             ignore_return!(NEVER_WITH_RET; self, condition, self.interpret_expr(condition)?);
-          self.end_block();
         }
+        self.state_stack.pop(State::Loop);
+
+        self.end_block();
         Ok(())
       },
       StmtKind::FuncDef { name, args, body, ret_ty } => {
@@ -120,6 +130,10 @@ impl Interpreter {
         Ok(())
       },
       StmtKind::Ret { expr } => {
+        if !self.state_stack.contains(State::Function) {
+          unreachable!("Resolver didn't catch return outside of function");
+        }
+
         if let Some(expr) = expr {
           self.return_value =
             Some(ignore_return!(NEVER_WITH_RET; self, expr, self.interpret_expr(expr)?));
@@ -127,7 +141,15 @@ impl Interpreter {
           self.return_value = None;
         }
 
-        self.return_ = true;
+        self.state_stack.pop_until(State::Function);
+        Ok(())
+      },
+      StmtKind::Break => {
+        if !self.state_stack.contains(State::Loop) {
+          unreachable!("Resolver didn't catch break outside of loop");
+        }
+
+        self.state_stack.pop_until(State::Loop);
         Ok(())
       },
     }
@@ -196,22 +218,24 @@ impl Interpreter {
             }
 
             self.start_block();
+            self.state_stack.push(State::Function);
             for (arg, param) in args.iter().zip(params) {
               self.variables.declare(arg, self.indent_level, param);
             }
 
             for stmt in body {
-              if self.return_ {
+              if self.state_stack.last_rewind == Some(State::Function) {
                 break;
               }
               self.interpret_stmt(&stmt)?;
             }
+
+            self.state_stack.pop(State::Function);
             self.end_block();
 
             let return_value = self.return_value.clone();
 
             self.return_value = None;
-            self.return_ = false;
 
             match return_value {
               Some(value) => Ok(value),
