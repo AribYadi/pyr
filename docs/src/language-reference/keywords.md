@@ -9,6 +9,8 @@ Keywords in Pyr are as follows:
   - [`and`](#and)
   - [`or`](#or)
   - [`func`](#func)
+  - [`ret`](#ret)
+  - [`break`](#break)
 
 ### `if`
 
@@ -84,4 +86,25 @@ For more information, see [Functions](./functions.md).
 ```python
 func square(x: int):
   print(x * x)
+```
+
+### `ret`
+
+`ret` returns a value and breaks out of the function.
+
+```python
+func square(x: int) -> int:
+  ret x * x
+
+print(square(2)) # prints 4
+```
+
+### `break`
+
+`break` breaks out of the current loop.
+
+```python
+while true:
+  print("hello")
+  break
 ```
