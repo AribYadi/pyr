@@ -1,0 +1,17 @@
+### tester-ignore ###
+# We are ignoring this problem because it takes a long time to run and in ci, that's not a necessarily good thing.
+# Once we optimize Pyr, we will be able to run this problem.
+
+n = 600851475143
+
+largest_prime_factor = 2
+
+i = 2
+while n > 1:
+  if n % i == 0:
+    n = n / i
+    largest_prime_factor = i
+  else:
+    i = i + 1
+
+print("Answer is: " + largest_prime_factor + "\n")

@@ -1,0 +1,20 @@
+### tester-ignore ###
+# We are ignoring this problem because it takes a long time to run and in ci, that's not a necessarily good thing.
+# Once we optimize Pyr, we will be able to run this problem.
+
+START=1
+END=20
+
+i = 1
+while true:
+  is_divisible = true
+  j = END
+  while j > START:
+    if i % j != 0:
+      is_divisible = false
+      break
+    j = j - 1
+  if is_divisible:
+    print("Answer is: " + i + "\n")
+    break
+  i = i + 1

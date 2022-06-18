@@ -1,0 +1,15 @@
+MAX=4000000
+
+sum = 0
+
+tmp = 0
+prev = 1
+curr = 2
+
+while curr < MAX:
+  if curr % 2 == 0: sum = sum + curr
+  tmp = curr + prev
+  prev = curr
+  curr = tmp
+
+print("Answer is: " + sum + "\n")

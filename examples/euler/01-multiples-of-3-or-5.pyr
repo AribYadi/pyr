@@ -1,0 +1,10 @@
+N=1000
+
+sum = 0
+
+i = 3
+while i < N:
+  if i % 3 + i % 5 == 0: sum = sum + i
+  i = i + 1
+
+print("Answer is: " + sum + "\n")

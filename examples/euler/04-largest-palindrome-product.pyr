@@ -1,0 +1,28 @@
+### tester-ignore ###
+# We are ignoring this problem because it takes a long time to run and in ci, that's not a necessarily good thing.
+# Once we optimize Pyr, we will be able to run this problem.
+
+START=100
+END=999
+
+func rev(orig_n: int) -> int:
+  n = orig_n
+  rev = 0
+  while n > 0:
+    rev = rev * 10 + n % 10
+    n = n / 10
+  ret rev
+
+largest_palindrome_product = 0
+
+i = START
+while i <= END:
+  j = START
+  while j <= END:
+    product = i * j
+    if product == rev(product) and product > largest_palindrome_product:
+      largest_palindrome_product = product
+    j = j + 1
+  i = i + 1
+
+print("Answer is: " + largest_palindrome_product + "\n")
