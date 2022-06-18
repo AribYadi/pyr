@@ -220,6 +220,8 @@ Note: Currently, arrays cannot be converted to strings.</p>
 <li><a href="language-reference/keywords.html#and"><code>and</code></a></li>
 <li><a href="language-reference/keywords.html#or"><code>or</code></a></li>
 <li><a href="language-reference/keywords.html#func"><code>func</code></a></li>
+<li><a href="language-reference/keywords.html#ret"><code>ret</code></a></li>
+<li><a href="language-reference/keywords.html#break"><code>break</code></a></li>
 </ul>
 </li>
 </ul>
@@ -271,6 +273,19 @@ while i &lt; 10: # Executes its body 10 times
 For more information, see <a href="language-reference/./functions.html">Functions</a>.</p>
 <pre><code class="language-python">func square(x: int):
   print(x * x)
+</code></pre>
+<h3 id="ret"><a class="header" href="#ret"><code>ret</code></a></h3>
+<p><code>ret</code> returns a value and breaks out of the function.</p>
+<pre><code class="language-python">func square(x: int) -&gt; int:
+  ret x * x
+
+print(square(2)) # prints 4
+</code></pre>
+<h3 id="break"><a class="header" href="#break"><code>break</code></a></h3>
+<p><code>break</code> breaks out of the current loop.</p>
+<pre><code class="language-python">while true:
+  print(&quot;hello&quot;)
+  break
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="arithmetic"><a class="header" href="#arithmetic">Arithmetic</a></h2>
 <ul>
