@@ -29,11 +29,11 @@ use llvm::target_machine::{
   LLVMRelocMode,
   LLVMTargetMachineEmitToFile,
 };
-use llvm::transforms::instcombine::LLVMAddInstructionCombiningPass;
 use llvm::transforms::scalar::{
   LLVMAddBasicAliasAnalysisPass,
   LLVMAddCFGSimplificationPass,
   LLVMAddGVNPass,
+  LLVMAddInstructionCombiningPass,
   LLVMAddReassociatePass,
 };
 use llvm::transforms::util::LLVMAddPromoteMemoryToRegisterPass;
@@ -503,12 +503,40 @@ impl Compiler {
 
     let fpm = LLVMCreateFunctionPassManagerForModule(module);
 
+    // LLVMAddAggressiveDCEPass(fpm);
+    // // LLVMAddArgumentPromotionPass(fpm);
+    // LLVMAddBasicAliasAnalysisPass(fpm);
+    // LLVMAddConstantMergePass(fpm);
+    // LLVMAddCFGSimplificationPass(fpm);
+    // LLVMAddDCEPass(fpm);
+    // LLVMAddDeadStoreEliminationPass(fpm);
+    // // LLVMAddFunctionAttrsPass(fpm);
+    // LLVMAddGVNPass(fpm);
+    // LLVMAddIndVarSimplifyPass(fpm);
+    // LLVMAddInstructionCombiningPass(fpm);
+    // LLVMAddAggressiveInstCombinerPass(fpm);
+    // LLVMAddJumpThreadingPass(fpm);
+    // LLVMAddLoopUnrollPass(fpm);
+    // LLVMAddMemCpyOptPass(fpm);
+    // LLVMAddPromoteMemoryToRegisterPass(fpm);
+    // LLVMAddReassociatePass(fpm);
+
+    // First, combine combinable instrs
     LLVMAddInstructionCombiningPass(fpm);
+    // Second, reassociate commutative exprs to better constant folding
     LLVMAddReassociatePass(fpm);
+    // Third, perform global value numbering
     LLVMAddGVNPass(fpm);
+    // Fourth, perform basic block optimizations
     LLVMAddCFGSimplificationPass(fpm);
+    // Fifth, perform basic alias analysis
     LLVMAddBasicAliasAnalysisPass(fpm);
+    // Sixth, promotes args by reference to by value
     LLVMAddPromoteMemoryToRegisterPass(fpm);
+    // Seventh, combines combinable instrs again
+    LLVMAddInstructionCombiningPass(fpm);
+    // Eighth, perform global value numbering
+    LLVMAddReassociatePass(fpm);
 
     LLVMInitializeFunctionPassManager(fpm);
 
@@ -1560,7 +1588,7 @@ impl Compiler {
               LLVMBuildStore(self.builder, right_v, lhs.v);
             },
             ValueType::String => {
-              let (memcpy_func, memcmp_ty) = self.get_func("llvm.memcpy.p0i8.p0i8.i64").unwrap();
+              let (memcpy_func, memcpy_ty) = self.get_func("llvm.memcpy.p0i8.p0i8.i64").unwrap();
               let (strlen_func, strlen_ty) = self.get_func("strlen").unwrap();
 
               let len = LLVMBuildCall2(
@@ -1574,7 +1602,7 @@ impl Compiler {
 
               LLVMBuildCall2(
                 self.builder,
-                memcmp_ty,
+                memcpy_ty,
                 memcpy_func,
                 [lhs.v, right_v, len, LLVMConstInt(LLVMInt1TypeInContext(self.ctx), 0, 0)]
                   .as_mut_ptr(),
@@ -1602,15 +1630,15 @@ impl Compiler {
     LLVMDeleteBasicBlock(self.get_unused_bb());
 
     LLVMBuildRet(self.builder, LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 0, 0));
+    for func in &self.funcs {
+      LLVMVerifyFunction(*func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
+      LLVMRunFunctionPassManager(self.fpm, *func);
+    }
+
     #[cfg(debug_assertions)]
     {
       LLVMDumpModule(self.module);
       LLVMPrintModuleToFile(self.module, self.cstring("tmp.ll"), ptr::null_mut());
-    }
-
-    for func in &self.funcs {
-      LLVMVerifyFunction(*func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
-      LLVMRunFunctionPassManager(self.fpm, *func);
     }
 
     LLVMVerifyModule(

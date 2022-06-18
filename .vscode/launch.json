@@ -29,7 +29,10 @@
           "kind": "bin"
         }
       },
-      "args": ["compile", "${workspaceFolder}/examples/arrays.pyr"],
+      "args": [
+        "compile",
+        "${workspaceFolder}/examples/euler/05-smallest-multiple.pyr"
+      ],
       "cwd": "${workspaceFolder}"
     },
     {
