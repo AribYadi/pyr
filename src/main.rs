@@ -12,6 +12,7 @@ use parser::Parser;
 mod compiler;
 mod error;
 mod interpreter;
+mod optimizer;
 mod parser;
 mod resolver;
 mod runtime;
@@ -101,6 +102,10 @@ fn main() {
       process::exit(1);
     },
   };
+
+  let options = optimizer::OptimizerOptions { ignore_expr_stmts: true };
+  let optimizer = optimizer::Optimizer::new(options);
+  let stmts = optimizer.optimize(&stmts);
 
   match args.subcommand {
     ArgsSubcommand::Compile { out, link } => {
