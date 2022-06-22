@@ -331,7 +331,11 @@ impl Parser<'_> {
         self.consume(literal)?;
         match literal {
           Tok::String => {
-            let text = snailquote::unescape(&text).map_err(|e| ParseError::new(e, span.clone()))?;
+            let text = if text.contains('\\') {
+              snailquote::unescape(&text).map_err(|e| ParseError::new(e, span.clone()))?
+            } else {
+              text
+            };
             Ok(Expr::new(ExprKind::String(text), span))
           },
           Tok::Integer => Ok(Expr::new(ExprKind::Integer(text.parse().unwrap()), span)),

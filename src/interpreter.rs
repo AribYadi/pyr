@@ -1,3 +1,5 @@
+use rayon::prelude::*;
+
 use crate::error::{
   RuntimeError,
   RuntimeResult as Result,
@@ -120,12 +122,12 @@ impl Interpreter {
         // Clear return value first
         self.return_value = None;
 
-        let arg_types: Vec<_> = args.iter().map(|(_, ty)| ty.clone()).collect();
-        let args = args.iter().map(|(arg, _)| arg.clone()).collect();
+        let (mut new_args, mut arg_types) = (Vec::new(), Vec::new());
+        args.par_iter().cloned().unzip_into_vecs(&mut new_args, &mut arg_types);
         self.functions.declare(
           &func_name(name, &arg_types),
           self.indent_level,
-          Function::UserDefined(args, body.to_vec(), ret_ty.clone()),
+          Function::UserDefined(new_args, body.clone(), ret_ty.clone()),
         );
         Ok(())
       },
@@ -195,7 +197,7 @@ impl Interpreter {
       ExprKind::FuncCall { name, params } => {
         let params =
           params.iter().map(|param| self.interpret_expr(param)).collect::<Result<Vec<_>>>()?;
-        let param_types: Vec<_> = params.iter().map(|param| param.get_type()).collect();
+        let param_types: Vec<_> = params.par_iter().map(|param| param.get_type()).collect();
         let func = match self.functions.get(&func_name(name, &param_types)) {
           Some(func) => func,
           None => unreachable!("Resolver didn't resolve function correctly"),

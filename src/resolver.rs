@@ -1,3 +1,5 @@
+use rayon::prelude::*;
+
 use crate::error::{
   RuntimeError,
   RuntimeErrorKind,
@@ -252,19 +254,22 @@ impl Resolver {
           ));
         }
 
-        for (i, (param_ty, arg_ty)) in param_types.iter().zip(arg_types).enumerate() {
-          if *param_ty != arg_ty {
-            return Err(RuntimeError::new(
-              RuntimeErrorKind::FunctionArgumentTypeMismatch(
-                name.to_string(),
-                i,
-                param_ty.clone(),
-                arg_ty,
-              ),
-              expr.span.clone(),
-            ));
-          }
-        }
+        param_types.into_par_iter().zip(arg_types.into_par_iter()).enumerate().try_for_each(
+          |(i, (param_ty, arg_ty))| {
+            if param_ty != arg_ty {
+              return Err(RuntimeError::new(
+                RuntimeErrorKind::FunctionArgumentTypeMismatch(
+                  name.to_string(),
+                  i,
+                  param_ty,
+                  arg_ty,
+                ),
+                expr.span.clone(),
+              ));
+            }
+            Ok(())
+          },
+        )?;
 
         if self.ignore_return {
           Ok(ValueType::Integer)

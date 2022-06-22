@@ -1,3 +1,5 @@
+use rayon::prelude::*;
+
 use crate::parser::syntax::{
   Expr,
   ExprKind,
@@ -21,7 +23,7 @@ impl Optimizer {
   pub fn optimize(&self, stmts: &[Stmt]) -> Vec<Stmt> { self.optimize_stmts(stmts) }
 
   fn optimize_stmts(&self, stmts: &[Stmt]) -> Vec<Stmt> {
-    stmts.iter().filter_map(|stmt| self.optimize_stmt(stmt)).collect()
+    stmts.par_iter().filter_map(|stmt| self.optimize_stmt(stmt)).collect()
   }
 
   fn optimize_stmt(&self, stmt: &Stmt) -> Option<Stmt> {

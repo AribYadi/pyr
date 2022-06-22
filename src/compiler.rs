@@ -73,6 +73,8 @@ struct ValueWrapper {
   can_be_loaded: bool,
 }
 
+unsafe impl Send for ValueWrapper {}
+
 impl ValueWrapper {
   unsafe fn new_integer(self_: &mut Compiler, v: i64) -> Self {
     let ty = LLVMInt64TypeInContext(self_.ctx);

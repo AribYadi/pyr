@@ -1,10 +1,12 @@
-use std::sync::Mutex;
+use std::sync::atomic::AtomicUsize;
 
 use logos::internal::LexerInternal;
 use logos::{
   Lexer,
   Logos,
 };
+use once_cell::sync::Lazy;
+use rayon::prelude::*;
 
 use crate::error::Span;
 use crate::runtime::{
@@ -12,9 +14,7 @@ use crate::runtime::{
   ValueType,
 };
 
-lazy_static::lazy_static! {
-  pub static ref INDENT_SIZE: Mutex<usize> = Mutex::new(0);
-}
+static INDENT_SIZE: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
 
 enum LexIndent {
   Emit,
@@ -50,15 +50,19 @@ fn parse_indent(lex: &mut Lexer<TokenKind>) -> LexIndent {
     return LexIndent::Skip;
   }
 
-  if *INDENT_SIZE.lock().unwrap() == 0 {
-    *INDENT_SIZE.lock().unwrap() = spaces.len();
+  if INDENT_SIZE.load(std::sync::atomic::Ordering::Relaxed) == 0 {
+    INDENT_SIZE.store(spaces.len(), std::sync::atomic::Ordering::Relaxed);
+
+    lex.bump(spaces.len() - 1);
+    return LexIndent::Emit;
   }
 
-  if spaces.len() < *INDENT_SIZE.lock().unwrap() {
+  let indent_size = INDENT_SIZE.load(std::sync::atomic::Ordering::Relaxed);
+  if spaces.len() < indent_size {
     return LexIndent::Skip;
   }
 
-  lex.bump(*INDENT_SIZE.lock().unwrap() - 1);
+  lex.bump(indent_size - 1);
   LexIndent::Emit
 }
 
@@ -285,7 +289,7 @@ impl std::fmt::Display for Expr {
       ExprKind::Array(ty, elems, len) => write!(
         f,
         "{ty}[{elems}{len}]",
-        elems = elems.iter().map(ToString::to_string).collect::<Vec<_>>().join(", "),
+        elems = elems.par_iter().map(ToString::to_string).collect::<Vec<_>>().join(", "),
         len = if *len == elems.len() { "".to_string() } else { format!("; {len}") }
       ),
       ExprKind::PrefixOp { op, right } => write!(f, "{op}{right}"),
@@ -294,7 +298,7 @@ impl std::fmt::Display for Expr {
       ExprKind::FuncCall { name, params } => write!(
         f,
         "{name}({args})",
-        args = params.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
+        args = params.par_iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
       ),
       ExprKind::Index { array, index } => write!(f, "{array}[{index}]"),
     }
