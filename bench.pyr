@@ -1,5 +1,4 @@
-123
-022 + 1
-
-a = 10
-1 + a
+i = 0
+while i < 10:
+  i + "afjldsfjlsdfklsdfkldskfljsfjklfjsdklsdjakflfsajl"
+  i = i + 1

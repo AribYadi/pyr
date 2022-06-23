@@ -1330,7 +1330,7 @@ impl Compiler {
 
           ValueWrapper {
             v: arr,
-            ty: ValueType::Array(Box::new(ty.clone()), *len),
+            ty: ValueType::Array(bx!(ty.clone()), *len),
             can_be_loaded: false,
             is_pointer: true,
             is_runtime: true,

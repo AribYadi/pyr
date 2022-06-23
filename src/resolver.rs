@@ -218,7 +218,7 @@ impl Resolver {
             ));
           }
         }
-        Ok(ValueType::Array(Box::new(ty.clone()), *len))
+        Ok(ValueType::Array(bx!(ty.clone()), *len))
       },
 
       ExprKind::PrefixOp { op, right } => self.resolve_prefix_op(op, right),

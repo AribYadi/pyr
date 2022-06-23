@@ -9,6 +9,8 @@ use interpreter::Interpreter;
 use line_col::LineColLookup;
 use parser::Parser;
 
+#[macro_use]
+mod utils;
 mod compiler;
 mod error;
 mod interpreter;

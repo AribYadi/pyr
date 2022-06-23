@@ -524,7 +524,7 @@ impl ValueWrapper {
         (ValueType::Array(ty1, len1), ValueType::Array(ty2, len2))
           if len1 == len2 && ty1 == ty2 =>
         {
-          ValueType::Array(Box::new(*ty1.clone()), *len1)
+          ValueType::Array(bx!(*ty1.clone()), *len1)
         },
         _ => ValueType::Integer,
       };
@@ -625,7 +625,7 @@ impl ValueWrapper {
         (ValueType::Array(ty1, len1), ValueType::Array(ty2, len2))
           if len1 == len2 && ty1 == ty2 =>
         {
-          ValueType::Array(Box::new(*ty1.clone()), *len1)
+          ValueType::Array(bx!(*ty1.clone()), *len1)
         },
         _ => ValueType::Integer,
       };

@@ -186,7 +186,7 @@ impl Literal {
     match self {
       Literal::String(_) => ValueType::String,
       Literal::Integer(_) => ValueType::Integer,
-      Literal::Array(elems) => ValueType::Array(Box::new(elems[0].get_type()), elems.len()),
+      Literal::Array(elems) => ValueType::Array(bx!(elems[0].get_type()), elems.len()),
     }
   }
 }
