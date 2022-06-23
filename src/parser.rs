@@ -334,7 +334,7 @@ impl Parser<'_> {
             let text = if text.contains('\\') {
               snailquote::unescape(&text).map_err(|e| ParseError::new(e, span.clone()))?
             } else {
-              text
+              text[1..text.len() - 1].to_string()
             };
             Ok(Expr::new(ExprKind::String(text), span))
           },
