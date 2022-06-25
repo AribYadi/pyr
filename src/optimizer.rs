@@ -11,6 +11,8 @@ use crate::parser::syntax::{
 pub struct OptimizerOptions {
   // ignore expression statements
   pub ignore_expr_stmts: bool,
+  // pre-calculates arithmetic and equality operators for constants
+  pub precalc_constant_ops: bool,
 }
 
 pub struct Optimizer {
@@ -90,13 +92,21 @@ impl Optimizer {
         ExprKind::PrefixOp { op, right } => {
           let right = self.optimize_expr(right);
 
-          ExprKind::PrefixOp { op: *op, right: bx!(right) }
+          if self.options.precalc_constant_ops {
+            self.optimize_prefix(op, right)
+          } else {
+            ExprKind::PrefixOp { op: *op, right: bx!(right) }
+          }
         },
         ExprKind::InfixOp { op, left, right } | ExprKind::ShortCircuitOp { op, left, right } => {
           let left = self.optimize_expr(left);
           let right = self.optimize_expr(right);
 
           match &expr.kind {
+            ExprKind::InfixOp { .. } if self.options.precalc_constant_ops => {
+              self.optimize_infix(op, left, right)
+            },
+            ExprKind::ShortCircuitOp { .. } if self.options.precalc_constant_ops => todo!(),
             ExprKind::InfixOp { .. } => {
               ExprKind::InfixOp { op: *op, left: bx!(left), right: bx!(right) }
             },
@@ -127,5 +137,106 @@ impl Optimizer {
       },
       span: expr.span.clone(),
     }
+  }
+
+  fn optimize_prefix(&self, op: &TokenKind, right: Expr) -> ExprKind {
+    match (op, &right.kind) {
+      (TokenKind::Minus, ExprKind::Integer(r)) => ExprKind::Integer(-r),
+      (TokenKind::Bang, _) => match self.is_truthy(&right) {
+        Some(is_truthy) => ExprKind::Integer(is_truthy as i64),
+        None => ExprKind::PrefixOp { op: *op, right: Box::new(right) },
+      },
+
+      _ => ExprKind::PrefixOp { op: *op, right: Box::new(right) },
+    }
+  }
+
+  fn optimize_infix(&self, op: &TokenKind, left: Expr, right: Expr) -> ExprKind {
+    match (op, &left.kind, &right.kind) {
+      (TokenKind::Plus, ExprKind::Integer(l), ExprKind::Integer(r)) => ExprKind::Integer(l + r),
+      (TokenKind::Plus, ExprKind::String(s), kind) if self.is_const(kind) => {
+        let string = [s.to_string(), kind.to_string()].concat();
+        ExprKind::String(string)
+      },
+      (TokenKind::Plus, kind, ExprKind::String(s)) if self.is_const(kind) => {
+        let string = [kind.to_string(), s.to_string()].concat();
+        ExprKind::String(string)
+      },
+
+      (TokenKind::Minus, ExprKind::Integer(l), ExprKind::Integer(r)) => ExprKind::Integer(l - r),
+
+      (TokenKind::Star, ExprKind::Integer(l), ExprKind::Integer(r)) => ExprKind::Integer(l * r),
+      (TokenKind::Star, ExprKind::String(s), ExprKind::Integer(n)) |
+      (TokenKind::Star, ExprKind::Integer(n), ExprKind::String(s)) => {
+        ExprKind::String(s.repeat(*n as usize))
+      },
+
+      (TokenKind::Slash, ExprKind::Integer(l), ExprKind::Integer(r)) => ExprKind::Integer(l / r),
+
+      (TokenKind::Less, ExprKind::Integer(l), ExprKind::Integer(r)) => {
+        ExprKind::Integer((l < r) as i64)
+      },
+      (TokenKind::LessEqual, ExprKind::Integer(l), ExprKind::Integer(r)) => {
+        ExprKind::Integer((l <= r) as i64)
+      },
+      (TokenKind::Greater, ExprKind::Integer(l), ExprKind::Integer(r)) => {
+        ExprKind::Integer((l > r) as i64)
+      },
+      (TokenKind::GreaterEqual, ExprKind::Integer(l), ExprKind::Integer(r)) => {
+        ExprKind::Integer((l >= r) as i64)
+      },
+
+      (TokenKind::Equal, kind1, kind2) if self.is_const(kind1) && self.is_const(kind2) => {
+        ExprKind::Integer(!self.is_equal(kind1, kind2).unwrap() as i64)
+      },
+      (TokenKind::BangEqual, kind1, kind2) if self.is_const(kind1) && self.is_const(kind2) => {
+        ExprKind::Integer(self.is_equal(kind1, kind2).unwrap() as i64)
+      },
+
+      (TokenKind::Caret, ExprKind::Integer(l), ExprKind::Integer(r)) => {
+        ExprKind::Integer(f64::powi(*l as f64, *r as i32) as i64)
+      },
+
+      (TokenKind::Percent, ExprKind::Integer(l), ExprKind::Integer(r)) => ExprKind::Integer(l % r),
+
+      (TokenKind::LeftShift, ExprKind::Integer(l), ExprKind::Integer(r)) => {
+        ExprKind::Integer(l << r)
+      },
+      (TokenKind::RightShift, ExprKind::Integer(l), ExprKind::Integer(r)) => {
+        ExprKind::Integer(l >> r)
+      },
+      (TokenKind::Ampersand, ExprKind::Integer(l), ExprKind::Integer(r)) => {
+        ExprKind::Integer(l & r)
+      },
+      (TokenKind::Pipe, ExprKind::Integer(l), ExprKind::Integer(r)) => ExprKind::Integer(l | r),
+
+      _ => ExprKind::InfixOp { op: *op, left: Box::new(left), right: Box::new(right) },
+    }
+  }
+
+  fn is_truthy(&self, expr: &Expr) -> Option<bool> {
+    Some(match &expr.kind {
+      ExprKind::Integer(n) => *n == 1,
+      ExprKind::String(s) => !s.is_empty(),
+      ExprKind::Array(_, _, len) => *len != 0,
+
+      _ => return None,
+    })
+  }
+
+  fn is_const(&self, kind: &ExprKind) -> bool {
+    matches!(kind, ExprKind::Integer(_) | ExprKind::String(_) | ExprKind::Array(_, _, _))
+  }
+
+  fn is_equal(&self, kind1: &ExprKind, kind2: &ExprKind) -> Option<bool> {
+    Some(match (&kind1, &kind2) {
+      (ExprKind::Integer(l), ExprKind::Integer(r)) => l == r,
+      (ExprKind::String(l), ExprKind::String(r)) => l == r,
+      (ExprKind::Array(lty, lelems, llen), ExprKind::Array(rty, relems, rlen)) => {
+        lty == rty && llen == rlen && lelems == relems
+      },
+
+      _ => return None,
+    })
   }
 }

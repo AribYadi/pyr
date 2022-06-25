@@ -274,15 +274,9 @@ pub enum ExprKind {
   Index { array: Box<Expr>, index: Box<Expr> },
 }
 
-#[derive(Debug, Clone)]
-pub struct Expr {
-  pub kind: ExprKind,
-  pub span: Span,
-}
-
-impl std::fmt::Display for Expr {
+impl std::fmt::Display for ExprKind {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match &self.kind {
+    match &self {
       ExprKind::String(s) => write!(f, "{s:?}"),
       ExprKind::Integer(n) => write!(f, "{n}"),
       ExprKind::Identifier(s) => write!(f, "{s}"),
@@ -303,6 +297,16 @@ impl std::fmt::Display for Expr {
       ExprKind::Index { array, index } => write!(f, "{array}[{index}]"),
     }
   }
+}
+
+#[derive(Debug, Clone)]
+pub struct Expr {
+  pub kind: ExprKind,
+  pub span: Span,
+}
+
+impl std::fmt::Display for Expr {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.kind.fmt(f) }
 }
 
 impl PartialEq for Expr {

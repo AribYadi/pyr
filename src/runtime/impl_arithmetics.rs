@@ -147,7 +147,9 @@ impl Literal {
 
   pub fn pow(self, rhs: Self) -> Self {
     match (self, rhs) {
-      (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l.pow(r as u32)),
+      (Literal::Integer(l), Literal::Integer(r)) => {
+        Literal::Integer(f64::powi(l as f64, r as i32) as i64)
+      },
       _ => {
         unreachable!("Resolver didn't type check infix operator `^`");
       },

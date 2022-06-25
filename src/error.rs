@@ -52,7 +52,7 @@ impl ParseError {
   }
 }
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, Clone, PartialEq)]
 pub enum RuntimeErrorKind {
   #[error("cannot apply prefix operator `{1}` using `{0}`")]
   CannotApplyPrefix(Expr, TokenKind),
@@ -88,7 +88,7 @@ pub enum RuntimeErrorKind {
   BreakOutsideLoop,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RuntimeError {
   pub kind: RuntimeErrorKind,
   pub span: Span,

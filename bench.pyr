@@ -1,4 +1,4 @@
 i = 0
 while i < 10:
-  i + "afjldsfjlsdfklsdfkldskfljsfjklfjsdklsdjakflfsajl"
+  print("1" * 10000)
   i = i + 1

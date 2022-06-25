@@ -25,4 +25,4 @@ unindent = "0.1.9"
 [profile.release]
 lto = "fat"
 codegen-units = 1
-passes = ["instcombine", "reassociate", "gvn", "simplifycfg", "basic-aa", "argpromotion", "instcombine", "reassociate"]
+# passes = ["instcombine", "reassociate", "gvn", "simplifycfg", "basic-aa", "argpromotion", "instcombine", "reassociate"]
