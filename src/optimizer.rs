@@ -106,7 +106,9 @@ impl Optimizer {
             ExprKind::InfixOp { .. } if self.options.precalc_constant_ops => {
               self.optimize_infix(op, left, right)
             },
-            ExprKind::ShortCircuitOp { .. } if self.options.precalc_constant_ops => todo!(),
+            ExprKind::ShortCircuitOp { .. } if self.options.precalc_constant_ops => {
+              self.optimize_short_circuit(op, left, right)
+            },
             ExprKind::InfixOp { .. } => {
               ExprKind::InfixOp { op: *op, left: bx!(left), right: bx!(right) }
             },
@@ -214,6 +216,35 @@ impl Optimizer {
     }
   }
 
+  fn optimize_short_circuit(&self, op: &TokenKind, left: Expr, right: Expr) -> ExprKind {
+    if !self.is_const(&left.kind) || !self.is_const(&right.kind) {
+      return ExprKind::ShortCircuitOp { op: *op, left: Box::new(left), right: Box::new(right) };
+    }
+
+    match op {
+      TokenKind::And if self.is_const_same_variant(&left.kind, &right.kind) => {
+        if !self.is_truthy(&left).unwrap() {
+          return left.kind;
+        }
+        right.kind
+      },
+      TokenKind::And if self.is_truthy(&left).unwrap() => {
+        ExprKind::Integer(self.is_truthy(&right).unwrap() as i64)
+      },
+      TokenKind::And => ExprKind::Integer(0),
+      TokenKind::Or if self.is_const_same_variant(&left.kind, &right.kind) => {
+        if self.is_truthy(&left).unwrap() {
+          return left.kind;
+        }
+        right.kind
+      },
+      TokenKind::Or if self.is_truthy(&left).unwrap() => ExprKind::Integer(1),
+      TokenKind::Or => ExprKind::Integer(self.is_truthy(&right).unwrap() as i64),
+
+      _ => unreachable!(),
+    }
+  }
+
   fn is_truthy(&self, expr: &Expr) -> Option<bool> {
     Some(match &expr.kind {
       ExprKind::Integer(n) => *n == 1,
@@ -238,5 +269,14 @@ impl Optimizer {
 
       _ => return None,
     })
+  }
+
+  fn is_const_same_variant(&self, kind1: &ExprKind, kind2: &ExprKind) -> bool {
+    use ExprKind::*;
+
+    matches!(
+      (kind1, kind2),
+      (Integer(_), Integer(_)) | (String(_), String(_)) | (Array(_, _, _), Array(_, _, _))
+    )
   }
 }
