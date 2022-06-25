@@ -15,7 +15,7 @@
           "kind": "bin"
         }
       },
-      "args": ["run", "${workspaceFolder}/examples/rule110.pyr"],
+      "args": ["run", "${workspaceFolder}/examples/functions.pyr"],
       "cwd": "${workspaceFolder}"
     },
     {

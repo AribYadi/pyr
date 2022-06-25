@@ -157,11 +157,13 @@ impl Optimizer {
     match (op, &left.kind, &right.kind) {
       (TokenKind::Plus, ExprKind::Integer(l), ExprKind::Integer(r)) => ExprKind::Integer(l + r),
       (TokenKind::Plus, ExprKind::String(s), kind) if self.is_const(kind) => {
-        let string = [s.to_string(), kind.to_string()].concat();
+        let kind_as_str = snailquote::unescape(&kind.to_string()).unwrap();
+        let string = [s.to_string(), kind_as_str].concat();
         ExprKind::String(string)
       },
       (TokenKind::Plus, kind, ExprKind::String(s)) if self.is_const(kind) => {
-        let string = [kind.to_string(), s.to_string()].concat();
+        let kind_as_str = snailquote::unescape(&kind.to_string()).unwrap();
+        let string = [kind_as_str, s.to_string()].concat();
         ExprKind::String(string)
       },
 
@@ -189,10 +191,10 @@ impl Optimizer {
       },
 
       (TokenKind::Equal, kind1, kind2) if self.is_const(kind1) && self.is_const(kind2) => {
-        ExprKind::Integer(!self.is_equal(kind1, kind2).unwrap() as i64)
+        ExprKind::Integer(self.is_equal(kind1, kind2).unwrap() as i64)
       },
       (TokenKind::BangEqual, kind1, kind2) if self.is_const(kind1) && self.is_const(kind2) => {
-        ExprKind::Integer(self.is_equal(kind1, kind2).unwrap() as i64)
+        ExprKind::Integer(!self.is_equal(kind1, kind2).unwrap() as i64)
       },
 
       (TokenKind::Caret, ExprKind::Integer(l), ExprKind::Integer(r)) => {

@@ -57,7 +57,7 @@ impl StateStack {
 
   pub fn pop_until(&mut self, state: State) {
     let pos = self.stack.par_iter().position_last(|&s| s == state).unwrap();
-    self.stack.truncate(self.stack.len() - pos);
+    self.stack.truncate(pos + 1);
     self.last_rewind = self.stack.pop();
   }
 }
