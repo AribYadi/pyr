@@ -1,20 +1,25 @@
-### tester-ignore ###
-# We are ignoring this problem because it takes a long time to run and in ci, that's not a necessarily good thing.
-# Once we optimize Pyr, we will be able to run this problem.
-
-START=1
 END=20
+START=END/2
+if END <= 10:
+  START=2
 
-i = 1
-while true:
-  is_divisible = true
-  j = END
-  while j > START:
-    if i % j != 0:
-      is_divisible = false
+func get_smallest_multiple(start: int, end: int) -> int:
+  is_divisible = false
+  i = 0
+  step_size = 1
+  if end % 10 == 0 and end != 10:
+    step_size = get_smallest_multiple(end / 4, end / 2)
+  while true:
+    i = i + step_size
+    is_divisible = true
+    j = end
+    while j >= start:
+      if i % j != 0:
+        is_divisible = false
+        break
+      j = j - 1
+    if is_divisible:
       break
-    j = j - 1
-  if is_divisible:
-    print("Answer is: " + i + "\n")
-    break
-  i = i + 1
+  ret i
+
+print("Answer is: " + get_smallest_multiple(START, END) + "\n")
