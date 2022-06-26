@@ -6,7 +6,6 @@ use logos::{
   Logos,
 };
 use once_cell::sync::Lazy;
-use rayon::prelude::*;
 
 use crate::error::Span;
 use crate::runtime::{
@@ -283,7 +282,7 @@ impl std::fmt::Display for ExprKind {
       ExprKind::Array(ty, elems, len) => write!(
         f,
         "{ty}[{elems}{len}]",
-        elems = elems.par_iter().map(ToString::to_string).collect::<Vec<_>>().join(", "),
+        elems = elems.iter().map(ToString::to_string).collect::<Vec<_>>().join(", "),
         len = if *len == elems.len() { "".to_string() } else { format!("; {len}") }
       ),
       ExprKind::PrefixOp { op, right } => write!(f, "{op}{right}"),
@@ -292,7 +291,7 @@ impl std::fmt::Display for ExprKind {
       ExprKind::FuncCall { name, params } => write!(
         f,
         "{name}({args})",
-        args = params.par_iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
+        args = params.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
       ),
       ExprKind::Index { array, index } => write!(f, "{array}[{index}]"),
     }

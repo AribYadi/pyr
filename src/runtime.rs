@@ -1,5 +1,3 @@
-use rayon::prelude::*;
-
 use crate::interpreter::Interpreter;
 use crate::parser::syntax::Stmt;
 
@@ -56,8 +54,8 @@ impl StateStack {
   pub fn contains(&self, state: State) -> bool { self.stack.contains(&state) }
 
   pub fn pop_until(&mut self, state: State) {
-    let pos = self.stack.par_iter().position_last(|&s| s == state).unwrap();
-    self.stack.truncate(pos + 1);
+    let pos = self.stack.iter().rev().position(|&s| s == state).unwrap();
+    self.stack.truncate(self.stack.len() - pos);
     self.last_rewind = self.stack.pop();
   }
 }
@@ -108,26 +106,29 @@ impl<T: Clone + Send> Variables<T> {
   pub fn get(&mut self, name: &str) -> Option<T> {
     self
       .variables
-      .par_iter_mut()
-      .find_map_last(|(n, _, v)| if n == name { Some(v.clone()) } else { None })
+      .iter_mut()
+      .rev()
+      .find_map(|(n, _, v)| if n == name { Some(v.clone()) } else { None })
   }
 
   pub fn get_mut(&mut self, name: &str) -> Option<&mut T> {
-    self.variables.par_iter_mut().find_map_last(|(n, _, v)| if n == name { Some(v) } else { None })
+    self.variables.iter_mut().rev().find_map(|(n, _, v)| if n == name { Some(v) } else { None })
   }
 
   pub fn get_variable(&mut self, name: &str) -> Option<(String, IndentLevel, T)> {
-    self.variables.par_iter_mut().find_map_last(|var| {
-      if var.0 == name {
-        Some(var.clone())
-      } else {
-        None
-      }
-    })
+    self.variables.iter_mut().rev().find_map(
+      |var| {
+        if var.0 == name {
+          Some(var.clone())
+        } else {
+          None
+        }
+      },
+    )
   }
 
   pub fn assign_or_declare(&mut self, name: &str, level: IndentLevel, value: T) -> T {
-    if let Some((_, _, v)) = self.variables.par_iter_mut().find_last(|(n, _, _)| n == name) {
+    if let Some((_, _, v)) = self.variables.iter_mut().rev().find(|(n, _, _)| n == name) {
       *v = value.clone();
       value
     } else {
@@ -196,8 +197,7 @@ pub type NativeFunction = fn(&mut Interpreter, Params) -> ReturnValue<Literal>;
 pub type ReturnValue<T> = Option<T>;
 
 pub fn func_name(base_name: &str, args: &[ValueType]) -> String {
-  let mut args_as_string = Vec::new();
-  args.into_par_iter().map(ToString::to_string).collect_into_vec(&mut args_as_string);
+  let args_as_string: Vec<_> = args.iter().map(ToString::to_string).collect();
   [base_name.to_string(), args_as_string.join(".")].join(".")
 }
 

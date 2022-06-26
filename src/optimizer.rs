@@ -1,5 +1,3 @@
-use rayon::prelude::*;
-
 use crate::parser::syntax::{
   Expr,
   ExprKind,
@@ -25,7 +23,7 @@ impl Optimizer {
   pub fn optimize(&self, stmts: &[Stmt]) -> Vec<Stmt> { self.optimize_stmts(stmts) }
 
   fn optimize_stmts(&self, stmts: &[Stmt]) -> Vec<Stmt> {
-    stmts.par_iter().filter_map(|stmt| self.optimize_stmt(stmt)).collect()
+    stmts.iter().filter_map(|stmt| self.optimize_stmt(stmt)).collect()
   }
 
   fn optimize_stmt(&self, stmt: &Stmt) -> Option<Stmt> {
@@ -80,11 +78,7 @@ impl Optimizer {
     Expr {
       kind: match &expr.kind {
         ExprKind::Array(ty, elems, len) => {
-          let mut opt_elems = Vec::new();
-          elems
-            .into_par_iter()
-            .map(|expr| self.optimize_expr(expr))
-            .collect_into_vec(&mut opt_elems);
+          let opt_elems = elems.iter().map(|expr| self.optimize_expr(expr)).collect();
 
           ExprKind::Array(ty.clone(), opt_elems, *len)
         },
@@ -120,11 +114,7 @@ impl Optimizer {
           }
         },
         ExprKind::FuncCall { name, params } => {
-          let mut opt_params = Vec::new();
-          params
-            .into_par_iter()
-            .map(|expr| self.optimize_expr(expr))
-            .collect_into_vec(&mut opt_params);
+          let opt_params = params.iter().map(|expr| self.optimize_expr(expr)).collect();
 
           ExprKind::FuncCall { name: name.to_string(), params: opt_params }
         },

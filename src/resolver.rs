@@ -1,5 +1,3 @@
-use rayon::prelude::*;
-
 use crate::error::{
   RuntimeError,
   RuntimeErrorKind,
@@ -254,7 +252,7 @@ impl Resolver {
           ));
         }
 
-        param_types.into_par_iter().zip(arg_types.into_par_iter()).enumerate().try_for_each(
+        param_types.into_iter().zip(arg_types.into_iter()).enumerate().try_for_each(
           |(i, (param_ty, arg_ty))| {
             if param_ty != arg_ty {
               return Err(RuntimeError::new(
