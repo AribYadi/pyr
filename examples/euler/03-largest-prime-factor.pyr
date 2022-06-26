@@ -1,7 +1,3 @@
-### tester-ignore ###
-# We are ignoring this problem because it takes a long time to run and in ci, that's not a necessarily good thing.
-# Once we optimize Pyr, we will be able to run this problem.
-
 n = 600851475143
 
 largest_prime_factor = 2

@@ -9,9 +9,12 @@ use interpreter::Interpreter;
 use line_col::LineColLookup;
 use parser::Parser;
 
+#[macro_use]
+mod utils;
 mod compiler;
 mod error;
 mod interpreter;
+mod optimizer;
 mod parser;
 mod resolver;
 mod runtime;
@@ -101,6 +104,10 @@ fn main() {
       process::exit(1);
     },
   };
+
+  let options = optimizer::OptimizerOptions { ignore_expr_stmts: true, precalc_constant_ops: true };
+  let optimizer = optimizer::Optimizer::new(options);
+  let stmts = optimizer.optimize(&stmts);
 
   match args.subcommand {
     ArgsSubcommand::Compile { out, link } => {

@@ -120,12 +120,11 @@ impl Interpreter {
         // Clear return value first
         self.return_value = None;
 
-        let arg_types: Vec<_> = args.iter().map(|(_, ty)| ty.clone()).collect();
-        let args = args.iter().map(|(arg, _)| arg.clone()).collect();
+        let (new_args, arg_types): (_, Vec<_>) = args.iter().cloned().unzip(); //.unzip_into_vecs(&mut new_args, &mut arg_types);
         self.functions.declare(
           &func_name(name, &arg_types),
           self.indent_level,
-          Function::UserDefined(args, body.to_vec(), ret_ty.clone()),
+          Function::UserDefined(new_args, body.clone(), ret_ty.clone()),
         );
         Ok(())
       },

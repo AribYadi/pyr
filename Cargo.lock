@@ -91,6 +91,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
+name = "once_cell"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7709cef83f0c1f58f666e746a08b21e0085f7440fa6a29cc194d68aac97a4225"
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -103,10 +109,10 @@ dependencies = [
 name = "pyr"
 version = "0.0.0"
 dependencies = [
- "lazy_static",
  "line-col",
  "llvm-sys",
  "logos",
+ "once_cell",
  "snailquote",
  "thiserror",
  "unindent",

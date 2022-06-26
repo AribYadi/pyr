@@ -1,10 +1,11 @@
-use std::sync::Mutex;
+use std::sync::atomic::AtomicUsize;
 
 use logos::internal::LexerInternal;
 use logos::{
   Lexer,
   Logos,
 };
+use once_cell::sync::Lazy;
 
 use crate::error::Span;
 use crate::runtime::{
@@ -12,9 +13,7 @@ use crate::runtime::{
   ValueType,
 };
 
-lazy_static::lazy_static! {
-  pub static ref INDENT_SIZE: Mutex<usize> = Mutex::new(0);
-}
+static INDENT_SIZE: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
 
 enum LexIndent {
   Emit,
@@ -50,15 +49,19 @@ fn parse_indent(lex: &mut Lexer<TokenKind>) -> LexIndent {
     return LexIndent::Skip;
   }
 
-  if *INDENT_SIZE.lock().unwrap() == 0 {
-    *INDENT_SIZE.lock().unwrap() = spaces.len();
+  if INDENT_SIZE.load(std::sync::atomic::Ordering::Relaxed) == 0 {
+    INDENT_SIZE.store(spaces.len(), std::sync::atomic::Ordering::Relaxed);
+
+    lex.bump(spaces.len() - 1);
+    return LexIndent::Emit;
   }
 
-  if spaces.len() < *INDENT_SIZE.lock().unwrap() {
+  let indent_size = INDENT_SIZE.load(std::sync::atomic::Ordering::Relaxed);
+  if spaces.len() < indent_size {
     return LexIndent::Skip;
   }
 
-  lex.bump(*INDENT_SIZE.lock().unwrap() - 1);
+  lex.bump(indent_size - 1);
   LexIndent::Emit
 }
 
@@ -270,15 +273,9 @@ pub enum ExprKind {
   Index { array: Box<Expr>, index: Box<Expr> },
 }
 
-#[derive(Debug, Clone)]
-pub struct Expr {
-  pub kind: ExprKind,
-  pub span: Span,
-}
-
-impl std::fmt::Display for Expr {
+impl std::fmt::Display for ExprKind {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match &self.kind {
+    match &self {
       ExprKind::String(s) => write!(f, "{s:?}"),
       ExprKind::Integer(n) => write!(f, "{n}"),
       ExprKind::Identifier(s) => write!(f, "{s}"),
@@ -299,6 +296,16 @@ impl std::fmt::Display for Expr {
       ExprKind::Index { array, index } => write!(f, "{array}[{index}]"),
     }
   }
+}
+
+#[derive(Debug, Clone)]
+pub struct Expr {
+  pub kind: ExprKind,
+  pub span: Span,
+}
+
+impl std::fmt::Display for Expr {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.kind.fmt(f) }
 }
 
 impl PartialEq for Expr {

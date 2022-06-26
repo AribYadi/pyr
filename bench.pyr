@@ -1,0 +1,4 @@
+i = 0
+while i < 10:
+  print(("hello" and "world" or 1232 and 1) + 12321)
+  i = i + 1

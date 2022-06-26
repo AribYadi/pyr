@@ -178,6 +178,10 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
     binary.append(PYR_DEBUG_BINARY)
   else:
     binary.append(PYR_RELEASE_BINARY)
+  if args.update:
+    print(f"\x1b[2;96m[INFO]\x1b[0m: Updating `{tc_path}`..")
+  else:
+    print(f"\x1b[2;96m[INFO]\x1b[0m: Testing `{input_path}` with subcommand `{subcommand.__str__()}`..")
   pyr_output = subprocess.run([binary[0], subcommand.__str__(), input_path], capture_output = True)
   output = []
   if pyr_output.returncode == 0 and subcommand == Subcommand.Compile:
@@ -204,7 +208,6 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
   input_path = relative_path(input_path)
   
   if args.update:
-    print(f"\x1b[2;96m[INFO]\x1b[0m: Updating `{tc_path}`..")
     if test_case.exitcode != 0:
       print(f"\x1b[33m[WARN]\x1b[0m: Test `{input_path}` returned an abnormal exit code {test_case.exitcode}.", file = sys.stderr)
     if test_case.write(tc_path):
@@ -217,7 +220,6 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
     print(f"\x1b[33m[WARN]\x1b[0m: Couldn't find record file for {input_path}. Skipping.")
     results.skipped += 1
   else:
-    print(f"\x1b[2;96m[INFO]\x1b[0m: Testing `{input_path}` with subcommand `{subcommand.__str__()}`..")
     expected_test_case = TestCase.read(tc_path)
 
     if test_case == expected_test_case:

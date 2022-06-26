@@ -73,6 +73,8 @@ struct ValueWrapper {
   can_be_loaded: bool,
 }
 
+unsafe impl Send for ValueWrapper {}
+
 impl ValueWrapper {
   unsafe fn new_integer(self_: &mut Compiler, v: i64) -> Self {
     let ty = LLVMInt64TypeInContext(self_.ctx);
@@ -1328,7 +1330,7 @@ impl Compiler {
 
           ValueWrapper {
             v: arr,
-            ty: ValueType::Array(Box::new(ty.clone()), *len),
+            ty: ValueType::Array(bx!(ty.clone()), *len),
             can_be_loaded: false,
             is_pointer: true,
             is_runtime: true,

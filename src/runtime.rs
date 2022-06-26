@@ -54,9 +54,8 @@ impl StateStack {
   pub fn contains(&self, state: State) -> bool { self.stack.contains(&state) }
 
   pub fn pop_until(&mut self, state: State) {
-    while self.stack.last() != Some(&state) {
-      self.stack.pop();
-    }
+    let pos = self.stack.iter().rev().position(|&s| s == state).unwrap();
+    self.stack.truncate(self.stack.len() - pos);
     self.last_rewind = self.stack.pop();
   }
 }
@@ -92,11 +91,11 @@ impl From<ReturnValue<ValueType>> for ValueType {
 pub type IndentLevel = usize;
 
 #[derive(Clone)]
-pub struct Variables<T: Clone> {
+pub struct Variables<T: Clone + Send> {
   variables: Vec<(String, IndentLevel, T)>,
 }
 
-impl<T: Clone> Variables<T> {
+impl<T: Clone + Send> Variables<T> {
   pub fn new() -> Self { Self { variables: Vec::new() } }
 
   pub fn declare(&mut self, name: &str, level: IndentLevel, value: T) -> T {
@@ -104,20 +103,32 @@ impl<T: Clone> Variables<T> {
     value
   }
 
-  pub fn get(&self, name: &str) -> Option<T> {
-    self.variables.iter().rev().find(|(n, _, _)| n == name).map(|(_, _, v)| v).cloned()
+  pub fn get(&mut self, name: &str) -> Option<T> {
+    self
+      .variables
+      .iter_mut()
+      .rev()
+      .find_map(|(n, _, v)| if n == name { Some(v.clone()) } else { None })
   }
 
   pub fn get_mut(&mut self, name: &str) -> Option<&mut T> {
-    self.variables.iter_mut().rev().find(|(n, _, _)| n == name).map(|(_, _, v)| v)
+    self.variables.iter_mut().rev().find_map(|(n, _, v)| if n == name { Some(v) } else { None })
   }
 
-  pub fn get_variable(&self, name: &str) -> Option<(String, IndentLevel, T)> {
-    self.variables.iter().rev().find(|(n, _, _)| n == name).cloned()
+  pub fn get_variable(&mut self, name: &str) -> Option<(String, IndentLevel, T)> {
+    self.variables.iter_mut().rev().find_map(
+      |var| {
+        if var.0 == name {
+          Some(var.clone())
+        } else {
+          None
+        }
+      },
+    )
   }
 
   pub fn assign_or_declare(&mut self, name: &str, level: IndentLevel, value: T) -> T {
-    if let Some((_, _, v)) = self.variables.iter_mut().find(|(n, _, _)| n == name) {
+    if let Some((_, _, v)) = self.variables.iter_mut().rev().find(|(n, _, _)| n == name) {
       *v = value.clone();
       value
     } else {
@@ -176,7 +187,7 @@ impl Literal {
     match self {
       Literal::String(_) => ValueType::String,
       Literal::Integer(_) => ValueType::Integer,
-      Literal::Array(elems) => ValueType::Array(Box::new(elems[0].get_type()), elems.len()),
+      Literal::Array(elems) => ValueType::Array(bx!(elems[0].get_type()), elems.len()),
     }
   }
 }
@@ -186,8 +197,8 @@ pub type NativeFunction = fn(&mut Interpreter, Params) -> ReturnValue<Literal>;
 pub type ReturnValue<T> = Option<T>;
 
 pub fn func_name(base_name: &str, args: &[ValueType]) -> String {
-  let args = args.iter().map(|t| t.to_string()).collect::<Vec<_>>().join(".");
-  [base_name.to_string(), args].join(".")
+  let args_as_string: Vec<_> = args.iter().map(ToString::to_string).collect();
+  [base_name.to_string(), args_as_string.join(".")].join(".")
 }
 
 #[derive(Clone)]

@@ -92,7 +92,7 @@ impl Parser<'_> {
 
         let len = lexeme.parse().unwrap();
 
-        Ok(ValueType::Array(Box::new(ty), len))
+        Ok(ValueType::Array(bx!(ty), len))
       },
 
       _ => Err(ParseError::new(ParseErrorKind::ExpectedType(self.curr), self.lexer.span())),
@@ -331,7 +331,11 @@ impl Parser<'_> {
         self.consume(literal)?;
         match literal {
           Tok::String => {
-            let text = snailquote::unescape(&text).map_err(|e| ParseError::new(e, span.clone()))?;
+            let text = if text.contains('\\') {
+              snailquote::unescape(&text).map_err(|e| ParseError::new(e, span.clone()))?
+            } else {
+              text[1..text.len() - 1].to_string()
+            };
             Ok(Expr::new(ExprKind::String(text), span))
           },
           Tok::Integer => Ok(Expr::new(ExprKind::Integer(text.parse().unwrap()), span)),
@@ -356,7 +360,7 @@ impl Parser<'_> {
 
         let span_end = self.lexer.span().end;
 
-        Ok(Expr::new(ExprKind::PrefixOp { op, right: Box::new(right) }, span_start..span_end))
+        Ok(Expr::new(ExprKind::PrefixOp { op, right: bx!(right) }, span_start..span_end))
       },
       // Arrays start with the type of the elements
       Tok::IntType | Tok::StringType => {
@@ -432,7 +436,7 @@ impl Parser<'_> {
           let span_start = lhs.span.start;
           let span_end = right.span.end;
           lhs = Expr::new(
-            ExprKind::InfixOp { left: Box::new(lhs), op, right: Box::new(right) },
+            ExprKind::InfixOp { left: bx!(lhs), op, right: bx!(right) },
             span_start..span_end,
           );
         },
@@ -453,7 +457,7 @@ impl Parser<'_> {
           let span_start = lhs.span.start;
           let span_end = right.span.end;
           lhs = Expr::new(
-            ExprKind::ShortCircuitOp { left: Box::new(lhs), op, right: Box::new(right) },
+            ExprKind::ShortCircuitOp { left: bx!(lhs), op, right: bx!(right) },
             span_start..span_end,
           );
         },
@@ -490,10 +494,8 @@ impl Parser<'_> {
           self.consume_delimiter(Tok::RightBracket)?;
 
           let span_end = self.lexer.span().end;
-          lhs = Expr::new(
-            ExprKind::Index { array: Box::new(lhs), index: Box::new(index) },
-            span_start..span_end,
-          );
+          lhs =
+            Expr::new(ExprKind::Index { array: bx!(lhs), index: bx!(index) }, span_start..span_end);
         },
 
         Tok::Newline |
