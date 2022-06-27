@@ -104,11 +104,7 @@ impl<T: Clone + Send> Variables<T> {
   }
 
   pub fn get(&mut self, name: &str) -> Option<T> {
-    self
-      .variables
-      .iter_mut()
-      .rev()
-      .find_map(|(n, _, v)| if n == name { Some(v.clone()) } else { None })
+    self.variables.iter().rev().find_map(|(n, _, v)| if n == name { Some(v.clone()) } else { None })
   }
 
   pub fn get_mut(&mut self, name: &str) -> Option<&mut T> {

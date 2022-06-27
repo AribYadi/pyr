@@ -120,7 +120,7 @@ impl Interpreter {
         // Clear return value first
         self.return_value = None;
 
-        let (new_args, arg_types): (_, Vec<_>) = args.iter().cloned().unzip(); //.unzip_into_vecs(&mut new_args, &mut arg_types);
+        let (new_args, arg_types): (_, Vec<_>) = args.iter().cloned().unzip();
         self.functions.declare(
           &func_name(name, &arg_types),
           self.indent_level,
@@ -192,9 +192,14 @@ impl Interpreter {
         self.interpret_short_circuit_op(op, *left.clone(), *right.clone())
       },
       ExprKind::FuncCall { name, params } => {
-        let params =
-          params.iter().map(|param| self.interpret_expr(param)).collect::<Result<Vec<_>>>()?;
-        let param_types: Vec<_> = params.iter().map(|param| param.get_type()).collect();
+        let (param_types, params): (Vec<_>, Vec<_>) =
+          params.iter().try_fold((Vec::new(), Vec::new()), |(mut types, mut exprs), expr| {
+            let expr = self.interpret_expr(expr)?;
+            let ty = expr.get_type();
+            types.push(ty);
+            exprs.push(expr);
+            Ok((types, exprs))
+          })?;
         let func = match self.functions.get(&func_name(name, &param_types)) {
           Some(func) => func,
           None => unreachable!("Resolver didn't resolve function correctly"),
