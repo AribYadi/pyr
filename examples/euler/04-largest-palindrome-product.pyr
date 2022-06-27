@@ -1,6 +1,9 @@
 START=100
 END=999
 
+# Times we check if we got the answer, if it doesn't work just increase it
+FOUND_CHECK = 5
+
 func rev(orig_n: int) -> int:
   n = orig_n
   rev = 0
@@ -9,16 +12,20 @@ func rev(orig_n: int) -> int:
     n = n / 10
   ret rev
 
-largest_palindrome_product = 0
+palin = 0
+found = 0
 
-i = START
-while i <= END:
-  j = START
-  while j <= END:
-    product = i * j
-    if product == rev(product) and product > largest_palindrome_product:
-      largest_palindrome_product = product
-    j = j + 1
-  i = i + 1
+i = END
+while found <= FOUND_CHECK and i >= START:
+  j = i
+  while found <= FOUND_CHECK and j >= START:
+    prod = i*j
+    if prod == rev(prod):
+      if prod > palin:
+        palin = prod
+      else:
+        found = found + 1
+    j = j - 2
+  i = i - 1
 
-print("Answer is: " + largest_palindrome_product + "\n")
+print("Answer is: " + palin + "\n")
