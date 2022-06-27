@@ -239,18 +239,15 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
 
 def run_on_dir(dir_path: str, results: TestResults):
   for root, dirs, files in os.walk(dir_path):
-    for file in filter(lambda path: path.endswith(".pyr"), files):
+    for file in filter(lambda path: path.endswith(PYR_EXT), files):
       path = os.path.join(root, file)
       with open(path, "rb") as f:
         if f.readline().strip() == b"### tester-ignore ###":
           results.skipped += 1
           continue;
-      if file.endswith(PYR_EXT):
-        test_file(path, Subcommand.Run, results)
+      test_file(path, Subcommand.Run, results)
       if not args.update:
         test_file(path, Subcommand.Compile, results)
-    for dir in dirs:
-      run_on_dir(os.path.join(root, dir), results)
 
 if __name__ == "__main__":
   if args.debug and (not exe_exist(PYR_DEBUG_BINARY) or args.always_build):
