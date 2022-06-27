@@ -249,9 +249,9 @@ fn interpret_function() {
         expr: Expr::new_without_span(ExprKind::FuncCall {
           name: "print".to_string(),
           params: vec![Expr::new_without_span(ExprKind::InfixOp {
-            left: bx!(Expr::new_without_span(ExprKind::Identifier("x".to_string()))),
+            left: rc!(Expr::new_without_span(ExprKind::Identifier("x".to_string()))),
             op: TokenKind::Plus,
-            right: bx!(Expr::new_without_span(ExprKind::String("\n".to_string())))
+            right: rc!(Expr::new_without_span(ExprKind::String("\n".to_string())))
           })],
         }),
       })],

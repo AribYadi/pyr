@@ -91,11 +91,11 @@ impl From<ReturnValue<ValueType>> for ValueType {
 pub type IndentLevel = usize;
 
 #[derive(Clone)]
-pub struct Variables<T: Clone + Send> {
+pub struct Variables<T: Clone> {
   variables: Vec<(String, IndentLevel, T)>,
 }
 
-impl<T: Clone + Send> Variables<T> {
+impl<T: Clone> Variables<T> {
   pub fn new() -> Self { Self { variables: Vec::new() } }
 
   pub fn declare(&mut self, name: &str, level: IndentLevel, value: T) -> T {

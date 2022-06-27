@@ -89,7 +89,7 @@ impl Optimizer {
           if self.options.precalc_constant_ops {
             self.optimize_prefix(op, right)
           } else {
-            ExprKind::PrefixOp { op: *op, right: bx!(right) }
+            ExprKind::PrefixOp { op: *op, right: rc!(right) }
           }
         },
         ExprKind::InfixOp { op, left, right } | ExprKind::ShortCircuitOp { op, left, right } => {
@@ -104,10 +104,10 @@ impl Optimizer {
               self.optimize_short_circuit(op, left, right)
             },
             ExprKind::InfixOp { .. } => {
-              ExprKind::InfixOp { op: *op, left: bx!(left), right: bx!(right) }
+              ExprKind::InfixOp { op: *op, left: rc!(left), right: rc!(right) }
             },
             ExprKind::ShortCircuitOp { .. } => {
-              ExprKind::ShortCircuitOp { op: *op, left: bx!(left), right: bx!(right) }
+              ExprKind::ShortCircuitOp { op: *op, left: rc!(left), right: rc!(right) }
             },
 
             _ => unreachable!(),
@@ -122,7 +122,7 @@ impl Optimizer {
           let array = self.optimize_expr(array);
           let index = self.optimize_expr(index);
 
-          ExprKind::Index { array: bx!(array), index: bx!(index) }
+          ExprKind::Index { array: rc!(array), index: rc!(index) }
         },
 
         _ => expr.kind.clone(),
@@ -136,10 +136,10 @@ impl Optimizer {
       (TokenKind::Minus, ExprKind::Integer(r)) => ExprKind::Integer(-r),
       (TokenKind::Bang, _) => match self.is_truthy(&right) {
         Some(is_truthy) => ExprKind::Integer(is_truthy as i64),
-        None => ExprKind::PrefixOp { op: *op, right: Box::new(right) },
+        None => ExprKind::PrefixOp { op: *op, right: rc!(right) },
       },
 
-      _ => ExprKind::PrefixOp { op: *op, right: Box::new(right) },
+      _ => ExprKind::PrefixOp { op: *op, right: rc!(right) },
     }
   }
 
@@ -204,13 +204,13 @@ impl Optimizer {
       },
       (TokenKind::Pipe, ExprKind::Integer(l), ExprKind::Integer(r)) => ExprKind::Integer(l | r),
 
-      _ => ExprKind::InfixOp { op: *op, left: Box::new(left), right: Box::new(right) },
+      _ => ExprKind::InfixOp { op: *op, left: rc!(left), right: rc!(right) },
     }
   }
 
   fn optimize_short_circuit(&self, op: &TokenKind, left: Expr, right: Expr) -> ExprKind {
     if !self.is_const(&left.kind) || !self.is_const(&right.kind) {
-      return ExprKind::ShortCircuitOp { op: *op, left: Box::new(left), right: Box::new(right) };
+      return ExprKind::ShortCircuitOp { op: *op, left: rc!(left), right: rc!(right) };
     }
 
     match op {

@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::sync::atomic::AtomicUsize;
 
 use logos::internal::LexerInternal;
@@ -266,11 +267,11 @@ pub enum ExprKind {
   Identifier(String),
   Array(ValueType, Vec<Expr>, usize),
 
-  PrefixOp { op: TokenKind, right: Box<Expr> },
-  InfixOp { op: TokenKind, left: Box<Expr>, right: Box<Expr> },
-  ShortCircuitOp { op: TokenKind, left: Box<Expr>, right: Box<Expr> },
+  PrefixOp { op: TokenKind, right: Rc<Expr> },
+  InfixOp { op: TokenKind, left: Rc<Expr>, right: Rc<Expr> },
+  ShortCircuitOp { op: TokenKind, left: Rc<Expr>, right: Rc<Expr> },
   FuncCall { name: String, params: Vec<Expr> },
-  Index { array: Box<Expr>, index: Box<Expr> },
+  Index { array: Rc<Expr>, index: Rc<Expr> },
 }
 
 impl std::fmt::Display for ExprKind {

@@ -25,7 +25,7 @@ fn parse_expr() {
     expr,
     Ok(Expr::new_without_span(ExprKind::PrefixOp {
       op: Tok::Minus,
-      right: bx!(Expr::new_without_span(ExprKind::Integer(32)))
+      right: rc!(Expr::new_without_span(ExprKind::Integer(32)))
     }))
   );
   let expr = parse("! wrong");
@@ -33,7 +33,7 @@ fn parse_expr() {
     expr,
     Ok(Expr::new_without_span(ExprKind::PrefixOp {
       op: Tok::Bang,
-      right: bx!(Expr::new_without_span(ExprKind::Identifier("wrong".to_string())))
+      right: rc!(Expr::new_without_span(ExprKind::Identifier("wrong".to_string())))
     }))
   );
 
@@ -61,12 +61,20 @@ fn parse_binary_expr() {
             exprs = exprs.into_iter().map(to_string).collect::<Vec<_>>().join(", "),
           )
         },
-        ExprKind::PrefixOp { op, right } => format!("({op} {})", to_string(*right)),
+        ExprKind::PrefixOp { op, right } => format!("({op} {})", to_string(right.as_ref().clone())),
         ExprKind::InfixOp { left, op, right } => {
-          format!("({} {op} {})", to_string(*left), to_string(*right))
+          format!(
+            "({} {op} {})",
+            to_string(left.as_ref().clone()),
+            to_string(right.as_ref().clone())
+          )
         },
         ExprKind::ShortCircuitOp { op, left, right } => {
-          format!("({} {op} {})", to_string(*left), to_string(*right))
+          format!(
+            "({} {op} {})",
+            to_string(left.as_ref().clone()),
+            to_string(right.as_ref().clone())
+          )
         },
         ExprKind::FuncCall { name, params } => {
           format!(
@@ -75,7 +83,11 @@ fn parse_binary_expr() {
           )
         },
         ExprKind::Index { array, index } => {
-          format!("({array}[{index}])", array = to_string(*array), index = to_string(*index))
+          format!(
+            "({array}[{index}])",
+            array = to_string(array.as_ref().clone()),
+            index = to_string(index.as_ref().clone())
+          )
         },
       }
     }
@@ -142,9 +154,9 @@ fn parse_stmt() {
     stmt,
     Ok(Stmt::new_without_span(StmtKind::Expression {
       expr: Expr::new_without_span(ExprKind::InfixOp {
-        left: bx!(Expr::new_without_span(ExprKind::Integer(1))),
+        left: rc!(Expr::new_without_span(ExprKind::Integer(1))),
         op: Tok::Plus,
-        right: bx!(Expr::new_without_span(ExprKind::Integer(2))),
+        right: rc!(Expr::new_without_span(ExprKind::Integer(2))),
       })
     }))
   );
@@ -163,16 +175,16 @@ fn parse_stmt() {
       body: vec![
         Stmt::new_without_span(StmtKind::Expression {
           expr: Expr::new_without_span(ExprKind::InfixOp {
-            left: bx!(Expr::new_without_span(ExprKind::Integer(1))),
+            left: rc!(Expr::new_without_span(ExprKind::Integer(1))),
             op: Tok::Plus,
-            right: bx!(Expr::new_without_span(ExprKind::Integer(2))),
+            right: rc!(Expr::new_without_span(ExprKind::Integer(2))),
           }),
         }),
         Stmt::new_without_span(StmtKind::Expression {
           expr: Expr::new_without_span(ExprKind::InfixOp {
-            left: bx!(Expr::new_without_span(ExprKind::Integer(3))),
+            left: rc!(Expr::new_without_span(ExprKind::Integer(3))),
             op: Tok::Plus,
-            right: bx!(Expr::new_without_span(ExprKind::Integer(4))),
+            right: rc!(Expr::new_without_span(ExprKind::Integer(4))),
           }),
         }),
       ],
@@ -197,9 +209,9 @@ fn parse_stmt() {
           condition: Expr::new_without_span(ExprKind::Integer(1)),
           body: vec![Stmt::new_without_span(StmtKind::Expression {
             expr: Expr::new_without_span(ExprKind::InfixOp {
-              left: bx!(Expr::new_without_span(ExprKind::Integer(1))),
+              left: rc!(Expr::new_without_span(ExprKind::Integer(1))),
               op: Tok::Plus,
-              right: bx!(Expr::new_without_span(ExprKind::Integer(2))),
+              right: rc!(Expr::new_without_span(ExprKind::Integer(2))),
             }),
           }),],
           else_stmt: vec![],
@@ -232,16 +244,16 @@ fn parse_stmt() {
         condition: Expr::new_without_span(ExprKind::Integer(1)),
         body: vec![Stmt::new_without_span(StmtKind::Expression {
           expr: Expr::new_without_span(ExprKind::InfixOp {
-            left: bx!(Expr::new_without_span(ExprKind::Integer(1))),
+            left: rc!(Expr::new_without_span(ExprKind::Integer(1))),
             op: Tok::Plus,
-            right: bx!(Expr::new_without_span(ExprKind::Integer(2))),
+            right: rc!(Expr::new_without_span(ExprKind::Integer(2))),
           }),
         }),],
         else_stmt: vec![Stmt::new_without_span(StmtKind::Expression {
           expr: Expr::new_without_span(ExprKind::InfixOp {
-            left: bx!(Expr::new_without_span(ExprKind::Integer(3))),
+            left: rc!(Expr::new_without_span(ExprKind::Integer(3))),
             op: Tok::Plus,
-            right: bx!(Expr::new_without_span(ExprKind::Integer(4))),
+            right: rc!(Expr::new_without_span(ExprKind::Integer(4))),
           })
         })],
       }),],
@@ -249,9 +261,9 @@ fn parse_stmt() {
         condition: Expr::new_without_span(ExprKind::Integer(0)),
         body: vec![Stmt::new_without_span(StmtKind::Expression {
           expr: Expr::new_without_span(ExprKind::InfixOp {
-            left: bx!(Expr::new_without_span(ExprKind::Integer(5))),
+            left: rc!(Expr::new_without_span(ExprKind::Integer(5))),
             op: Tok::Plus,
-            right: bx!(Expr::new_without_span(ExprKind::Integer(6))),
+            right: rc!(Expr::new_without_span(ExprKind::Integer(6))),
           }),
         }),],
         else_stmt: vec![],
@@ -276,25 +288,25 @@ fn parse_stmt() {
       body: vec![
         Stmt::new_without_span(StmtKind::Expression {
           expr: Expr::new_without_span(ExprKind::InfixOp {
-            left: bx!(Expr::new_without_span(ExprKind::Integer(1))),
+            left: rc!(Expr::new_without_span(ExprKind::Integer(1))),
             op: Tok::Plus,
-            right: bx!(Expr::new_without_span(ExprKind::Integer(2))),
+            right: rc!(Expr::new_without_span(ExprKind::Integer(2))),
           }),
         }),
         Stmt::new_without_span(StmtKind::If {
           condition: Expr::new_without_span(ExprKind::Integer(1)),
           body: vec![Stmt::new_without_span(StmtKind::Expression {
             expr: Expr::new_without_span(ExprKind::InfixOp {
-              left: bx!(Expr::new_without_span(ExprKind::Integer(3))),
+              left: rc!(Expr::new_without_span(ExprKind::Integer(3))),
               op: Tok::Plus,
-              right: bx!(Expr::new_without_span(ExprKind::Integer(4))),
+              right: rc!(Expr::new_without_span(ExprKind::Integer(4))),
             }),
           }),],
           else_stmt: vec![Stmt::new_without_span(StmtKind::Expression {
             expr: Expr::new_without_span(ExprKind::InfixOp {
-              left: bx!(Expr::new_without_span(ExprKind::Integer(5))),
+              left: rc!(Expr::new_without_span(ExprKind::Integer(5))),
               op: Tok::Plus,
-              right: bx!(Expr::new_without_span(ExprKind::Integer(6))),
+              right: rc!(Expr::new_without_span(ExprKind::Integer(6))),
             }),
           }),],
         }),
@@ -323,9 +335,9 @@ fn parse_stmt() {
       condition: Expr::new_without_span(ExprKind::Integer(1)),
       body: vec![Stmt::new_without_span(StmtKind::Expression {
         expr: Expr::new_without_span(ExprKind::InfixOp {
-          left: bx!(Expr::new_without_span(ExprKind::Integer(1))),
+          left: rc!(Expr::new_without_span(ExprKind::Integer(1))),
           op: Tok::Plus,
-          right: bx!(Expr::new_without_span(ExprKind::Integer(2))),
+          right: rc!(Expr::new_without_span(ExprKind::Integer(2))),
         }),
       }),],
       else_stmt: vec![],
@@ -366,16 +378,16 @@ fn parse_block() {
     Ok(vec![
       Stmt::new_without_span(StmtKind::Expression {
         expr: Expr::new_without_span(ExprKind::InfixOp {
-          left: bx!(Expr::new_without_span(ExprKind::Integer(1))),
+          left: rc!(Expr::new_without_span(ExprKind::Integer(1))),
           op: Tok::Plus,
-          right: bx!(Expr::new_without_span(ExprKind::Integer(2))),
+          right: rc!(Expr::new_without_span(ExprKind::Integer(2))),
         }),
       }),
       Stmt::new_without_span(StmtKind::Expression {
         expr: Expr::new_without_span(ExprKind::InfixOp {
-          left: bx!(Expr::new_without_span(ExprKind::Integer(3))),
+          left: rc!(Expr::new_without_span(ExprKind::Integer(3))),
           op: Tok::Plus,
-          right: bx!(Expr::new_without_span(ExprKind::Integer(4))),
+          right: rc!(Expr::new_without_span(ExprKind::Integer(4))),
         }),
       }),
     ])
@@ -393,16 +405,16 @@ fn parse_block() {
     Ok(vec![
       Stmt::new_without_span(StmtKind::Expression {
         expr: Expr::new_without_span(ExprKind::InfixOp {
-          left: bx!(Expr::new_without_span(ExprKind::Integer(1))),
+          left: rc!(Expr::new_without_span(ExprKind::Integer(1))),
           op: Tok::Plus,
-          right: bx!(Expr::new_without_span(ExprKind::Integer(2))),
+          right: rc!(Expr::new_without_span(ExprKind::Integer(2))),
         }),
       }),
       Stmt::new_without_span(StmtKind::Expression {
         expr: Expr::new_without_span(ExprKind::InfixOp {
-          left: bx!(Expr::new_without_span(ExprKind::Integer(3))),
+          left: rc!(Expr::new_without_span(ExprKind::Integer(3))),
           op: Tok::Plus,
-          right: bx!(Expr::new_without_span(ExprKind::Integer(4))),
+          right: rc!(Expr::new_without_span(ExprKind::Integer(4))),
         }),
       }),
     ])
@@ -418,16 +430,16 @@ fn parse_block() {
     Ok(vec![
       Stmt::new_without_span(StmtKind::Expression {
         expr: Expr::new_without_span(ExprKind::InfixOp {
-          left: bx!(Expr::new_without_span(ExprKind::Integer(1))),
+          left: rc!(Expr::new_without_span(ExprKind::Integer(1))),
           op: Tok::Plus,
-          right: bx!(Expr::new_without_span(ExprKind::Integer(2))),
+          right: rc!(Expr::new_without_span(ExprKind::Integer(2))),
         }),
       }),
       Stmt::new_without_span(StmtKind::Expression {
         expr: Expr::new_without_span(ExprKind::InfixOp {
-          left: bx!(Expr::new_without_span(ExprKind::Integer(3))),
+          left: rc!(Expr::new_without_span(ExprKind::Integer(3))),
           op: Tok::Plus,
-          right: bx!(Expr::new_without_span(ExprKind::Integer(4))),
+          right: rc!(Expr::new_without_span(ExprKind::Integer(4))),
         }),
       }),
     ])
@@ -496,9 +508,9 @@ fn parse_function() {
       args: vec![("a".to_string(), ValueType::Integer), ("b".to_string(), ValueType::String)],
       body: vec![Stmt::new_without_span(StmtKind::Ret {
         expr: Some(Expr::new_without_span(ExprKind::InfixOp {
-          left: bx!(Expr::new_without_span(ExprKind::Identifier("a".to_string()))),
+          left: rc!(Expr::new_without_span(ExprKind::Identifier("a".to_string()))),
           op: Tok::Plus,
-          right: bx!(Expr::new_without_span(ExprKind::Identifier("b".to_string()))),
+          right: rc!(Expr::new_without_span(ExprKind::Identifier("b".to_string()))),
         }))
       })],
       ret_ty: Some(ValueType::Integer),

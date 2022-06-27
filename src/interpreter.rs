@@ -189,7 +189,7 @@ impl Interpreter {
         self.interpret_infix_op(op, left, right)
       },
       ExprKind::ShortCircuitOp { op, left, right } => {
-        self.interpret_short_circuit_op(op, *left.clone(), *right.clone())
+        self.interpret_short_circuit_op(op, left.as_ref().clone(), right.as_ref().clone())
       },
       ExprKind::FuncCall { name, params } => {
         let (param_types, params): (Vec<_>, Vec<_>) =

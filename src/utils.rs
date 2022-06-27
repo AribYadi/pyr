@@ -3,3 +3,9 @@ macro_rules! bx {
     Box::new($val)
   };
 }
+
+macro_rules! rc {
+  ($val:expr) => {
+    std::rc::Rc::new($val)
+  };
+}

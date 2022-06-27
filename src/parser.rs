@@ -360,7 +360,7 @@ impl Parser<'_> {
 
         let span_end = self.lexer.span().end;
 
-        Ok(Expr::new(ExprKind::PrefixOp { op, right: bx!(right) }, span_start..span_end))
+        Ok(Expr::new(ExprKind::PrefixOp { op, right: rc!(right) }, span_start..span_end))
       },
       // Arrays start with the type of the elements
       Tok::IntType | Tok::StringType => {
@@ -436,7 +436,7 @@ impl Parser<'_> {
           let span_start = lhs.span.start;
           let span_end = right.span.end;
           lhs = Expr::new(
-            ExprKind::InfixOp { left: bx!(lhs), op, right: bx!(right) },
+            ExprKind::InfixOp { left: rc!(lhs), op, right: rc!(right) },
             span_start..span_end,
           );
         },
@@ -457,7 +457,7 @@ impl Parser<'_> {
           let span_start = lhs.span.start;
           let span_end = right.span.end;
           lhs = Expr::new(
-            ExprKind::ShortCircuitOp { left: bx!(lhs), op, right: bx!(right) },
+            ExprKind::ShortCircuitOp { left: rc!(lhs), op, right: rc!(right) },
             span_start..span_end,
           );
         },
@@ -495,7 +495,7 @@ impl Parser<'_> {
 
           let span_end = self.lexer.span().end;
           lhs =
-            Expr::new(ExprKind::Index { array: bx!(lhs), index: bx!(index) }, span_start..span_end);
+            Expr::new(ExprKind::Index { array: rc!(lhs), index: rc!(index) }, span_start..span_end);
         },
 
         Tok::Newline |
