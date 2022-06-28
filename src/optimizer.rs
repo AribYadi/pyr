@@ -148,12 +148,34 @@ impl Optimizer {
     match (op, &left.kind, &right.kind) {
       (TokenKind::Plus, ExprKind::Integer(l), ExprKind::Integer(r)) => ExprKind::Integer(l + r),
       (TokenKind::Plus, ExprKind::String(s), kind) if self.is_const(kind) => {
-        let kind_as_str = crate::utils::unescape(kind.to_string()).unwrap();
+        let kind_as_str = kind.to_string();
+        let kind_as_str = if kind_as_str.starts_with('"') {
+          kind_as_str[1..kind_as_str.len() - 1].to_string()
+        } else {
+          kind_as_str
+        };
+        let kind_as_str = if kind_as_str.contains('\\') {
+          crate::utils::unescape(kind_as_str).unwrap()
+        } else {
+          kind_as_str
+        };
+
         let string = [s.to_string(), kind_as_str].concat();
         ExprKind::String(string)
       },
       (TokenKind::Plus, kind, ExprKind::String(s)) if self.is_const(kind) => {
-        let kind_as_str = crate::utils::unescape(kind.to_string()).unwrap();
+        let kind_as_str = kind.to_string();
+        let kind_as_str = if kind_as_str.starts_with('"') {
+          kind_as_str[1..kind_as_str.len() - 1].to_string()
+        } else {
+          kind_as_str
+        };
+        let kind_as_str = if kind_as_str.contains('\\') {
+          crate::utils::unescape(kind_as_str).unwrap()
+        } else {
+          kind_as_str
+        };
+
         let string = [kind_as_str, s.to_string()].concat();
         ExprKind::String(string)
       },
