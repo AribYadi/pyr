@@ -39,13 +39,27 @@ pub struct Interpreter {
 impl Interpreter {
   pub fn define_std(&mut self) {
     let print_func = |_: &mut Self, params: Params| {
-      let mut params = params.into_iter();
-      let expr = params.next().unwrap().to_string();
+      let expr = params[0].to_string();
       print!("{expr}");
       None
     };
     self.functions.declare("print.string", 0, Function::Native(print_func, 1));
     self.functions.declare("print.int", 0, Function::Native(print_func, 1));
+
+    self.functions.declare(
+      "sqrt.int",
+      0,
+      Function::Native(
+        |_, params| {
+          let param = match params[0] {
+            Literal::Integer(n) => n,
+            _ => unreachable!(),
+          };
+          Some(Literal::Integer(f64::sqrt(param as f64) as i64))
+        },
+        1,
+      ),
+    );
   }
 
   pub fn new() -> Self {

@@ -39,6 +39,8 @@ impl Resolver {
   pub fn define_std(&mut self) {
     self.functions.declare("print.string", 0, (vec![ValueType::String], None));
     self.functions.declare("print.int", 0, (vec![ValueType::Integer], None));
+
+    self.functions.declare("sqrt.int", 0, (vec![ValueType::Integer], Some(ValueType::Integer)));
   }
 
   pub fn new() -> Self {

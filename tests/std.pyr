@@ -1,0 +1,10 @@
+print("sqrt-1 is ")
+if sqrt(64) == 8:
+  print("working\n")
+else:
+  print("not working (" + sqrt(64) + ")\n")
+print("sqrt-2 is ")
+if sqrt(12) == 3:
+  print("working\n")
+else:
+  print("not working (" + sqrt(12) + ")\n")

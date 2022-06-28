@@ -407,9 +407,12 @@ impl Compiler {
 
       let void_type = LLVMVoidTypeInContext(self.ctx);
       let i64_type = LLVMInt64TypeInContext(self.ctx);
+      let f64_type = LLVMDoubleTypeInContext(self.ctx);
 
       let (printf_func, printf_ty) = self.get_func("printf").unwrap();
+      let (llvm_sqrt_func, llvm_sqrt_ty) = self.get_func("llvm.sqrt.f64").unwrap();
 
+      // `print`
       {
         // Define a function inside llvm
         let print_string_type = LLVMFunctionType(
@@ -443,7 +446,6 @@ impl Compiler {
         self.funcs.push(print_string_func);
         self.function_descs.declare("print.string", 0, FuncDesc::new_non_closure(1, None));
       }
-
       {
         // Define a function inside llvm
         let print_int_type = LLVMFunctionType(void_type, [i64_type].as_mut_ptr(), 1, 0);
@@ -470,7 +472,42 @@ impl Compiler {
 
         // Declare a function inside our own compiler
         self.funcs.push(print_int_func);
-        self.function_descs.declare("print.int", 1, FuncDesc::new_non_closure(1, None));
+        self.function_descs.declare("print.int", 0, FuncDesc::new_non_closure(1, None));
+      }
+
+      // `sqrt
+      {
+        // Define a function inside llvm
+        let sqrt_type = LLVMFunctionType(i64_type, [i64_type].as_mut_ptr(), 1, 0);
+        let sqrt_func = LLVMAddFunction(self.module, self.cstring("sqrt.int"), sqrt_type);
+
+        let entry_bb = LLVMAppendBasicBlockInContext(self.ctx, sqrt_func, self.cstring("entry"));
+        let builder = LLVMCreateBuilderInContext(self.ctx);
+
+        LLVMPositionBuilderAtEnd(builder, entry_bb);
+
+        let expr = LLVMGetParam(sqrt_func, 0);
+        let expr = LLVMBuildSIToFP(builder, expr, f64_type, self.cstring(""));
+
+        let sqrt = LLVMBuildCall2(
+          builder,
+          llvm_sqrt_ty,
+          llvm_sqrt_func,
+          [expr].as_mut_ptr(),
+          1,
+          self.cstring(""),
+        );
+        let sqrt = LLVMBuildFPToSI(builder, sqrt, i64_type, self.cstring(""));
+
+        LLVMBuildRet(builder, sqrt);
+
+        // Declare a function inside our own compiler
+        self.funcs.push(sqrt_func);
+        self.function_descs.declare(
+          "sqrt.int",
+          0,
+          FuncDesc::new_non_closure(1, Some(ValueType::Integer)),
+        );
       }
     }
   }
@@ -825,6 +862,7 @@ impl Compiler {
   fn declare_llvm_functions(&mut self) {
     unsafe {
       let i64_type = LLVMInt64TypeInContext(self.ctx);
+      let f64_type = LLVMDoubleTypeInContext(self.ctx);
 
       let powi_i64_i64_type = LLVMFunctionType(i64_type, [i64_type, i64_type].as_mut_ptr(), 2, 0);
       let powi_i64_i64_func =
@@ -849,6 +887,11 @@ impl Compiler {
         memcpy_p0i8_p0i8_i64_type,
       );
       LLVMSetFunctionCallConv(memcpy_p0i8_p0i8_i64_func, LLVMCallConv::LLVMCCallConv as u32);
+
+      let sqrt_f64_type = LLVMFunctionType(f64_type, [f64_type].as_mut_ptr(), 1, 0);
+      let sqrt_f64_func =
+        LLVMAddFunction(self.module, self.cstring("llvm.sqrt.f64"), sqrt_f64_type);
+      LLVMSetFunctionCallConv(sqrt_f64_func, LLVMCallConv::LLVMCCallConv as u32);
     }
   }
 
