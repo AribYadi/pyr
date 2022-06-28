@@ -671,15 +671,21 @@ impl ValueWrapper {
       impl_arithmetics_for_runtime! {
         compiler, self, other;
         (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| {
-          let (powi_func, powi_ty) = compiler.get_func("llvm.powi.i64.i64").unwrap();
+          let (powi_func, powi_ty) = compiler.get_func("llvm.powi.f64.i64").unwrap();
+
+          let self_v = LLVMBuildSIToFP(compiler.builder, self_.v, LLVMDoubleTypeInContext(compiler.ctx), compiler.cstring(""));
+
           let v = LLVMBuildCall2(
             compiler.builder,
             powi_ty,
             powi_func,
-            [self_.v, other_.v].as_mut_ptr(),
+            [self_v, other_.v].as_mut_ptr(),
             2,
             compiler.cstring(""),
           );
+
+          let v = LLVMBuildFPToSI(compiler.builder, v, LLVMInt64TypeInContext(compiler.ctx), compiler.cstring(""));
+
           (v, ValueType::Integer, false, false)
         };
       };

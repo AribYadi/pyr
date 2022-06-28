@@ -864,9 +864,9 @@ impl Compiler {
       let i64_type = LLVMInt64TypeInContext(self.ctx);
       let f64_type = LLVMDoubleTypeInContext(self.ctx);
 
-      let powi_i64_i64_type = LLVMFunctionType(i64_type, [i64_type, i64_type].as_mut_ptr(), 2, 0);
+      let powi_i64_i64_type = LLVMFunctionType(f64_type, [f64_type, i64_type].as_mut_ptr(), 2, 0);
       let powi_i64_i64_func =
-        LLVMAddFunction(self.module, self.cstring("llvm.powi.i64.i64"), powi_i64_i64_type);
+        LLVMAddFunction(self.module, self.cstring("llvm.powi.f64.i64"), powi_i64_i64_type);
       LLVMSetFunctionCallConv(powi_i64_i64_func, LLVMCallConv::LLVMCCallConv as u32);
 
       let memcpy_p0i8_p0i8_i64_type = LLVMFunctionType(
