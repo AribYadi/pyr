@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Operator Precedence - Pyr Language Reference</title>
+        <title>Supported Escape Sequences - Pyr Language Reference</title>
         <!-- Custom HTML head -->
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
@@ -75,7 +75,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="../index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="../language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="../language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="../language-reference/arithmetic.html"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="../language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="../language-reference/bitwise.html"><strong aria-hidden="true">6.</strong> Bitwise</a></li><li class="chapter-item expanded "><a href="../language-reference/truthiness.html"><strong aria-hidden="true">7.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="../language-reference/operator-precedence.html" class="active"><strong aria-hidden="true">8.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="../language-reference/variables.html"><strong aria-hidden="true">9.</strong> Variable</a></li><li class="chapter-item expanded "><a href="../language-reference/functions.html"><strong aria-hidden="true">10.</strong> Functions</a></li><li class="chapter-item expanded "><a href="../language-reference/comments.html"><strong aria-hidden="true">11.</strong> Comments</a></li><li class="chapter-item expanded "><a href="../language-reference/escape-sequences.md.html"><strong aria-hidden="true">12.</strong> Supported Escape Sequences</a></li><li class="chapter-item expanded affix "><li class="part-title">Standard Library</li><li class="chapter-item expanded "><a href="../std/functions.html"><strong aria-hidden="true">13.</strong> Functions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="../index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="../language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="../language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="../language-reference/arithmetic.html"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="../language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="../language-reference/bitwise.html"><strong aria-hidden="true">6.</strong> Bitwise</a></li><li class="chapter-item expanded "><a href="../language-reference/truthiness.html"><strong aria-hidden="true">7.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="../language-reference/operator-precedence.html"><strong aria-hidden="true">8.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="../language-reference/variables.html"><strong aria-hidden="true">9.</strong> Variable</a></li><li class="chapter-item expanded "><a href="../language-reference/functions.html"><strong aria-hidden="true">10.</strong> Functions</a></li><li class="chapter-item expanded "><a href="../language-reference/comments.html"><strong aria-hidden="true">11.</strong> Comments</a></li><li class="chapter-item expanded "><a href="../language-reference/escape-sequences.md.html" class="active"><strong aria-hidden="true">12.</strong> Supported Escape Sequences</a></li><li class="chapter-item expanded affix "><li class="part-title">Standard Library</li><li class="chapter-item expanded "><a href="../std/functions.html"><strong aria-hidden="true">13.</strong> Functions</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -134,96 +134,16 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="operator-precedence"><a class="header" href="#operator-precedence">Operator Precedence</a></h2>
-<p>The following are the precedence levels and associativity of the operators in the Pyr language. The higher the precedence, the faster the operation will be performed.</p>
-<table data-line="0" class="code-line" dir="auto">
-<thead data-line="1" class="code-line" dir="auto">
-<tr data-line="0" class="code-line" dir="auto">
-<th data-line="0" class="code-line" dir="auto">Operator</th>
-<th data-line="0" class="code-line" dir="auto">Description</th>
-<th data-line="0" class="code-line" dir="auto">Associativity</th>
-<th data-line="0" class="code-line" dir="auto">Precedence</th>
-</tr>
-</thead>
-<tbody data-line="3" class="code-line" dir="auto">
-<tr data-line="2" class="code-line" dir="auto">
-<td data-line="2" class="code-line" dir="auto"><code>()</code>, <code>[]</code></td>
-<td data-line="2" class="code-line" dir="auto">Function Call, Indexing</td>
-<td data-line="2" class="code-line" dir="auto">Left-to-right</td>
-<td data-line="2" class="code-line" dir="auto">11</td>
-</tr>
-<tr data-line="3" class="code-line" dir="auto">
-<td data-line="3" class="code-line" dir="auto"><code>-</code>, <code>!</code></td>
-<td data-line="3" class="code-line" dir="auto">Negation</td>
-<td rowspan="2" data-line="3" class="code-line" dir="auto">Right-to-left</td>
-<td data-line="3" class="code-line" dir="auto">10</td>
-</tr>
-<tr data-line="4" class="code-line" dir="auto">
-<td data-line="4" class="code-line" dir="auto"><code>^</code></td>
-<td data-line="4" class="code-line" dir="auto">Exponent</td>
-<td data-line="4" class="code-line" dir="auto">9</td>
-</tr>
-<tr data-line="5" class="code-line" dir="auto">
-<td data-line="5" class="code-line" dir="auto"><code>*</code>, <code>/</code>, <code>%</code></td>
-<td data-line="5" class="code-line" dir="auto">Multiply, Division, Modulo</td>
-<td rowspan="3" data-line="5" class="code-line" dir="auto">Left-to-right</td>
-<td data-line="5" class="code-line" dir="auto">8</td>
-</tr>
-<tr data-line="6" class="code-line" dir="auto">
-<td data-line="6" class="code-line" dir="auto"><code>+</code>, <code>-</code></td>
-<td data-line="6" class="code-line" dir="auto">Addition, Subtraction</td>
-<td data-line="6" class="code-line" dir="auto">7</td>
-</tr>
-<tr data-line="7" class="code-line" dir="auto">
-<td data-line="7" class="code-line" dir="auto"><code>&lt;&lt;</code>, <code>&gt;&gt;</code></td>
-<td data-line="7" class="code-line" dir="auto">Bitwise Shift Left, Bitwise Shift Right</td>
-<td data-line="7" class="code-line" dir="auto">6</td>
-</tr>
-<tr data-line="8" class="code-line" dir="auto">
-<td data-line="8" class="code-line" dir="auto"><code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code></td>
-<td data-line="8" class="code-line" dir="auto">Less Than, Less Than or Equal, Greater Than, Greater Than or Equal</td>
-<td rowspan="2" data-line="8" class="code-line" dir="auto">Not chainable</td>
-<td data-line="8" class="code-line" dir="auto">5</td>
-</tr>
-<tr data-line="9" class="code-line" dir="auto">
-<td data-line="9" class="code-line" dir="auto"><code>==</code>, <code>!=</code></td>
-<td data-line="9" class="code-line" dir="auto">Equal, Not Equal</td>
-<td data-line="9" class="code-line" dir="auto">4</td>
-</tr>
-<tr data-line="10" class="code-line" dir="auto">
-<td data-line="10" class="code-line" dir="auto"><code>&amp;</code></td>
-<td data-line="10" class="code-line" dir="auto">Bitwise AND</td>
-<td rowspan="3" data-line="10" class="code-line" dir="auto">Left-to-right</td>
-<td data-line="10" class="code-line" dir="auto">3</td>
-</tr>
-<tr data-line="11" class="code-line" dir="auto">
-<td data-line="11" class="code-line" dir="auto"><code>|</code></td>
-<td data-line="11" class="code-line" dir="auto">Bitwise OR</td>
-<td data-line="11" class="code-line" dir="auto">2</td>
-</tr>
-<tr data-line="12" class="code-line" dir="auto">
-<td data-line="12" class="code-line" dir="auto"><code>and</code>, <code>or</code></td>
-<td data-line="12" class="code-line" dir="auto">Logical And, Logical Or</td>
-<td data-line="12" class="code-line" dir="auto">1</td>
-</tr>
-<tr data-line="13" class="code-line" dir="auto">
-<td data-line="13" class="code-line" dir="auto"><code>=</code></td>
-<td data-line="13" class="code-line" dir="auto">Variable Assignment</td>
-<td data-line="13" class="code-line" dir="auto">Right-to-left</td>
-<td data-line="13" class="code-line" dir="auto">0</td>
-</tr>
-</tbody>
-</table>
-<p>For more information about each of the operators, see <a href="./arithmetic.html">Arithmetic</a>, <a href="./comparison.html">Comparison</a> and <a href="./bitwise.html">Bitwise</a>.</p>
+                        <h1 id="supported-escape-sequences"><a class="header" href="#supported-escape-sequences">Supported Escape Sequences</a></h1>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../language-reference/truthiness.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../language-reference/comments.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
-                            <a rel="next" href="../language-reference/variables.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../std/functions.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         <div style="clear: both"></div>
@@ -232,10 +152,10 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../language-reference/truthiness.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../language-reference/comments.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
-                    <a rel="next" href="../language-reference/variables.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="../std/functions.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
