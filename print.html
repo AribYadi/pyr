@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="language-reference/arithmetic.html"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="language-reference/bitwise.html"><strong aria-hidden="true">6.</strong> Bitwise</a></li><li class="chapter-item expanded "><a href="language-reference/truthiness.html"><strong aria-hidden="true">7.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="language-reference/operator-precedence.html"><strong aria-hidden="true">8.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="language-reference/variables.html"><strong aria-hidden="true">9.</strong> Variable</a></li><li class="chapter-item expanded "><a href="language-reference/functions.html"><strong aria-hidden="true">10.</strong> Functions</a></li><li class="chapter-item expanded "><a href="language-reference/comments.html"><strong aria-hidden="true">11.</strong> Comments</a></li><li class="chapter-item expanded "><a href="language-reference/escape-sequences.md.html"><strong aria-hidden="true">12.</strong> Supported Escape Sequences</a></li><li class="chapter-item expanded affix "><li class="part-title">Standard Library</li><li class="chapter-item expanded "><a href="std/functions.html"><strong aria-hidden="true">13.</strong> Functions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="language-reference/arithmetic.html"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="language-reference/bitwise.html"><strong aria-hidden="true">6.</strong> Bitwise</a></li><li class="chapter-item expanded "><a href="language-reference/truthiness.html"><strong aria-hidden="true">7.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="language-reference/operator-precedence.html"><strong aria-hidden="true">8.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="language-reference/variables.html"><strong aria-hidden="true">9.</strong> Variable</a></li><li class="chapter-item expanded "><a href="language-reference/functions.html"><strong aria-hidden="true">10.</strong> Functions</a></li><li class="chapter-item expanded "><a href="language-reference/comments.html"><strong aria-hidden="true">11.</strong> Comments</a></li><li class="chapter-item expanded "><a href="language-reference/escape-sequences.html"><strong aria-hidden="true">12.</strong> Supported Escape Sequences</a></li><li class="chapter-item expanded affix "><li class="part-title">Standard Library</li><li class="chapter-item expanded "><a href="std/functions.html"><strong aria-hidden="true">13.</strong> Functions</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -563,7 +563,24 @@ foo(&quot;foo&quot;) # returns &quot;string&quot;
 # ^ Skipped
 </code></pre>
 <p>Multiline comments are currently not supported but are planned.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="supported-escape-sequences"><a class="header" href="#supported-escape-sequences">Supported Escape Sequences</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="supported-escape-sequences"><a class="header" href="#supported-escape-sequences">Supported Escape Sequences</a></h2>
+<p>Below are the supported escape sequences in Pyr.</p>
+<table><thead><tr><th>Escape Sequence</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>\</code> then newline</td><td>a trailing slash for escaping newline at the end</td></tr>
+<tr><td><code>\'</code></td><td>single quote</td></tr>
+<tr><td><code>\&quot;</code></td><td>double quote</td></tr>
+<tr><td><code>\\</code></td><td>backslash</td></tr>
+<tr><td><code>\a</code></td><td>audible bell</td></tr>
+<tr><td><code>\b</code></td><td>backspace</td></tr>
+<tr><td><code>\f</code></td><td>form feed</td></tr>
+<tr><td><code>\n</code></td><td>newline</td></tr>
+<tr><td><code>\r</code></td><td>carriage return</td></tr>
+<tr><td><code>\t</code></td><td>tab</td></tr>
+<tr><td><code>\v</code></td><td>vertical tab</td></tr>
+<tr><td><code>\</code> then 3 octal numbers</td><td>octal value in ascii</td></tr>
+<tr><td><code>\x</code> then 2 hex numbers</td><td>hexadecimal value in ascii</td></tr>
+<tr><td><code>\u</code> then 4..=6 hex numbers</td><td>unicode char</td></tr>
+</tbody></table>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="functions-1"><a class="header" href="#functions-1">Functions</a></h2>
 <ul>
 <li><a href="std/functions.html#functions">Functions</a>
