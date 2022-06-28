@@ -148,12 +148,12 @@ impl Optimizer {
     match (op, &left.kind, &right.kind) {
       (TokenKind::Plus, ExprKind::Integer(l), ExprKind::Integer(r)) => ExprKind::Integer(l + r),
       (TokenKind::Plus, ExprKind::String(s), kind) if self.is_const(kind) => {
-        let kind_as_str = snailquote::unescape(&kind.to_string()).unwrap();
+        let kind_as_str = crate::utils::unescape(kind.to_string()).unwrap();
         let string = [s.to_string(), kind_as_str].concat();
         ExprKind::String(string)
       },
       (TokenKind::Plus, kind, ExprKind::String(s)) if self.is_const(kind) => {
-        let kind_as_str = snailquote::unescape(&kind.to_string()).unwrap();
+        let kind_as_str = crate::utils::unescape(kind.to_string()).unwrap();
         let string = [kind_as_str, s.to_string()].concat();
         ExprKind::String(string)
       },

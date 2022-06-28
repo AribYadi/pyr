@@ -29,7 +29,7 @@ pub enum ParseErrorKind {
   #[error("unmatched else statement")]
   UnmatchedElseStatement,
   #[error(transparent)]
-  Unescape(#[from] snailquote::UnescapeError),
+  Unescape(#[from] crate::utils::UnescapeError),
   #[error("unknown token {0:?}")]
   UnknownToken(String),
   #[error("cannot chain operator `{0}` with `{1}`")]
