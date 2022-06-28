@@ -1,0 +1,12 @@
+a = int[30; 10]
+print((a[9] == 30) + "\n")
+
+LEN=10
+a = int[30; LEN]
+print((a[9] == 30) + "\n")
+
+len = 0
+while len < 30:
+  len = len + 1
+a = int[30; len]
+print((a[9] == 30) + "\n")
