@@ -402,12 +402,12 @@ impl Compiler {
     {
       let str_format = LLVMGetNamedGlobal(self.module, self.cstring("%%str_format%%"));
       let str_format = utils::gep_string_ptr_raw(self, str_format);
+      let int_format = LLVMGetNamedGlobal(self.module, self.cstring("%%int_format%%"));
+      let int_format = utils::gep_string_ptr_raw(self, int_format);
 
       let void_type = LLVMVoidTypeInContext(self.ctx);
       let i64_type = LLVMInt64TypeInContext(self.ctx);
 
-      let (int_len_func, int_len_ty) = self.get_func("%%int_len%%").unwrap();
-      let (int_as_str_func, int_as_str_ty) = self.get_func("%%int_as_str%%").unwrap();
       let (printf_func, printf_ty) = self.get_func("printf").unwrap();
 
       {
@@ -457,31 +457,11 @@ impl Compiler {
         LLVMPositionBuilderAtEnd(builder, entry_bb);
 
         let expr = LLVMGetParam(print_int_func, 0);
-
-        let orig_len = LLVMBuildCall2(
-          builder,
-          int_len_ty,
-          int_len_func,
-          [expr].as_mut_ptr(),
-          1,
-          self.cstring(""),
-        );
-        let len = LLVMBuildAdd(builder, orig_len, LLVMConstInt(i64_type, 1, 0), self.cstring(""));
-        let buf = self.malloc_str_at(builder, len);
-        LLVMBuildCall2(
-          builder,
-          int_as_str_ty,
-          int_as_str_func,
-          [buf, expr, orig_len].as_mut_ptr(),
-          3,
-          self.cstring(""),
-        );
-
         LLVMBuildCall2(
           builder,
           printf_ty,
           printf_func,
-          [str_format, buf].as_mut_ptr(),
+          [int_format, expr].as_mut_ptr(),
           2,
           self.cstring(""),
         );

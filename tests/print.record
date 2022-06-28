@@ -1,0 +1,11 @@
+:exitcode 0:
+:stdout 58:
+string123
+string123123string
+string123
+string123123string
+
+:end:
+:stderr 0:
+
+:end:

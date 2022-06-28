@@ -1,0 +1,17 @@
+print("string")
+print(123)
+print("\n")
+
+print("string" + 123)
+print(123 + "string")
+print("\n")
+
+a = "string"
+print(a)
+b = 123
+print(b)
+print("\n")
+
+print(a + b)
+print(b + a)
+print("\n")
