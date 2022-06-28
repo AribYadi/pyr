@@ -6,7 +6,16 @@
 
 ### `print`
 
-`print` prints the given value to the console without appendding a newline.
+`print` prints the `v` to the console without appendding a newline.
+
+Signature:
+
+```python
+def print(v: int | string):
+  ...
+```
+
+Example:
 
 ```python
 print("Hello, World!")
@@ -15,7 +24,16 @@ print(123)
 
 ### `sqrt`
 
-`sqrt` returns the square root of the given value.
+`sqrt` returns the square root of the `n`
+
+Signature:
+
+```python
+def sqrt(n: int) -> int:
+  ...
+```
+
+Example:
 
 ```python
 sqrt(64) == 8
