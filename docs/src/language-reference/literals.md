@@ -40,6 +40,8 @@ Multiline strings are also supported. \
 "Newlines\n"
 ```
 
+To see what are the supported escape sequences are, look at [Supported Escape Sequences](./escape-sequences.md)
+
 You can also index into strings.
 
 ```python

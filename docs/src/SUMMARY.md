@@ -16,6 +16,7 @@
 - [Variable](./language-reference/variables.md)
 - [Functions](./language-reference/functions.md)
 - [Comments](./language-reference/comments.md)
+- [Supported Escape Sequences](language-reference/escape-sequences.md.md)
 
 # Standard Library
 
