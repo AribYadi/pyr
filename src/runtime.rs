@@ -53,8 +53,9 @@ impl StateStack {
   pub fn pop(&mut self, state: State) {
     if self.last_rewind != Some(state) {
       self.stack.pop();
+    } else {
+      self.last_rewind = None;
     }
-    self.last_rewind = None;
   }
 
   pub fn contains(&self, state: State) -> bool { self.stack.contains(&state) }

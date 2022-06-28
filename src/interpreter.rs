@@ -103,7 +103,8 @@ impl Interpreter {
         self.state_stack.push(State::Loop);
         'while_loop: while condition_lit.is_truthy() {
           for stmt in body {
-            if self.state_stack.last_rewind == Some(State::Loop) {
+            // We don't care if its a `ret` or `break`
+            if self.state_stack.last_rewind.is_some() {
               break 'while_loop;
             }
             self.interpret_stmt(stmt)?;
