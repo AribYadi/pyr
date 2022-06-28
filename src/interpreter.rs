@@ -170,14 +170,13 @@ impl Interpreter {
         )?;
 
         if let Literal::Integer(len) = len {
-          if elems.len() < len as usize && !elems.is_empty() {
-            for i in 0..len as usize {
-              values.push(self.interpret_expr(elems.get(i % elems.len()).unwrap())?);
-            }
-          } else {
-            for expr in elems {
-              values.push(self.interpret_expr(expr)?);
-            }
+          for expr in elems {
+            values.push(self.interpret_expr(expr)?);
+          }
+
+          for i in 0..len as usize {
+            let val = values[i % elems.len()].clone();
+            values.push(val);
           }
         } else {
           unreachable!("Resolver didn't resolve array len type");
