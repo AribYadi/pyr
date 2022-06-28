@@ -194,17 +194,25 @@ impl Resolver {
         RuntimeError::new(RuntimeErrorKind::UndefinedVariable(name.to_string()), expr.span.clone())
       }),
       ExprKind::Array(ty, exprs, len) => {
-        if exprs.is_empty() && *len > 0 {
+        if exprs.is_empty() && len.is_some() {
           return Err(RuntimeError::new(
-            RuntimeErrorKind::ArrayEmptyWithExplicitLen(*len),
+            RuntimeErrorKind::ArrayEmptyWithExplicitLen(len.clone().unwrap().as_ref().clone()),
             expr.span.clone(),
           ));
         }
-        if exprs.len() > *len {
-          return Err(RuntimeError::new(
-            RuntimeErrorKind::ArrayLenMismatch(exprs.len(), *len),
-            expr.span.clone(),
-          ));
+
+        let len = len.clone().unwrap_or_else(|| {
+          rc!(Expr::new(ExprKind::Integer(exprs.len() as i64), expr.span.clone()))
+        });
+
+        match self.resolve_expr(len.as_ref())? {
+          ValueType::Integer => (),
+          ty => {
+            return Err(RuntimeError::new(
+              RuntimeErrorKind::ArrayLenType(len.as_ref().clone(), ty),
+              len.span.clone(),
+            ))
+          },
         }
 
         for expr in exprs {
@@ -216,7 +224,7 @@ impl Resolver {
             ));
           }
         }
-        Ok(ValueType::Array(bx!(ty.clone()), *len))
+        Ok(ValueType::Array(bx!(ty.clone()), len))
       },
 
       ExprKind::PrefixOp { op, right } => self.resolve_prefix_op(op, right),

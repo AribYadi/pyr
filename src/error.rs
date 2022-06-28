@@ -36,7 +36,7 @@ pub enum ParseErrorKind {
   InvalidChainOperator(TokenKind, TokenKind),
   #[error("expected type but got `{0}`")]
   ExpectedType(TokenKind),
-  #[error("`{0:?}` is not callable")]
+  #[error("`{0}` is not callable")]
   NotCallable(Expr),
 }
 
@@ -54,9 +54,9 @@ impl ParseError {
 
 #[derive(Error, Debug, Clone, PartialEq)]
 pub enum RuntimeErrorKind {
-  #[error("cannot apply prefix operator `{1}` using `{0:?}`")]
+  #[error("cannot apply prefix operator `{1}` using `{0}`")]
   CannotApplyPrefix(Expr, TokenKind),
-  #[error("cannot apply infix operator `{1}` to `{0:?}` and `{2:?}`")]
+  #[error("cannot apply infix operator `{1}` to `{0}` and `{2}`")]
   CannotApplyInfix(Expr, TokenKind, Expr),
   #[error("undefined variable `{0}` in the current scope")]
   UndefinedVariable(String),
@@ -76,16 +76,16 @@ pub enum RuntimeErrorKind {
   ArrayTypeMismatch(ValueType, ValueType),
   #[error("type `{0}` cannot be indexed by type `{1}`")]
   CannotIndexWith(ValueType, ValueType),
-  #[error("array has len {0} but have no values")]
-  ArrayEmptyWithExplicitLen(usize),
-  #[error("array has len {1} but was given {0} values")]
-  ArrayLenMismatch(usize, usize),
-  #[error("`{0:?}` is not assignable")]
+  #[error("array has len `{0}` but have no values")]
+  ArrayEmptyWithExplicitLen(Expr),
+  #[error("`{0}` is not assignable")]
   NotAssignable(Expr),
-  #[error("`cannot assign `{0:?}` with `{1:?}`")]
+  #[error("`cannot assign `{0}` with `{1}`")]
   AssignmentMismatch(Expr, Expr),
   #[error("break but not inside a loop")]
   BreakOutsideLoop,
+  #[error("array has been given len `{0}` with type `{1}`")]
+  ArrayLenType(Expr, ValueType),
 }
 
 #[derive(Debug, Clone, PartialEq)]

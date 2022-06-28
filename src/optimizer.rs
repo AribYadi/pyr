@@ -79,8 +79,9 @@ impl Optimizer {
       kind: match &expr.kind {
         ExprKind::Array(ty, elems, len) => {
           let opt_elems = elems.iter().map(|expr| self.optimize_expr(expr)).collect();
+          let len = len.as_ref().map(|expr| rc!(self.optimize_expr(expr.as_ref())));
 
-          ExprKind::Array(ty.clone(), opt_elems, *len)
+          ExprKind::Array(ty.clone(), opt_elems, len)
         },
 
         ExprKind::PrefixOp { op, right } => {
@@ -241,7 +242,13 @@ impl Optimizer {
     Some(match &expr.kind {
       ExprKind::Integer(n) => *n == 1,
       ExprKind::String(s) => !s.is_empty(),
-      ExprKind::Array(_, _, len) => *len != 0,
+      ExprKind::Array(_, elems, len) => {
+        !elems.is_empty() &&
+          !matches!(
+            len.as_ref().map(|expr| expr.as_ref().clone()),
+            Some(Expr { kind: ExprKind::Integer(0), .. })
+          )
+      },
 
       _ => return None,
     })

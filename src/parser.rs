@@ -83,16 +83,11 @@ impl Parser<'_> {
       Tok::StringType => Ok(ValueType::String),
       Tok::LeftBracket => {
         let ty = self.consume_type()?;
-
         self.consume(Tok::Semicolon)?;
-        let lexeme = self.lexeme();
-        self.consume(Tok::Integer)?;
-
+        let len = self.parse_expr(0, Tok::Eof)?;
         self.consume_delimiter(Tok::RightBracket)?;
 
-        let len = lexeme.parse().unwrap();
-
-        Ok(ValueType::Array(bx!(ty), len))
+        Ok(ValueType::Array(bx!(ty), rc!(len)))
       },
 
       _ => Err(ParseError::new(ParseErrorKind::ExpectedType(self.curr), self.lexer.span())),
@@ -369,24 +364,19 @@ impl Parser<'_> {
         let ty = self.consume_type()?;
         self.consume(Tok::LeftBracket)?;
 
-        let mut len = 0;
+        let mut len = None;
         let mut exprs = Vec::new();
         while self.peek != Tok::RightBracket {
           exprs.push(self.parse_expr(0, Tok::Eof)?);
           if self.peek != Tok::Comma {
             if self.peek == Tok::Semicolon {
               self.consume(Tok::Semicolon)?;
-              let lexeme = self.lexeme();
-              self.consume(Tok::Integer)?;
-              len = lexeme.parse().unwrap();
+              len = Some(rc!(self.parse_expr(0, Tok::Eof)?))
             }
             self.consume_delimiter(Tok::RightBracket)?;
             break;
           }
           self.consume(Tok::Comma)?;
-        }
-        if len == 0 {
-          len = exprs.len();
         }
 
         let span_end = self.lexer.span().end;

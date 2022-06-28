@@ -162,17 +162,27 @@ impl Interpreter {
         Some(val) => Ok(val),
         None => unreachable!("Resolver didn't resolve variable correctly"),
       },
-      ExprKind::Array(_, exprs, len) => {
+      ExprKind::Array(_, elems, len) => {
         let mut values = Vec::new();
-        if exprs.len() < *len && !exprs.is_empty() {
-          for i in 0..*len {
-            values.push(self.interpret_expr(exprs.get(i % exprs.len()).unwrap())?);
+        let len = len.clone().map_or_else(
+          || Ok(Literal::Integer(elems.len() as i64)),
+          |expr| self.interpret_expr(expr.as_ref()),
+        )?;
+
+        if let Literal::Integer(len) = len {
+          if elems.len() < len as usize && !elems.is_empty() {
+            for i in 0..len as usize {
+              values.push(self.interpret_expr(elems.get(i % elems.len()).unwrap())?);
+            }
+          } else {
+            for expr in elems {
+              values.push(self.interpret_expr(expr)?);
+            }
           }
         } else {
-          for expr in exprs {
-            values.push(self.interpret_expr(expr)?);
-          }
+          unreachable!("Resolver didn't resolve array len type");
         }
+
         Ok(Literal::Array(values))
       },
 

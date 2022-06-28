@@ -57,8 +57,8 @@ fn parse_binary_expr() {
         ExprKind::Array(ty, exprs, len) => {
           format!(
             "{ty}[{exprs}{len}]",
-            len = if len == exprs.len() { "".to_string() } else { format!(" ; {len}") },
             exprs = exprs.into_iter().map(to_string).collect::<Vec<_>>().join(", "),
+            len = if let Some(len) = len { format!("; {len}") } else { "".to_string() }
           )
         },
         ExprKind::PrefixOp { op, right } => format!("({op} {})", to_string(right.as_ref().clone())),

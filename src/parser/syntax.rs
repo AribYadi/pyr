@@ -265,7 +265,7 @@ pub enum ExprKind {
   String(String),
   Integer(i64),
   Identifier(String),
-  Array(ValueType, Vec<Expr>, usize),
+  Array(ValueType, Vec<Expr>, Option<Rc<Expr>>),
 
   PrefixOp { op: TokenKind, right: Rc<Expr> },
   InfixOp { op: TokenKind, left: Rc<Expr>, right: Rc<Expr> },
@@ -284,7 +284,7 @@ impl std::fmt::Display for ExprKind {
         f,
         "{ty}[{elems}{len}]",
         elems = elems.iter().map(ToString::to_string).collect::<Vec<_>>().join(", "),
-        len = if *len == elems.len() { "".to_string() } else { format!("; {len}") }
+        len = if let Some(len) = len { format!("; {len}") } else { "".to_string() }
       ),
       ExprKind::PrefixOp { op, right } => write!(f, "{op}{right}"),
       ExprKind::InfixOp { op, left, right } => write!(f, "{left} {op} {right}"),

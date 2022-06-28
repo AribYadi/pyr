@@ -64,7 +64,7 @@ use crate::{
   info,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 struct ValueWrapper {
   v: LLVMValueRef,
   ty: ValueType,
@@ -152,11 +152,11 @@ impl ValueWrapper {
       if self.is_runtime() {
         return false;
       }
-      match self.ty {
+      match &self.ty {
         ValueType::Void => unreachable!("Void should not be used as a value"),
         ValueType::Integer => self.get_as_integer() == 1,
         ValueType::String => !self.get_as_string().is_empty(),
-        ValueType::Array(_, len) => len == 0,
+        ValueType::Array(_, len) => len.kind == ExprKind::Integer(0),
       }
     }
   }
@@ -164,7 +164,7 @@ impl ValueWrapper {
   unsafe fn new_is_truthy(&self, compiler: &mut Compiler) -> Self {
     if self.is_runtime() {
       let i64_ty = LLVMInt64TypeInContext(compiler.ctx);
-      match self.ty {
+      match &self.ty {
         ValueType::Void => unreachable!("Void should not be used as a value"),
         ValueType::Integer => {
           let self_ = self.load(compiler);
@@ -212,7 +212,9 @@ impl ValueWrapper {
             is_runtime: true,
           };
         },
-        ValueType::Array(_, len) => return ValueWrapper::new_integer(compiler, (len == 0) as i64),
+        ValueType::Array(_, len) => {
+          return ValueWrapper::new_integer(compiler, (len.kind == ExprKind::Integer(0)) as i64)
+        },
       }
     }
     let v = self.is_truthy() as i64;
@@ -1286,51 +1288,153 @@ impl Compiler {
           Some(val) => val.load(self),
           None => unreachable!("Resolver didn't resolve variable correctly"),
         },
-        ExprKind::Array(ty, exprs, len) => {
+        ExprKind::Array(ty, elems, len) => {
           let i64_type = LLVMInt64TypeInContext(self.ctx);
 
-          let mut values = Vec::new();
-          if exprs.len() < *len && !exprs.is_empty() {
-            for i in 0..*len {
-              let expr = exprs.get(i % exprs.len()).unwrap();
-              let expr = self.compile_expr(expr);
-              values.push(expr.load(self));
-            }
-          } else {
-            for expr in exprs {
-              let expr = self.compile_expr(expr);
-              values.push(expr.load(self));
-            }
-          }
+          let len_expr = len.clone().unwrap_or_else(|| {
+            rc!(Expr::new(ExprKind::Integer(elems.len() as i64), expr.span.clone()))
+          });
+          let len_val = self.compile_expr(len_expr.as_ref());
 
-          let runtime_ty = self.compile_type(ty.clone());
-          let arr = LLVMBuildArrayMalloc(
-            self.builder,
-            runtime_ty,
-            LLVMConstInt(i64_type, *len as u64, 0),
-            self.cstring(""),
-          );
+          let arr;
 
-          for (i, val) in values.iter().enumerate() {
+          if len_val.is_runtime() {
+            let runtime_ty = self.compile_type(ty.clone());
+            arr = LLVMBuildArrayMalloc(self.builder, runtime_ty, len_val.v, self.cstring(""));
+
+            for (i, expr) in elems.iter().enumerate() {
+              let val = self.compile_expr(expr);
+              let gep = LLVMBuildGEP2(
+                self.builder,
+                LLVMGetElementType(LLVMTypeOf(arr)),
+                arr,
+                [LLVMConstInt(i64_type, i as u64, 0)].as_mut_ptr(),
+                1,
+                self.cstring(""),
+              );
+              let v = if val.ty == ValueType::String {
+                utils::gep_string_ptr(self, val.clone())
+              } else {
+                val.v
+              };
+              LLVMBuildStore(self.builder, v, gep);
+            }
+
+            let elems_len = ValueWrapper::new_integer(self, elems.len() as i64);
+
+            let loop_cond = LLVMBuildICmp(
+              self.builder,
+              LLVMIntPredicate::LLVMIntSLT,
+              elems_len.v,
+              len_val.v,
+              self.cstring(""),
+            );
+
+            let prev_bb = LLVMGetInsertBlock(self.builder);
+            let loop_bb = LLVMAppendBasicBlockInContext(
+              self.ctx,
+              self.curr_func,
+              self.cstring("array_init_loop"),
+            );
+            let continue_bb =
+              LLVMCreateBasicBlockInContext(self.ctx, self.cstring("array_init_continue"));
+
+            LLVMBuildCondBr(self.builder, loop_cond, loop_bb, continue_bb);
+            LLVMPositionBuilderAtEnd(self.builder, loop_bb);
+
+            let i = LLVMBuildPhi(self.builder, i64_type, self.cstring(""));
+
             let gep = LLVMBuildGEP2(
               self.builder,
               LLVMGetElementType(LLVMTypeOf(arr)),
               arr,
-              [LLVMConstInt(i64_type, i as u64, 0)].as_mut_ptr(),
+              [i].as_mut_ptr(),
               1,
               self.cstring(""),
             );
-            let v = if val.ty == ValueType::String {
-              utils::gep_string_ptr(self, val.clone())
-            } else {
-              val.v
-            };
+
+            let val_index = LLVMBuildSRem(self.builder, i, elems_len.v, self.cstring(""));
+            let val = LLVMBuildGEP2(
+              self.builder,
+              LLVMGetElementType(LLVMTypeOf(arr)),
+              arr,
+              [val_index].as_mut_ptr(),
+              1,
+              self.cstring(""),
+            );
+            let val = LLVMBuildLoad2(
+              self.builder,
+              LLVMGetElementType(LLVMTypeOf(val)),
+              val,
+              self.cstring(""),
+            );
+            let v =
+              if ty == &ValueType::String { utils::gep_string_ptr_raw(self, val) } else { val };
+
             LLVMBuildStore(self.builder, v, gep);
+
+            let new_i =
+              LLVMBuildAdd(self.builder, i, LLVMConstInt(i64_type, 1, 0), self.cstring(""));
+            LLVMAddIncoming(
+              i,
+              [elems_len.v, new_i].as_mut_ptr(),
+              [prev_bb, loop_bb].as_mut_ptr(),
+              2,
+            );
+
+            let loop_cond = LLVMBuildICmp(
+              self.builder,
+              LLVMIntPredicate::LLVMIntSLT,
+              i,
+              len_val.v,
+              self.cstring(""),
+            );
+
+            LLVMBuildCondBr(self.builder, loop_cond, loop_bb, continue_bb);
+
+            LLVMAppendExistingBasicBlock(self.curr_func, continue_bb);
+            LLVMPositionBuilderAtEnd(self.builder, continue_bb);
+          } else {
+            let mut values = Vec::new();
+            let len = len_val.get_as_integer();
+
+            if elems.len() < len as usize && !elems.is_empty() {
+              for i in 0..len as usize {
+                let expr = elems.get(i % elems.len()).unwrap();
+                let expr = self.compile_expr(expr);
+                values.push(expr.load(self));
+              }
+            } else {
+              for expr in elems {
+                let expr = self.compile_expr(expr);
+                values.push(expr.load(self));
+              }
+            }
+
+            let runtime_ty = self.compile_type(ty.clone());
+            arr = LLVMBuildArrayMalloc(self.builder, runtime_ty, len_val.v, self.cstring(""));
+
+            for (i, val) in values.iter().enumerate() {
+              let gep = LLVMBuildGEP2(
+                self.builder,
+                LLVMGetElementType(LLVMTypeOf(arr)),
+                arr,
+                [LLVMConstInt(i64_type, i as u64, 0)].as_mut_ptr(),
+                1,
+                self.cstring(""),
+              );
+              let v = if val.ty == ValueType::String {
+                utils::gep_string_ptr(self, val.clone())
+              } else {
+                val.v
+              };
+              LLVMBuildStore(self.builder, v, gep);
+            }
           }
 
           ValueWrapper {
             v: arr,
-            ty: ValueType::Array(bx!(ty.clone()), *len),
+            ty: ValueType::Array(bx!(ty.clone()), len_expr),
             can_be_loaded: false,
             is_pointer: true,
             is_runtime: true,

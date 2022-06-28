@@ -1,5 +1,11 @@
+use std::rc::Rc;
+
 use crate::interpreter::Interpreter;
-use crate::parser::syntax::Stmt;
+use crate::parser::syntax::{
+  Expr,
+  ExprKind,
+  Stmt,
+};
 
 mod impl_arithmetics;
 
@@ -60,12 +66,12 @@ impl StateStack {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ValueType {
   Void,
   Integer,
   String,
-  Array(Box<ValueType>, usize),
+  Array(Box<ValueType>, Rc<Expr>),
 }
 
 impl std::fmt::Display for ValueType {
@@ -183,7 +189,10 @@ impl Literal {
     match self {
       Literal::String(_) => ValueType::String,
       Literal::Integer(_) => ValueType::Integer,
-      Literal::Array(elems) => ValueType::Array(bx!(elems[0].get_type()), elems.len()),
+      Literal::Array(elems) => ValueType::Array(
+        bx!(elems[0].get_type()),
+        rc!(Expr::new(ExprKind::Integer(elems.len() as i64), 999..999)),
+      ),
     }
   }
 }
