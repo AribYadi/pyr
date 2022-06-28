@@ -173,6 +173,11 @@ def relative_path(path: str) -> str:
 def test_file(input_path, subcommand: Subcommand, results: TestResults):
   assert input_path.endswith(PYR_EXT), f"{relative_path(input_path)} is not a pyr file."
 
+  tc_path = input_path[:-len(PYR_EXT)] + RECORD_EXT
+  tc_path = relative_path(tc_path)
+
+  input_path = relative_path(input_path)
+
   binary = []
   if args.debug:
     binary.append(PYR_DEBUG_BINARY)
@@ -202,11 +207,6 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
   output = output[0]
   test_case = TestCase(output.returncode, output.stdout.replace(b'\r\n', b'\n'), output.stderr.replace(b'\r\n', b'\n'))
 
-  tc_path = input_path[:-len(PYR_EXT)] + RECORD_EXT
-  tc_path = relative_path(tc_path)
-
-  input_path = relative_path(input_path)
-  
   if args.update:
     if test_case.exitcode != 0:
       print(f"\x1b[33m[WARN]\x1b[0m: Test `{input_path}` returned an abnormal exit code {test_case.exitcode}.", file = sys.stderr)
@@ -217,16 +217,16 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
       print(f"\x1b[2;96m[INFO]\x1b[0m: {tc_path} is up to date. Skipping.")
       results.skipped += 1
   elif not os.path.exists(tc_path):
-    print(f"\x1b[33m[WARN]\x1b[0m: Couldn't find record file for {input_path}. Skipping.")
+    print(f"\x1b[33m[WARN]\x1b[0m: Couldn't find record file for `{input_path}`. Skipping.")
     results.skipped += 1
   else:
     expected_test_case = TestCase.read(tc_path)
 
     if test_case == expected_test_case:
-      print(f"\x1b[2;96m[INFO]\x1b[0m: {input_path} passed.")
+      print(f"\x1b[2;96m[INFO]\x1b[0m: `{input_path}` passed.")
       results.passed += 1
     else:
-      print(f"\x1b[1;31m[ERR]\x1b[0m: {input_path} failed with subcommand `{subcommand.__str__()}`.", file = sys.stderr)
+      print(f"\x1b[1;31m[ERR]\x1b[0m: `{input_path}` failed with subcommand `{subcommand.__str__()}`.", file = sys.stderr)
       print(f"\x1b[1;31m[ERR]\x1b[0m: Expected:", file = sys.stderr)
       print(f"  exit code: {expected_test_case.exitcode}", file = sys.stderr)
       print(f"  stdout: {expected_test_case.stdout}", file = sys.stderr)
@@ -238,7 +238,7 @@ def test_file(input_path, subcommand: Subcommand, results: TestResults):
       results.failed += 1
 
 def run_on_dir(dir_path: str, results: TestResults):
-  for root, dirs, files in os.walk(dir_path):
+  for root, _, files in os.walk(dir_path):
     for file in filter(lambda path: path.endswith(PYR_EXT), files):
       path = os.path.join(root, file)
       with open(path, "rb") as f:
