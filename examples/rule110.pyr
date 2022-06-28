@@ -7,7 +7,7 @@
 
 BOARD_SIZE=100
 
-board = int[0; 100]
+board = int[0; BOARD_SIZE]
 
 # Initialize initial board state
 board[BOARD_SIZE - 2] = 1
