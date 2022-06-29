@@ -166,6 +166,7 @@ impl Interpreter {
         self.state_stack.pop_until(State::Loop);
         Ok(())
       },
+      StmtKind::Block { stmts } => self.interpret(stmts),
     }
   }
 

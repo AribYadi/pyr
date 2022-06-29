@@ -104,9 +104,10 @@ fn interpret_expr() {
 fn interpret_stmt() {
   fn interpret(input: &str) -> Result<()> {
     let mut parser = Parser::new(input);
-    let stmt = parser.statement().unwrap();
+    let stmt = parser.statement();
+    assert!(stmt.is_ok(), "input: {input:?}, err: {stmt}", stmt = stmt.unwrap_err().kind);
     let mut interpreter = Interpreter::new();
-    interpreter.interpret_stmt(&stmt)
+    interpreter.interpret_stmt(&stmt.unwrap())
   }
 
   let result = interpret("1\n");

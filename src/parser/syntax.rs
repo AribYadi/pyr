@@ -344,6 +344,9 @@ pub enum StmtKind {
     expr: Option<Expr>,
   },
   Break,
+  Block {
+    stmts: Vec<Stmt>,
+  },
 }
 
 #[derive(Debug, Clone)]

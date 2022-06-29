@@ -1298,6 +1298,11 @@ impl Compiler {
             unreachable!("Resolver didn't catch break stmt outside of loop");
           }
         },
+        StmtKind::Block { stmts } => {
+          for stmt in stmts {
+            self.compile_stmt(stmt);
+          }
+        },
       }
     }
   }

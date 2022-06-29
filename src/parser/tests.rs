@@ -365,7 +365,7 @@ fn parse_stmt_errors() {
 fn parse_block() {
   fn parse(input: &str) -> Result<Vec<Stmt>> {
     let mut parser = Parser::new(input);
-    parser.parse_block()
+    parser.parse_block_or_line()
   }
 
   let block = parse(

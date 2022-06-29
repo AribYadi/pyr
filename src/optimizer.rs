@@ -67,6 +67,10 @@ impl Optimizer {
 
           StmtKind::Ret { expr }
         },
+        StmtKind::Block { stmts } => {
+          let stmts = self.optimize_stmts(stmts);
+          StmtKind::Block { stmts }
+        },
 
         _ => stmt.kind.clone(),
       },

@@ -183,6 +183,11 @@ impl Resolver {
           return Err(RuntimeError::new(RuntimeErrorKind::BreakOutsideLoop, stmt.span.clone()));
         }
       },
+      StmtKind::Block { stmts } => {
+        for stmt in stmts {
+          self.resolve_stmt(stmt)?;
+        }
+      },
     }
 
     Ok(())
