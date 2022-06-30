@@ -13,6 +13,8 @@ pub struct OptimizerOptions {
   pub precalc_constant_ops: bool,
   // replace an if stmt with one of its body decided by its condition
   pub pre_do_if_stmts: bool,
+  // ignores while statements that have a falsy condition
+  pub ignore_falsy_while: bool,
 }
 
 pub struct Optimizer {
@@ -59,9 +61,14 @@ impl Optimizer {
         },
         StmtKind::While { condition, body } => {
           let condition = self.optimize_expr(condition);
-          let body = self.optimize_stmts(body);
 
-          StmtKind::While { condition, body }
+          if self.options.ignore_falsy_while && self.is_truthy(&condition).unwrap_or_default() {
+            return None;
+          } else {
+            let body = self.optimize_stmts(body);
+
+            StmtKind::While { condition, body }
+          }
         },
         StmtKind::FuncDef { name, args, body, ret_ty } => {
           let body = self.optimize_stmts(body);
