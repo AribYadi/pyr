@@ -62,7 +62,7 @@ impl Optimizer {
         StmtKind::While { condition, body } => {
           let condition = self.optimize_expr(condition);
 
-          if self.options.ignore_falsy_while && self.is_truthy(&condition).unwrap_or_default() {
+          if self.options.ignore_falsy_while && matches!(self.is_truthy(&condition), Some(false)) {
             return None;
           } else {
             let body = self.optimize_stmts(body);
