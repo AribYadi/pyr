@@ -11,6 +11,8 @@ pub struct OptimizerOptions {
   pub ignore_expr_stmts: bool,
   // pre-calculates arithmetic and equality operators for constants
   pub precalc_constant_ops: bool,
+  // replace an if stmt with one of its body decided by its condition
+  pub pre_do_if_stmts: bool,
 }
 
 pub struct Optimizer {
@@ -41,10 +43,19 @@ impl Optimizer {
         },
         StmtKind::If { condition, body, else_stmt } => {
           let condition = self.optimize_expr(condition);
-          let body = self.optimize_stmts(body);
-          let else_stmt = self.optimize_stmts(else_stmt);
 
-          StmtKind::If { condition, body, else_stmt }
+          if self.options.pre_do_if_stmts && self.is_const(&condition.kind) {
+            if self.is_truthy(&condition).unwrap() {
+              StmtKind::Block { stmts: self.optimize_stmts(body) }
+            } else {
+              StmtKind::Block { stmts: self.optimize_stmts(else_stmt) }
+            }
+          } else {
+            let body = self.optimize_stmts(body);
+            let else_stmt = self.optimize_stmts(else_stmt);
+
+            StmtKind::If { condition, body, else_stmt }
+          }
         },
         StmtKind::While { condition, body } => {
           let condition = self.optimize_expr(condition);

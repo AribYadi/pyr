@@ -105,7 +105,7 @@ fn main() {
     },
   };
 
-  let options = optimizer::OptimizerOptions { ignore_expr_stmts: true, precalc_constant_ops: true };
+  let options = optimizer::OptimizerOptions { ignore_expr_stmts: true, precalc_constant_ops: true, pre_do_if_stmts: true };
   let optimizer = optimizer::Optimizer::new(options);
   let stmts = optimizer.optimize(&stmts);
 

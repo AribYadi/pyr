@@ -2,3 +2,9 @@
 **/*.c
 **/*.ll
 **/TODOS.md
+**/bench*
+**/plot_histogram.py
+**/pyr_*
+**/run_bench.sh
+**/*.o
+**/*.exe
