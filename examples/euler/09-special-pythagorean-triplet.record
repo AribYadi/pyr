@@ -1,0 +1,9 @@
+:exitcode 0:
+:stdout 43:
+a: 200, b: 375, c: 425
+Answer is: 31875000
+
+:end:
+:stderr 0:
+
+:end:

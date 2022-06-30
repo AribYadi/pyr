@@ -1,0 +1,22 @@
+### tester-ignore ###
+# To slow for ci, gonna optimize later
+
+N=2000000
+
+answer = 2
+
+func is_prime(n: int) -> int:
+  i = 3
+  while i <= sqrt(n):
+    if n % i == 0:
+      ret false
+    i = i + 2
+  ret true
+
+i = 3
+while i < N:
+  if is_prime(i):
+    answer = answer + i
+  i = i + 2
+
+print("Answer is: " + answer + "\n")

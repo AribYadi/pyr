@@ -1,0 +1,22 @@
+N=10001
+
+answer = 3
+
+func is_prime(n: int) -> int:
+  j = 3
+  while j <= sqrt(n):
+    if n % j == 0:
+      ret false
+    j = j + 2
+  ret true
+
+i = 2
+while i < N:
+  answer = answer + 2
+  while !is_prime(answer):
+    answer = answer + 2
+  i = i + 1
+if N == 1:
+  answer = 2
+
+print("Answer is: " + answer + "\n")

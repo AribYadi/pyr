@@ -1,0 +1,14 @@
+START=1
+END=100
+
+sum_of_squares = 0
+square_of_sum = 0
+
+i = START
+while i <= END:
+  sum_of_squares = sum_of_squares + i ^ 2
+  square_of_sum = square_of_sum + i
+  i = i + 1
+
+answer = square_of_sum ^ 2 - sum_of_squares
+print("Answer is: " + answer + "\n")
