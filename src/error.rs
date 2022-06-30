@@ -1,3 +1,4 @@
+use std::num::ParseIntError;
 use std::ops::Range;
 
 use thiserror::Error;
@@ -38,6 +39,8 @@ pub enum ParseErrorKind {
   ExpectedType(TokenKind),
   #[error("`{0}` is not callable")]
   NotCallable(Expr),
+  #[error(transparent)]
+  ParseInt(#[from] ParseIntError),
 }
 
 #[derive(Debug, PartialEq)]

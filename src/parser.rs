@@ -343,7 +343,10 @@ impl Parser<'_> {
             };
             Ok(Expr::new(ExprKind::String(text), span))
           },
-          Tok::Integer => Ok(Expr::new(ExprKind::Integer(text.parse().unwrap()), span)),
+          Tok::Integer => Ok(Expr::new(
+            ExprKind::Integer(text.parse().map_err(|e| ParseError::new(e, span.clone()))?),
+            span,
+          )),
           Tok::Identifier => Ok(Expr::new(ExprKind::Identifier(text), span)),
           Tok::True => Ok(Expr::new(ExprKind::Integer(1), span)),
           Tok::False => Ok(Expr::new(ExprKind::Integer(0), span)),
