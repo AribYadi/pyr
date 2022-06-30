@@ -2,7 +2,6 @@ use crate::error::{
   RuntimeError,
   RuntimeResult as Result,
 };
-use crate::ignore_return;
 use crate::parser::syntax::{
   Expr,
   ExprKind,
@@ -20,6 +19,10 @@ use crate::runtime::{
   State,
   StateStack,
   Variables,
+};
+use crate::{
+  ignore_return,
+  info,
 };
 
 #[derive(Clone)]
@@ -56,6 +59,28 @@ impl Interpreter {
             _ => unreachable!(),
           };
           Some(Literal::Integer(f64::sqrt(param as f64) as i64))
+        },
+        1,
+      ),
+    );
+
+    self.functions.declare(
+      "to_int.string",
+      0,
+      Function::Native(
+        |_, params| {
+          let param = match &params[0] {
+            Literal::String(s) => s,
+            _ => unreachable!(),
+          };
+          let as_int = match param.parse() {
+            Ok(n) => n,
+            Err(_) => {
+              info!(ERR, "`{param:?}` is not able to be converted into an integer.");
+              std::process::exit(1);
+            },
+          };
+          Some(Literal::Integer(as_int))
         },
         1,
       ),

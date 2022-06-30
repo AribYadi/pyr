@@ -1,7 +1,9 @@
 :exitcode 0:
-:stdout 36:
+:stdout 76:
 sqrt-1 is working
 sqrt-2 is working
+to_int-1 is working
+to_int-2 is working
 
 :end:
 :stderr 0:

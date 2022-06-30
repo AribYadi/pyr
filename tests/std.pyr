@@ -8,3 +8,14 @@ if sqrt(12) == 3:
   print("working\n")
 else:
   print("not working (" + sqrt(12) + ")\n")
+
+print("to_int-1 is ")
+if to_int("10") == 10:
+  print("working\n")
+else:
+  print("not working (" + to_int("10") + ")\n")
+print("to_int-2 is ")
+if to_int("12312") == 12312:
+  print("working\n")
+else:
+  print("not working (" + to_int("12312") + ")\n")

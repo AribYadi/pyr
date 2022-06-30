@@ -41,6 +41,8 @@ impl Resolver {
     self.functions.declare("print.int", 0, (vec![ValueType::Integer], None));
 
     self.functions.declare("sqrt.int", 0, (vec![ValueType::Integer], Some(ValueType::Integer)));
+
+    self.functions.declare("to_int.string", 0, (vec![ValueType::String], Some(ValueType::Integer)));
   }
 
   pub fn new() -> Self {

@@ -408,19 +408,16 @@ impl Compiler {
       let void_type = LLVMVoidTypeInContext(self.ctx);
       let i64_type = LLVMInt64TypeInContext(self.ctx);
       let f64_type = LLVMDoubleTypeInContext(self.ctx);
+      let char_ptr_type = LLVMPointerType(LLVMInt8TypeInContext(self.ctx), 0);
 
-      let (printf_func, printf_ty) = self.get_func("printf").unwrap();
-      let (llvm_sqrt_func, llvm_sqrt_ty) = self.get_func("llvm.sqrt.f64").unwrap();
+      let (printf_func, printf_type) = self.get_func("printf").unwrap();
+      let (llvm_sqrt_func, llvm_sqrt_type) = self.get_func("llvm.sqrt.f64").unwrap();
+      let (strtol_func, strtol_type) = self.get_func("strtol").unwrap();
 
       // `print`
       {
         // Define a function inside llvm
-        let print_string_type = LLVMFunctionType(
-          void_type,
-          [LLVMPointerType(LLVMInt8TypeInContext(self.ctx), 0)].as_mut_ptr(),
-          1,
-          0,
-        );
+        let print_string_type = LLVMFunctionType(void_type, [char_ptr_type].as_mut_ptr(), 1, 0);
         let print_string_func =
           LLVMAddFunction(self.module, self.cstring("print.string"), print_string_type);
 
@@ -433,7 +430,7 @@ impl Compiler {
         let expr = LLVMGetParam(print_string_func, 0);
         LLVMBuildCall2(
           builder,
-          printf_ty,
+          printf_type,
           printf_func,
           [str_format, expr].as_mut_ptr(),
           2,
@@ -461,7 +458,7 @@ impl Compiler {
         let expr = LLVMGetParam(print_int_func, 0);
         LLVMBuildCall2(
           builder,
-          printf_ty,
+          printf_type,
           printf_func,
           [int_format, expr].as_mut_ptr(),
           2,
@@ -491,7 +488,7 @@ impl Compiler {
 
         let sqrt = LLVMBuildCall2(
           builder,
-          llvm_sqrt_ty,
+          llvm_sqrt_type,
           llvm_sqrt_func,
           [expr].as_mut_ptr(),
           1,
@@ -505,6 +502,43 @@ impl Compiler {
         self.funcs.push(sqrt_func);
         self.function_descs.declare(
           "sqrt.int",
+          0,
+          FuncDesc::new_non_closure(1, Some(ValueType::Integer)),
+        );
+      }
+
+      // `to_int`
+      {
+        // Define a function inside llvm
+        let to_int_type = LLVMFunctionType(i64_type, [char_ptr_type].as_mut_ptr(), 1, 0);
+        let to_int_func = LLVMAddFunction(self.module, self.cstring("to_int.string"), to_int_type);
+
+        let entry_bb = LLVMAppendBasicBlockInContext(self.ctx, to_int_func, self.cstring("entry"));
+        let builder = LLVMCreateBuilderInContext(self.ctx);
+
+        LLVMPositionBuilderAtEnd(builder, entry_bb);
+
+        let expr = LLVMGetParam(to_int_func, 0);
+
+        let as_int = LLVMBuildCall2(
+          builder,
+          strtol_type,
+          strtol_func,
+          [
+            expr,
+            LLVMConstNull(char_ptr_type),
+            LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 10, 0),
+          ]
+          .as_mut_ptr(),
+          3,
+          self.cstring(""),
+        );
+        LLVMBuildRet(builder, as_int);
+
+        // Declare a function inside our own compiler
+        self.funcs.push(to_int_func);
+        self.function_descs.declare(
+          "to_int.string",
           0,
           FuncDesc::new_non_closure(1, Some(ValueType::Integer)),
         );
@@ -609,45 +643,50 @@ impl Compiler {
 
   fn declare_libc_functions(&mut self) {
     unsafe {
-      let char_ptr_ty = LLVMPointerType(LLVMInt8TypeInContext(self.ctx), 0);
+      let char_ptr_type = LLVMPointerType(LLVMInt8TypeInContext(self.ctx), 0);
+      let i32_type = LLVMInt32TypeInContext(self.ctx);
 
-      let printf_type =
-        LLVMFunctionType(LLVMInt32TypeInContext(self.ctx), [char_ptr_ty].as_mut_ptr(), 1, 1);
+      let printf_type = LLVMFunctionType(i32_type, [char_ptr_type].as_mut_ptr(), 1, 1);
       let printf_func = LLVMAddFunction(self.module, self.cstring("printf"), printf_type);
       LLVMSetFunctionCallConv(printf_func, LLVMCallConv::LLVMCCallConv as u32);
 
       let strcpy_type =
-        LLVMFunctionType(char_ptr_ty, [char_ptr_ty, char_ptr_ty].as_mut_ptr(), 2, 0);
+        LLVMFunctionType(char_ptr_type, [char_ptr_type, char_ptr_type].as_mut_ptr(), 2, 0);
       let strcpy_func = LLVMAddFunction(self.module, self.cstring("strcpy"), strcpy_type);
       LLVMSetFunctionCallConv(strcpy_func, LLVMCallConv::LLVMCCallConv as u32);
 
       let strcat_type =
-        LLVMFunctionType(char_ptr_ty, [char_ptr_ty, char_ptr_ty].as_mut_ptr(), 2, 0);
+        LLVMFunctionType(char_ptr_type, [char_ptr_type, char_ptr_type].as_mut_ptr(), 2, 0);
       let strcat_func = LLVMAddFunction(self.module, self.cstring("strcat"), strcat_type);
       LLVMSetFunctionCallConv(strcat_func, LLVMCallConv::LLVMCCallConv as u32);
 
       let strlen_type =
-        LLVMFunctionType(LLVMInt64TypeInContext(self.ctx), [char_ptr_ty].as_mut_ptr(), 1, 0);
+        LLVMFunctionType(LLVMInt64TypeInContext(self.ctx), [char_ptr_type].as_mut_ptr(), 1, 0);
       let strlen_func = LLVMAddFunction(self.module, self.cstring("strlen"), strlen_type);
       LLVMSetFunctionCallConv(strlen_func, LLVMCallConv::LLVMCCallConv as u32);
 
-      let strcmp_type = LLVMFunctionType(
-        LLVMInt32TypeInContext(self.ctx),
-        [char_ptr_ty, char_ptr_ty].as_mut_ptr(),
-        2,
-        0,
-      );
+      let strcmp_type =
+        LLVMFunctionType(i32_type, [char_ptr_type, char_ptr_type].as_mut_ptr(), 2, 0);
       let strcmp_func = LLVMAddFunction(self.module, self.cstring("strcmp"), strcmp_type);
       LLVMSetFunctionCallConv(strcmp_func, LLVMCallConv::LLVMCCallConv as u32);
 
       let memcmp_type = LLVMFunctionType(
-        LLVMInt32TypeInContext(self.ctx),
-        [char_ptr_ty, char_ptr_ty, LLVMInt64TypeInContext(self.ctx)].as_mut_ptr(),
+        i32_type,
+        [char_ptr_type, char_ptr_type, LLVMInt64TypeInContext(self.ctx)].as_mut_ptr(),
         3,
         0,
       );
       let memcmp_func = LLVMAddFunction(self.module, self.cstring("memcmp"), memcmp_type);
       LLVMSetFunctionCallConv(memcmp_func, LLVMCallConv::LLVMCCallConv as u32);
+
+      let strtol_type = LLVMFunctionType(
+        LLVMInt64TypeInContext(self.ctx),
+        [char_ptr_type, char_ptr_type, i32_type].as_mut_ptr(),
+        3,
+        0,
+      );
+      let strtol_func = LLVMAddFunction(self.module, self.cstring("strtol"), strtol_type);
+      LLVMSetFunctionCallConv(strtol_func, LLVMCallConv::LLVMCCallConv as u32);
     }
   }
 
