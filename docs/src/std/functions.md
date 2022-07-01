@@ -3,6 +3,7 @@
 - [Functions](#functions)
   - [`print`](#print)
   - [`sqrt`](#sqrt)
+  - [`to_int`](#to_int)
 
 ### `print`
 
@@ -11,7 +12,7 @@
 Signature:
 
 ```python
-def print(v: int | string):
+def print(v: int | str):
   ...
 ```
 
@@ -38,4 +39,21 @@ Example:
 ```python
 sqrt(64) == 8
 sqrt(16) == 4
+```
+
+### `to_int`
+
+`to_int` converts `s` into an integer then returns it
+
+Signature:
+
+```python
+def to_int(s: str) -> int:
+  ...
+```
+
+Example:
+
+```Python
+to_int("123") == 123
 ```
