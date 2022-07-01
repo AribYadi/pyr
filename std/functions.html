@@ -140,13 +140,14 @@
 <ul>
 <li><a href="#print"><code>print</code></a></li>
 <li><a href="#sqrt"><code>sqrt</code></a></li>
+<li><a href="#to_int"><code>to_int</code></a></li>
 </ul>
 </li>
 </ul>
 <h3 id="print"><a class="header" href="#print"><code>print</code></a></h3>
 <p><code>print</code> prints the <code>v</code> to the console without appendding a newline.</p>
 <p>Signature:</p>
-<pre><code class="language-python">def print(v: int | string):
+<pre><code class="language-python">def print(v: int | str):
   ...
 </code></pre>
 <p>Example:</p>
@@ -162,6 +163,15 @@ print(123)
 <p>Example:</p>
 <pre><code class="language-python">sqrt(64) == 8
 sqrt(16) == 4
+</code></pre>
+<h3 id="to_int"><a class="header" href="#to_int"><code>to_int</code></a></h3>
+<p><code>to_int</code> converts <code>s</code> into an integer then returns it</p>
+<p>Signature:</p>
+<pre><code class="language-python">def to_int(s: str) -&gt; int:
+  ...
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-Python">to_int(&quot;123&quot;) == 123
 </code></pre>
 
                     </main>
