@@ -148,6 +148,8 @@ pub enum TokenKind {
   Ret,
   #[token("break")]
   Break,
+  #[token("extern")]
+  Extern,
 
   // Delimiters
   #[token("(")]
@@ -213,6 +215,7 @@ impl std::fmt::Display for TokenKind {
       TokenKind::Func => write!(f, "func"),
       TokenKind::Ret => write!(f, "ret"),
       TokenKind::Break => write!(f, "break"),
+      TokenKind::Extern => write!(f, "extern"),
       TokenKind::LeftParen => write!(f, "("),
       TokenKind::RightParen => write!(f, ")"),
       TokenKind::LeftBracket => write!(f, "["),
@@ -346,6 +349,11 @@ pub enum StmtKind {
   Break,
   Block {
     stmts: Vec<Stmt>,
+  },
+  FuncExtern {
+    name: String,
+    args: Vec<(String, ValueType)>,
+    ret_ty: ReturnValue<ValueType>,
   },
 }
 

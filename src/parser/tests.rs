@@ -516,4 +516,14 @@ fn parse_function() {
       ret_ty: Some(ValueType::Integer),
     }))
   );
+
+  let stmt = parse_stmt("extern func add(a: int, b: int) -> int");
+  assert_eq!(
+    stmt,
+    Ok(Stmt::new_without_span(StmtKind::FuncExtern {
+      name: "foo".to_string(),
+      args: vec![("a".to_string(), ValueType::Integer), ("b".to_string(), ValueType::Integer)],
+      ret_ty: Some(ValueType::Integer),
+    }))
+  );
 }

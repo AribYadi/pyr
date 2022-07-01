@@ -63,6 +63,7 @@ impl Resolver {
       unreachable!("end_block() called without start_block()");
     }
     self.variables.remove_all_with_indent(self.indent_level);
+    self.functions.remove_all_with_indent(self.indent_level);
     self.indent_level -= 1;
   }
 
@@ -124,7 +125,7 @@ impl Resolver {
         }
         self.functions.declare(
           &func_name(name, &arg_types),
-          self.indent_level,
+          self.indent_level - 1,
           (arg_types, ret_ty.clone()),
         );
 
@@ -163,6 +164,14 @@ impl Resolver {
         self.return_value = None;
 
         self.end_block();
+      },
+      StmtKind::FuncExtern { name, args, ret_ty } => {
+        let arg_types: Vec<ValueType> = args.iter().map(|(_, ty)| ty.clone()).collect();
+        self.functions.declare(
+          &func_name(name, &arg_types),
+          self.indent_level,
+          (arg_types, ret_ty.clone()),
+        );
       },
       StmtKind::Ret { expr } => {
         if !self.state_stack.contains(State::Function) {

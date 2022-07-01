@@ -102,6 +102,7 @@ impl Interpreter {
 
   fn end_block(&mut self) {
     self.variables.remove_all_with_indent(self.indent_level);
+    self.functions.remove_all_with_indent(self.indent_level);
     self.indent_level -= 1;
   }
 
@@ -167,6 +168,9 @@ impl Interpreter {
           Function::UserDefined(new_args, body.clone(), ret_ty.clone()),
         );
         Ok(())
+      },
+      StmtKind::FuncExtern { .. } => {
+        todo!("Function externs is not currently supported in interpretation mode");
       },
       StmtKind::Ret { expr } => {
         if !self.state_stack.contains(State::Function) {

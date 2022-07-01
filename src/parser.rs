@@ -8,7 +8,10 @@ use crate::error::{
   ParseErrorKind,
   ParseResult as Result,
 };
-use crate::runtime::ValueType;
+use crate::runtime::{
+  ReturnValue,
+  ValueType,
+};
 
 use self::syntax::{
   Expr,
@@ -20,6 +23,8 @@ use self::syntax::{
 };
 
 pub mod syntax;
+
+type FunctionParts = (String, Vec<(String, ValueType)>, ReturnValue<ValueType>);
 
 pub struct Parser<'a> {
   lexer: Lexer<'a, Tok>,
@@ -81,6 +86,7 @@ impl Parser<'_> {
     match self.next() {
       Tok::IntType => Ok(ValueType::Integer),
       Tok::StringType => Ok(ValueType::String),
+      // TODO: allow array types to have anonymous len
       Tok::LeftBracket => {
         let ty = self.consume_type()?;
         self.consume(Tok::Semicolon)?;
@@ -193,32 +199,7 @@ impl Parser<'_> {
         let span_start = self.lexer.span().start;
 
         self.consume(Tok::Func)?;
-        let name = self.lexeme();
-        self.consume(Tok::Identifier)?;
-
-        self.consume(Tok::LeftParen)?;
-        let mut args = Vec::new();
-        while let Tok::Identifier = self.peek {
-          let name = self.lexeme();
-          self.consume(Tok::Identifier)?;
-
-          self.consume(Tok::Colon)?;
-          let ty = self.consume_type()?;
-
-          args.push((name, ty));
-
-          if self.peek != Tok::RightParen {
-            self.consume(Tok::Comma)?;
-          }
-        }
-        self.consume(Tok::RightParen)?;
-
-        let ret_ty = if self.peek == Tok::Arrow {
-          self.consume(Tok::Arrow)?;
-          Some(self.consume_type()?)
-        } else {
-          None
-        };
+        let (name, args, ret_ty) = self.parse_func_def()?;
 
         self.consume(Tok::Colon)?;
         let body = self.parse_block_or_line()?;
@@ -227,6 +208,18 @@ impl Parser<'_> {
         let span_end = self.lexer.span().end;
 
         Ok(Stmt::new(StmtKind::FuncDef { name, args, body, ret_ty }, span_start..span_end))
+      },
+      Tok::Extern => {
+        let span_start = self.lexer.span().start;
+        self.consume(Tok::Extern)?;
+
+        // TODO: support for variable externs
+        self.consume(Tok::Func)?;
+        let (name, args, ret_ty) = self.parse_func_def()?;
+        self.consume(Tok::Newline)?;
+
+        let span_end = self.lexer.span().end;
+        Ok(Stmt::new(StmtKind::FuncExtern { name, args, ret_ty }, span_start..span_end))
       },
       Tok::Ret => {
         let span_start = self.lexer.span().start;
@@ -279,6 +272,37 @@ impl Parser<'_> {
         Ok(Stmt::new(StmtKind::Expression { expr }, span_start..span_end))
       },
     }
+  }
+
+  fn parse_func_def(&mut self) -> Result<FunctionParts> {
+    let name = self.lexeme();
+    self.consume(Tok::Identifier)?;
+
+    self.consume(Tok::LeftParen)?;
+    let mut args = Vec::new();
+    while let Tok::Identifier = self.peek {
+      let name = self.lexeme();
+      self.consume(Tok::Identifier)?;
+
+      self.consume(Tok::Colon)?;
+      let ty = self.consume_type()?;
+
+      args.push((name, ty));
+
+      if self.peek != Tok::RightParen {
+        self.consume(Tok::Comma)?;
+      }
+    }
+    self.consume(Tok::RightParen)?;
+
+    let ret_ty = if self.peek == Tok::Arrow {
+      self.consume(Tok::Arrow)?;
+      Some(self.consume_type()?)
+    } else {
+      None
+    };
+
+    Ok((name, args, ret_ty))
   }
 
   fn parse_block(&mut self) -> Result<Vec<Stmt>> {
