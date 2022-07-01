@@ -38,10 +38,11 @@ macro_rules! info {
 struct Params {
   subcommand: ArgsSubcommand,
   source_path: String,
+  so: Vec<String>,
 }
 
 enum ArgsSubcommand {
-  Compile { out: Option<String>, link: bool },
+  Compile { out: Option<String>, exe: bool },
   Run,
 }
 
@@ -110,7 +111,7 @@ fn main() {
   let stmts = optimizer.optimize(&stmts);
 
   match args.subcommand {
-    ArgsSubcommand::Compile { out, link } => {
+    ArgsSubcommand::Compile { out, exe } => {
       let obj_file = out
         .clone()
         .unwrap_or_else(|| source_path.with_extension("o").to_string_lossy().to_string());
@@ -121,7 +122,7 @@ fn main() {
         compiler.compile_to_obj(&obj_file, &stmts);
       }
       info!(INFO, "Compiled to `{obj_file}`");
-      if link {
+      if exe {
         #[cfg(target_os = "windows")]
         let exe_file =
           out.unwrap_or_else(|| source_path.with_extension("exe").to_string_lossy().to_string());
@@ -129,10 +130,10 @@ fn main() {
         let exe_file =
           out.unwrap_or_else(|| source_path.with_extension("").to_string_lossy().to_string());
         let clang_output =
-          match Command::new("clang").arg("-o").arg(&exe_file).arg(&obj_file).output() {
+          match Command::new("clang").arg("-o").arg(&exe_file).arg(&obj_file).args(args.so.iter()).output() {
             Ok(output) => output,
             Err(err) => {
-              info!(ERR, "Failed to run `clang -o {exe_file} {obj_file}`: {err}");
+              info!(ERR, "Failed to run `clang -o {exe_file} {obj_file} {so}`: {err}", so = args.so.join(" "));
               process::exit(1);
             },
           };
@@ -171,6 +172,7 @@ fn get_args() -> Params {
 
   let mut subcommand = None;
   let mut source_path = None;
+  let mut so = Vec::new();
 
   while let Some(arg) = args.next() {
     if arg.starts_with('-') {
@@ -180,8 +182,18 @@ fn get_args() -> Params {
           print_help();
           process::exit(0);
         },
+        "link" | "l" => {
+          if args.len() < 1 {
+            print_help();
+            info!(ERR, "Missing argument for option: `{arg}`.");
+
+            process::exit(1);
+          }
+          so.push(args.next().unwrap());
+          continue;
+        },
         _ => {
-          if let Some(ArgsSubcommand::Compile { ref mut out, ref mut link }) = subcommand {
+          if let Some(ArgsSubcommand::Compile { ref mut out, ref mut exe }) = subcommand {
             match text {
               "o" | "out" => {
                 if args.len() < 1 {
@@ -193,8 +205,8 @@ fn get_args() -> Params {
                 *out = Some(args.next().unwrap());
                 continue;
               },
-              "l" | "link" => {
-                *link = true;
+              "e" | "exe" => {
+                *exe = true;
                 continue;
               },
               _ => (),
@@ -212,7 +224,7 @@ fn get_args() -> Params {
     match arg_pos {
       0 => match arg.as_str() {
         "run" => subcommand = Some(ArgsSubcommand::Run),
-        "compile" => subcommand = Some(ArgsSubcommand::Compile { out: None, link: false }),
+        "compile" => subcommand = Some(ArgsSubcommand::Compile { out: None, exe: false }),
         _ => {
           print_help();
           info!(ERR, "Unknown subcommand: `{arg}`.");
@@ -242,7 +254,7 @@ fn get_args() -> Params {
     process::exit(1);
   }
 
-  Params { subcommand: subcommand.unwrap(), source_path: source_path.unwrap() }
+  Params { subcommand: subcommand.unwrap(), source_path: source_path.unwrap(), so }
 }
 
 fn print_help() {
@@ -253,9 +265,10 @@ fn print_help() {
   info!(INFO, "");
   info!(INFO, "\x1b[1;32mSUBCOMMAND\x1b[0m:");
   info!(INFO, "  `compile` : Compiles the source file to an object file.");
-  info!(INFO, "    --out, -o : Specifies the output file name.");
-  info!(INFO, "    --link, -l: Links the object file.");
+  info!(INFO, "    --out, -o <name>: Specifies the output file name.");
+  info!(INFO, "    --exe, -e       : Links the object file into an executable.");
   info!(INFO, "  `run`     : Interprets the source file line by line.");
   info!(INFO, "\x1b[1;32mOptions\x1b[0m:");
-  info!(INFO, "  --help, -h: Print this help message.");
+  info!(INFO, "  --help, -h       : Print this help message.");
+  info!(INFO, "  --link, -l <path>: Links a shared library.")
 }
