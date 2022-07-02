@@ -33,9 +33,7 @@ class Args():
     arg_pos = 0
     for arg in args:
       if arg.startswith("-"):
-        text = [arg[1:]]
-        if text[0].startswith("-"):
-          text[0] = text[0][1:]
+        text = arg.strip('-').strip('-')
         
         if text[0] == "h" or text[0] == "help":
           print_help()
