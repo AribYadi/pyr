@@ -3,6 +3,7 @@ use std::ops::Range;
 
 use thiserror::Error;
 
+use crate::max_params_len;
 use crate::parser::syntax::{
   Expr,
   TokenKind,
@@ -41,6 +42,10 @@ pub enum ParseErrorKind {
   NotCallable(Expr),
   #[error(transparent)]
   ParseInt(#[from] ParseIntError),
+  #[error("`{0}` has been declared with too many arguments ({1} > {})", max_params_len!())]
+  DeclWithTooManyArgs(String, usize),
+  #[error("`{0}` has been called with too many parameters ({1} > {})", max_params_len!())]
+  CallWithTooManyArgs(String, usize),
 }
 
 #[derive(Debug, PartialEq)]

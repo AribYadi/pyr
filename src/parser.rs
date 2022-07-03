@@ -8,6 +8,7 @@ use crate::error::{
   ParseErrorKind,
   ParseResult as Result,
 };
+use crate::max_params_len;
 use crate::runtime::{
   ReturnValue,
   ValueType,
@@ -278,6 +279,8 @@ impl Parser<'_> {
     let name = self.lexeme();
     self.consume(Tok::Identifier)?;
 
+    let paren_start = self.lexer.span().start;
+
     self.consume(Tok::LeftParen)?;
     let mut args = Vec::new();
     while let Tok::Identifier = self.peek {
@@ -293,7 +296,15 @@ impl Parser<'_> {
         self.consume(Tok::Comma)?;
       }
     }
-    self.consume(Tok::RightParen)?;
+    self.consume_delimiter(Tok::RightParen)?;
+
+    let paren_end = self.lexer.span().end;
+    if args.len() > max_params_len!() {
+      return Err(ParseError::new(
+        ParseErrorKind::DeclWithTooManyArgs(name, args.len()),
+        paren_start..paren_end,
+      ));
+    }
 
     let ret_ty = if self.peek == Tok::Arrow {
       self.consume(Tok::Arrow)?;
@@ -491,6 +502,8 @@ impl Parser<'_> {
         op @ Tok::LeftParen => {
           // TODO: make anything be callable
           if let ExprKind::Identifier(ref name) = lhs.kind {
+            let paren_start = self.lexer.span().start;
+
             self.consume(op)?;
 
             let mut args = Vec::new();
@@ -503,6 +516,15 @@ impl Parser<'_> {
             }
 
             self.consume_delimiter(Tok::RightParen)?;
+
+            let paren_end = self.lexer.span().end;
+            if args.len() > max_params_len!() {
+              return Err(ParseError::new(
+                ParseErrorKind::CallWithTooManyArgs(name.to_string(), args.len()),
+                paren_start..paren_end,
+              ));
+            }
+
             let span_start = lhs.span.start;
             let span_end = self.lexer.span().end;
             lhs = Expr::new(

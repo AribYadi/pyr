@@ -3,6 +3,8 @@
 Functions in Pyr are defined with the `func` keyword.
 Function arguments are explicitly [typed](./literals.md), and are separated by commas.
 
+The maximum count of arguments/parameters for function declaring/calling is 255.
+
 ```python
 func foo(a: int, b: int) -> int:
   print(a + b + "\n")

@@ -19,6 +19,15 @@ mod parser;
 mod resolver;
 mod runtime;
 
+// `max_params_len` is a macro because we use it in a macro that only takes an
+// integer literal
+#[macro_export]
+macro_rules! max_params_len {
+  () => {
+    255
+  };
+}
+
 #[macro_export]
 macro_rules! info {
   (ERR, $($msg:tt)*) => {{
@@ -51,6 +60,7 @@ enum ArgsSubcommand {
 // TODO: report the correct position of errors, right now some errors have the wrong position
 // TODO: prettify compiler code
 // TODO: make indexing out of bounds error at compile time
+
 
 fn main() {
   let args = get_args();
@@ -106,7 +116,12 @@ fn main() {
     },
   };
 
-  let options = optimizer::OptimizerOptions { ignore_expr_stmts: true, precalc_constant_ops: true, pre_do_if_stmts: true, ignore_falsy_while: true };
+  let options = optimizer::OptimizerOptions {
+    ignore_expr_stmts: true,
+    precalc_constant_ops: true,
+    pre_do_if_stmts: true,
+    ignore_falsy_while: true,
+  };
   let optimizer = optimizer::Optimizer::new(options);
   let stmts = optimizer.optimize(&stmts);
 
@@ -129,14 +144,23 @@ fn main() {
         #[cfg(not(target_os = "windows"))]
         let exe_file =
           out.unwrap_or_else(|| source_path.with_extension("").to_string_lossy().to_string());
-        let clang_output =
-          match Command::new("clang").arg("-o").arg(&exe_file).arg(&obj_file).args(args.so.iter()).output() {
-            Ok(output) => output,
-            Err(err) => {
-              info!(ERR, "Failed to run `clang -o {exe_file} {obj_file} {so}`: {err}", so = args.so.join(" "));
-              process::exit(1);
-            },
-          };
+        let clang_output = match Command::new("clang")
+          .arg("-o")
+          .arg(&exe_file)
+          .arg(&obj_file)
+          .args(args.so.iter())
+          .output()
+        {
+          Ok(output) => output,
+          Err(err) => {
+            info!(
+              ERR,
+              "Failed to run `clang -o {exe_file} {obj_file} {so}`: {err}",
+              so = args.so.join(" ")
+            );
+            process::exit(1);
+          },
+        };
         if !clang_output.status.success() {
           info!(ERR, "Failed to link {obj_file}!");
           info!(ERR, "exit_code: {status}", status = clang_output.status);
