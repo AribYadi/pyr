@@ -249,12 +249,8 @@ def run_on_dir(dir_path: str, results: TestResults):
         test_file(path, Subcommand.Compile, results)
 
 if __name__ == "__main__":
-  if args.debug and (not exe_exist(PYR_DEBUG_BINARY) or args.always_build):
-    print(f"\x1b[2;96m[INFO]\x1b[0m: Building `{relative_path(PYR_DEBUG_BINARY)}`..")
-    subprocess.run(["cargo", "build"], capture_output = True)
-  elif not args.debug and (not exe_exist(PYR_RELEASE_BINARY) or args.always_build):
-    print(f"\x1b[2;96m[INFO]\x1b[0m: Building `{relative_path(PYR_RELEASE_BINARY)}`..")
-    subprocess.run(["cargo", "build", "--release"], capture_output = True)
+  if not exe_exist(PYR_DEBUG_BINARY) or not exe_exist(PYR_RELEASE_BINARY) or args.always_build:
+    cargo_build()
 
   print()
 
