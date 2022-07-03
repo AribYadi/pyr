@@ -33,18 +33,18 @@ class Args():
     arg_pos = 0
     for arg in args:
       if arg.startswith("-"):
-        text = arg.strip('-').strip('-')
+        text = arg.strip('-')
         
-        if text[0] == "h" or text[0] == "help":
+        if text == "h" or text == "help":
           print_help()
           exit(0)
-        elif text[0] == "u" or text[0] == "update":
+        elif text == "u" or text == "update":
           self.update = True
-        elif text[0] == "D" or text[0] == "debug":
+        elif text == "D" or text == "debug":
           self.debug = True
-        elif text[0] == "always-build":
+        elif text == "always-build":
           self.always_build = True
-        elif text[0] == "d" or text[0] == "dir":
+        elif text == "d" or text == "dir":
           if arg_pos + 1 > len(args):
             print_help()
             print(f"\x1b[1;31m[ERR]\x1b[0m: Missing argument for option `{arg}`.", file = sys.stderr)
