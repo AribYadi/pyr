@@ -1,0 +1,16 @@
+on:
+  push:
+    branches:
+      - "master"
+    paths:
+      - "**/*.rs"
+
+name: Generate issues for TODOS
+
+jobs:
+  run:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v2"
+      - name: "Generate issues"
+        uses: "alstr/todo-to-issue-action@v4.6.6"
