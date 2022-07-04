@@ -306,7 +306,7 @@ mod utils {
 
           (buf, orig_len)
         },
-        // TMP: add support for arrays
+        // TODO: add support for arrays
         ValueType::Array(_, _) => {
           unreachable!("Resolver didn't resolve array to string conversion")
         },
@@ -1024,7 +1024,7 @@ impl Compiler {
   }
 
   // Gets all local variables of a function used in another function
-  // TMP: make this better
+  // TODO: make this better
   fn func_get_vars(&mut self, declared: Vec<String>, stmts: &[Stmt]) -> Vec<VarWithName> {
     fn expr_as_var(self_: &mut Compiler, expr: &Expr) -> Vec<VarWithName> {
       let names = match &expr.kind {
@@ -1733,7 +1733,7 @@ impl Compiler {
             true,
           )
         },
-        // TMP: allow for slicing of strings
+        // TODO: allow for slicing of strings
         (ValueType::String, ValueType::Integer) => {
           let array_ptr = utils::gep_string_ptr(self, array);
           let array_ptr = LLVMBuildGEP2(
