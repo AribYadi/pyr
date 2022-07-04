@@ -2,8 +2,6 @@ on:
   push:
     branches:
       - "master"
-    paths:
-      - "**/*.rs"
 
 name: Generate issues for TODOS
 
