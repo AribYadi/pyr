@@ -53,8 +53,8 @@ macro_rules! info {
     let msg = format!($($msg)*);
     println!("\x1b[2;96m[INFO]\x1b[0m: {msg}");
   }};
-  // TODO: print llvm error using this
-  // TODO: replace `unreachable` with this
+  // TMP: print llvm error using this
+  // TMP: replace `unreachable` with this
   (INTR_ERR, $($msg:tt)*) => {{
     let msg = format!($($msg)*);
     eprintln!("\x1b[90m[INTERNAL_ERROR]\x1b[0m: An internal error has occured!");
@@ -77,10 +77,10 @@ enum ArgsSubcommand {
 }
 
 #[rustfmt::skip]
-// TODO: allow function to take variadic arguments
-// TODO: report the correct position of errors, right now some errors have the wrong position
-// TODO: prettify compiler code
-// TODO: make indexing out of bounds error at compile time
+// TMP: allow function to take variadic arguments
+// TMP: report the correct position of errors, right now some errors have the wrong position
+// TMP: prettify compiler code
+// TMP: make indexing out of bounds error at compile time
 
 fn main() {
   let args = get_args();
@@ -216,7 +216,7 @@ fn get_args() -> Params {
 
   let mut subcommand = None;
   let mut source_path = None;
-  // TODO: check if shared_libraries does in fact exists
+  // TMP: check if shared_libraries does in fact exists
   let mut so = Vec::new();
 
   while let Some(arg) = args.next() {
