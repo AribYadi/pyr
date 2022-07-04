@@ -28,6 +28,12 @@ mod runtime;
 // integer literal
 #[macro_export]
 macro_rules! max_params_len {
+  () => {
+    max_params_len!(max_params_len)
+  };
+  ($val:literal) => {
+    $val
+  };
   ($($expand:ident)::*) => {
     $($expand)::* !(255)
   };
