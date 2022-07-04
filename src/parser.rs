@@ -87,7 +87,7 @@ impl Parser<'_> {
     match self.next() {
       Tok::IntType => Ok(ValueType::Integer),
       Tok::StringType => Ok(ValueType::String),
-      // TODO: allow array types to have anonymous len
+      // TMP: allow array types to have anonymous len
       Tok::LeftBracket => {
         let ty = self.consume_type()?;
         self.consume(Tok::Semicolon)?;
@@ -214,7 +214,7 @@ impl Parser<'_> {
         let span_start = self.lexer.span().start;
         self.consume(Tok::Extern)?;
 
-        // TODO: support for variable externs
+        // TMP: support for variable externs
         self.consume(Tok::Func)?;
         let (name, args, ret_ty) = self.parse_func_def()?;
         self.consume(Tok::Newline)?;
@@ -500,7 +500,7 @@ impl Parser<'_> {
           );
         },
         op @ Tok::LeftParen => {
-          // TODO: make anything be callable
+          // TMP: make anything be callable
           if let ExprKind::Identifier(ref name) = lhs.kind {
             let paren_start = self.lexer.span().start;
 
