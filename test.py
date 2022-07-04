@@ -33,20 +33,18 @@ class Args():
     arg_pos = 0
     for arg in args:
       if arg.startswith("-"):
-        text = [arg[1:]]
-        if text[0].startswith("-"):
-          text[0] = text[0][1:]
+        text = arg.strip('-')
         
-        if text[0] == "h" or text[0] == "help":
+        if text == "h" or text == "help":
           print_help()
           exit(0)
-        elif text[0] == "u" or text[0] == "update":
+        elif text == "u" or text == "update":
           self.update = True
-        elif text[0] == "D" or text[0] == "debug":
+        elif text == "D" or text == "debug":
           self.debug = True
-        elif text[0] == "always-build":
+        elif text == "always-build":
           self.always_build = True
-        elif text[0] == "d" or text[0] == "dir":
+        elif text == "d" or text == "dir":
           if arg_pos + 1 > len(args):
             print_help()
             print(f"\x1b[1;31m[ERR]\x1b[0m: Missing argument for option `{arg}`.", file = sys.stderr)
@@ -251,12 +249,8 @@ def run_on_dir(dir_path: str, results: TestResults):
         test_file(path, Subcommand.Compile, results)
 
 if __name__ == "__main__":
-  if args.debug and (not exe_exist(PYR_DEBUG_BINARY) or args.always_build):
-    print(f"\x1b[2;96m[INFO]\x1b[0m: Building `{relative_path(PYR_DEBUG_BINARY)}`..")
-    subprocess.run(["cargo", "build"], capture_output = True)
-  elif not args.debug and (not exe_exist(PYR_RELEASE_BINARY) or args.always_build):
-    print(f"\x1b[2;96m[INFO]\x1b[0m: Building `{relative_path(PYR_RELEASE_BINARY)}`..")
-    subprocess.run(["cargo", "build", "--release"], capture_output = True)
+  if not exe_exist(PYR_DEBUG_BINARY) or not exe_exist(PYR_RELEASE_BINARY) or args.always_build:
+    cargo_build()
 
   print()
 

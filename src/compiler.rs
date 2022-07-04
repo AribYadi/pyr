@@ -40,6 +40,7 @@ use llvm::transforms::util::LLVMAddPromoteMemoryToRegisterPass;
 use llvm::{
   LLVMCallConv,
   LLVMIntPredicate,
+  LLVMLinkage,
 };
 use llvm_sys as llvm;
 
@@ -366,11 +367,12 @@ struct FuncDesc {
   // We store the return type for type checking
   ret_ty: Option<ValueType>,
   local_vars: Vec<VarWithName>,
+  external: bool,
 }
 
 impl FuncDesc {
   fn new_non_closure(arg_len: usize, ret_ty: Option<ValueType>) -> Self {
-    FuncDesc { arg_len, ret_ty, local_vars: Vec::new() }
+    FuncDesc { arg_len, ret_ty, local_vars: Vec::new(), external: false }
   }
 }
 
@@ -1255,7 +1257,12 @@ impl Compiler {
           self.function_descs.declare(
             &func_name,
             self.indent_level,
-            FuncDesc { arg_len: args_len, ret_ty: ret_ty.clone(), local_vars: local_vars.clone() },
+            FuncDesc {
+              arg_len: args_len,
+              ret_ty: ret_ty.clone(),
+              local_vars: local_vars.clone(),
+              external: false,
+            },
           );
 
           let prev_builder = self.builder;
@@ -1307,6 +1314,40 @@ impl Compiler {
 
           self.builder = prev_builder;
           self.curr_func = prev_func;
+        },
+        StmtKind::FuncExtern { name, args, ret_ty } => {
+          let arg_types = args.iter().map(|(_, ty)| ty.clone()).collect::<Vec<_>>();
+          let func_name = func_name(name, &arg_types);
+
+          let mut arg_types =
+            arg_types.iter().map(|ty| self.compile_type(ty.clone())).collect::<Vec<_>>();
+
+          let func_type = LLVMFunctionType(
+            if let Some(ret_type) = ret_ty.clone() {
+              self.compile_type(ret_type)
+            } else {
+              LLVMVoidTypeInContext(self.ctx)
+            },
+            arg_types.as_mut_ptr(),
+            arg_types.len() as u32,
+            0,
+          );
+
+          let func = LLVMAddFunction(self.module, self.cstring(name), func_type);
+          LLVMSetFunctionCallConv(func, LLVMCallConv::LLVMCCallConv as u32);
+          LLVMSetLinkage(func, LLVMLinkage::LLVMExternalLinkage);
+
+          self.funcs.push(func);
+          self.function_descs.declare(
+            &func_name,
+            self.indent_level,
+            FuncDesc {
+              arg_len: arg_types.len(),
+              ret_ty: ret_ty.clone(),
+              local_vars: Vec::new(),
+              external: true,
+            },
+          );
         },
         StmtKind::Ret { expr } => {
           let unused_bb = self.get_unused_bb();
@@ -1518,11 +1559,15 @@ impl Compiler {
             params.iter().map(|expr| self.compile_expr(expr).load(self)).collect::<Vec<_>>();
           let param_types = params.iter().map(|val| val.ty.clone()).collect::<Vec<_>>();
 
-          let func_name = func_name(name, &param_types);
-          let FuncDesc { arg_len, ret_ty, local_vars } = match self.function_descs.get(&func_name) {
-            Some(func_desc) => func_desc,
-            None => unreachable!("Resolver didn't resolve function correctly"),
-          };
+          let mut func_name = func_name(name, &param_types);
+          let FuncDesc { arg_len, ret_ty, local_vars, external } =
+            match self.function_descs.get(&func_name) {
+              Some(func_desc) => func_desc,
+              None => unreachable!("Resolver didn't resolve function correctly"),
+            };
+          if external {
+            func_name = name.to_string();
+          }
 
           if params.len() != arg_len {
             unreachable!("Function call has wrong number of arguments");

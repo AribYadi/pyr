@@ -1,3 +1,4 @@
+use std::ffi::c_void;
 use std::rc::Rc;
 
 use crate::interpreter::Interpreter;
@@ -200,6 +201,8 @@ impl Literal {
 
 pub type Params = Vec<Literal>;
 pub type NativeFunction = fn(&mut Interpreter, Params) -> ReturnValue<Literal>;
+pub type ExternalFunction =
+  crate::libloading::Symbol<unsafe extern "C" fn(*const c_void, ...) -> *const c_void>;
 pub type ReturnValue<T> = Option<T>;
 
 pub fn func_name(base_name: &str, args: &[ValueType]) -> String {
@@ -211,6 +214,7 @@ pub fn func_name(base_name: &str, args: &[ValueType]) -> String {
 pub enum Function {
   Native(NativeFunction, usize),
   UserDefined(Vec<String>, Vec<Stmt>, ReturnValue<ValueType>),
+  External(ExternalFunction, usize, ReturnValue<ValueType>),
 }
 
 impl std::fmt::Debug for Function {
@@ -220,6 +224,7 @@ impl std::fmt::Debug for Function {
       Function::UserDefined(args, body, ret_ty) => {
         write!(f, "UserDefined({args:?}, {body:?}, {ret_ty:?})")
       },
+      Function::External(_, _, _) => write!(f, "External(..)"),
     }
   }
 }
@@ -227,7 +232,6 @@ impl std::fmt::Debug for Function {
 impl PartialEq for Function {
   fn eq(&self, other: &Self) -> bool {
     match (self, other) {
-      (Function::Native(_, _), Function::Native(_, _)) => false,
       (Function::UserDefined(a1, b1, rt1), Function::UserDefined(a2, b2, rt2)) => {
         a1 == a2 && b1 == b2 && rt1 == rt2
       },

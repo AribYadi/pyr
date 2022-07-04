@@ -70,7 +70,7 @@ For more examples, see the [examples directory](./examples).
 To run unit test the source code, run the following command:
 
 ```bash
-cargo test
+cargo ntest
 ```
 
 To run end-to-end tests, run the following command:

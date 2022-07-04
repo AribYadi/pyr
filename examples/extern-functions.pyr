@@ -1,0 +1,6 @@
+### tester-ignore ###
+# because we need to link a dynamic library to this program
+
+extern func add(a: int, b: int) -> int
+
+print(add(1, 2) + "\n")

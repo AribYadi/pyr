@@ -15,7 +15,12 @@
           "kind": "bin"
         }
       },
-      "args": ["run", "${workspaceFolder}/examples/functions.pyr"],
+      "args": [
+        "run",
+        "${workspaceFolder}/examples/extern-functions.pyr",
+        "-l",
+        "add.dll"
+      ],
       "cwd": "${workspaceFolder}"
     },
     {
@@ -29,7 +34,12 @@
           "kind": "bin"
         }
       },
-      "args": ["compile", "${workspaceFolder}/tests/array_init.pyr"],
+      "args": [
+        "compile",
+        "${workspaceFolder}/examples/extern-functions.pyr",
+        "-l",
+        "add.dll"
+      ],
       "cwd": "${workspaceFolder}"
     },
     {

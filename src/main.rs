@@ -9,6 +9,11 @@ use interpreter::Interpreter;
 use line_col::LineColLookup;
 use parser::Parser;
 
+#[cfg(unix)]
+pub use libloading::os::unix as libloading;
+#[cfg(windows)]
+pub use libloading::os::windows as libloading;
+
 #[macro_use]
 mod utils;
 mod compiler;
@@ -18,6 +23,21 @@ mod optimizer;
 mod parser;
 mod resolver;
 mod runtime;
+
+// `max_params_len` is a macro because we use it in a macro that only takes an
+// integer literal
+#[macro_export]
+macro_rules! max_params_len {
+  () => {
+    max_params_len!(max_params_len)
+  };
+  ($val:literal) => {
+    $val
+  };
+  ($($expand:ident)::*) => {
+    $($expand)::* !(255)
+  };
+}
 
 #[macro_export]
 macro_rules! info {
@@ -33,15 +53,26 @@ macro_rules! info {
     let msg = format!($($msg)*);
     println!("\x1b[2;96m[INFO]\x1b[0m: {msg}");
   }};
+  // TODO: print llvm error using this
+  // TODO: replace `unreachable` with this
+  (INTR_ERR, $($msg:tt)*) => {{
+    let msg = format!($($msg)*);
+    eprintln!("\x1b[90m[INTERNAL_ERROR]\x1b[0m: An internal error has occured!");
+    eprintln!("\x1b[90m[INTERNAL_ERROR]\x1b[0m: This is not an error with your program but rather with `pyr` itself.");
+    eprintln!("\x1b[90m[INTERNAL_ERROR]\x1b[0m: Report it at <https://github.com/AribYadi/pyr/issues>");
+    eprintln!("\x1b[90m[INTERNAL_ERROR]\x1b[0m: Error Message:");
+    eprintln!("{msg}")
+  }};
 }
 
 struct Params {
   subcommand: ArgsSubcommand,
   source_path: String,
+  so: Vec<String>,
 }
 
 enum ArgsSubcommand {
-  Compile { out: Option<String>, link: bool },
+  Compile { out: Option<String>, exe: bool },
   Run,
 }
 
@@ -105,12 +136,17 @@ fn main() {
     },
   };
 
-  let options = optimizer::OptimizerOptions { ignore_expr_stmts: true, precalc_constant_ops: true, pre_do_if_stmts: true, ignore_falsy_while: true };
+  let options = optimizer::OptimizerOptions {
+    ignore_expr_stmts: true,
+    precalc_constant_ops: true,
+    pre_do_if_stmts: true,
+    ignore_falsy_while: true,
+  };
   let optimizer = optimizer::Optimizer::new(options);
   let stmts = optimizer.optimize(&stmts);
 
   match args.subcommand {
-    ArgsSubcommand::Compile { out, link } => {
+    ArgsSubcommand::Compile { out, exe } => {
       let obj_file = out
         .clone()
         .unwrap_or_else(|| source_path.with_extension("o").to_string_lossy().to_string());
@@ -121,21 +157,30 @@ fn main() {
         compiler.compile_to_obj(&obj_file, &stmts);
       }
       info!(INFO, "Compiled to `{obj_file}`");
-      if link {
+      if exe {
         #[cfg(target_os = "windows")]
         let exe_file =
           out.unwrap_or_else(|| source_path.with_extension("exe").to_string_lossy().to_string());
         #[cfg(not(target_os = "windows"))]
         let exe_file =
           out.unwrap_or_else(|| source_path.with_extension("").to_string_lossy().to_string());
-        let clang_output =
-          match Command::new("clang").arg("-o").arg(&exe_file).arg(&obj_file).output() {
-            Ok(output) => output,
-            Err(err) => {
-              info!(ERR, "Failed to run `clang -o {exe_file} {obj_file}`: {err}");
-              process::exit(1);
-            },
-          };
+        let clang_output = match Command::new("clang")
+          .arg("-o")
+          .arg(&exe_file)
+          .arg(&obj_file)
+          .args(args.so.iter())
+          .output()
+        {
+          Ok(output) => output,
+          Err(err) => {
+            info!(
+              ERR,
+              "Failed to run `clang -o {exe_file} {obj_file} {so}`: {err}",
+              so = args.so.join(" ")
+            );
+            process::exit(1);
+          },
+        };
         if !clang_output.status.success() {
           info!(ERR, "Failed to link {obj_file}!");
           info!(ERR, "exit_code: {status}", status = clang_output.status);
@@ -146,7 +191,7 @@ fn main() {
       }
     },
     ArgsSubcommand::Run => {
-      let mut interpreter = Interpreter::new();
+      let mut interpreter = Interpreter::new(&args.so);
       interpreter.define_std();
 
       match interpreter.interpret(&stmts) {
@@ -171,6 +216,8 @@ fn get_args() -> Params {
 
   let mut subcommand = None;
   let mut source_path = None;
+  // TODO: check if shared_libraries does in fact exists
+  let mut so = Vec::new();
 
   while let Some(arg) = args.next() {
     if arg.starts_with('-') {
@@ -180,8 +227,18 @@ fn get_args() -> Params {
           print_help();
           process::exit(0);
         },
+        "link" | "l" => {
+          if args.len() < 1 {
+            print_help();
+            info!(ERR, "Missing argument for option: `{arg}`.");
+
+            process::exit(1);
+          }
+          so.push(args.next().unwrap());
+          continue;
+        },
         _ => {
-          if let Some(ArgsSubcommand::Compile { ref mut out, ref mut link }) = subcommand {
+          if let Some(ArgsSubcommand::Compile { ref mut out, ref mut exe }) = subcommand {
             match text {
               "o" | "out" => {
                 if args.len() < 1 {
@@ -193,8 +250,8 @@ fn get_args() -> Params {
                 *out = Some(args.next().unwrap());
                 continue;
               },
-              "l" | "link" => {
-                *link = true;
+              "e" | "exe" => {
+                *exe = true;
                 continue;
               },
               _ => (),
@@ -212,7 +269,7 @@ fn get_args() -> Params {
     match arg_pos {
       0 => match arg.as_str() {
         "run" => subcommand = Some(ArgsSubcommand::Run),
-        "compile" => subcommand = Some(ArgsSubcommand::Compile { out: None, link: false }),
+        "compile" => subcommand = Some(ArgsSubcommand::Compile { out: None, exe: false }),
         _ => {
           print_help();
           info!(ERR, "Unknown subcommand: `{arg}`.");
@@ -242,7 +299,7 @@ fn get_args() -> Params {
     process::exit(1);
   }
 
-  Params { subcommand: subcommand.unwrap(), source_path: source_path.unwrap() }
+  Params { subcommand: subcommand.unwrap(), source_path: source_path.unwrap(), so }
 }
 
 fn print_help() {
@@ -253,9 +310,10 @@ fn print_help() {
   info!(INFO, "");
   info!(INFO, "\x1b[1;32mSUBCOMMAND\x1b[0m:");
   info!(INFO, "  `compile` : Compiles the source file to an object file.");
-  info!(INFO, "    --out, -o : Specifies the output file name.");
-  info!(INFO, "    --link, -l: Links the object file.");
+  info!(INFO, "    --out, -o <name>: Specifies the output file name.");
+  info!(INFO, "    --exe, -e       : Links the object file into an executable.");
   info!(INFO, "  `run`     : Interprets the source file line by line.");
   info!(INFO, "\x1b[1;32mOptions\x1b[0m:");
-  info!(INFO, "  --help, -h: Print this help message.");
+  info!(INFO, "  --help, -h       : Print this help message.");
+  info!(INFO, "  --link, -l <path>: Links a shared library.")
 }
