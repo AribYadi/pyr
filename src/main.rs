@@ -9,6 +9,11 @@ use interpreter::Interpreter;
 use line_col::LineColLookup;
 use parser::Parser;
 
+#[cfg(unix)]
+pub use libloading::os::unix as libloading;
+#[cfg(windows)]
+pub use libloading::os::windows as libloading;
+
 #[macro_use]
 mod utils;
 mod compiler;
@@ -23,8 +28,8 @@ mod runtime;
 // integer literal
 #[macro_export]
 macro_rules! max_params_len {
-  () => {
-    255
+  ($($expand:ident)::*) => {
+    $($expand)::* !(255)
   };
 }
 
@@ -41,6 +46,16 @@ macro_rules! info {
   (INFO, $($msg:tt)*) => {{
     let msg = format!($($msg)*);
     println!("\x1b[2;96m[INFO]\x1b[0m: {msg}");
+  }};
+  // TODO: print llvm error using this
+  // TODO: replace `unreachable` with this
+  (INTR_ERR, $($msg:tt)*) => {{
+    let msg = format!($($msg)*);
+    eprintln!("\x1b[90m[INTERNAL_ERROR]\x1b[0m: An internal error has occured!");
+    eprintln!("\x1b[90m[INTERNAL_ERROR]\x1b[0m: This is not an error with your program but rather with `pyr` itself.");
+    eprintln!("\x1b[90m[INTERNAL_ERROR]\x1b[0m: Report it at <https://github.com/AribYadi/pyr/issues>");
+    eprintln!("\x1b[90m[INTERNAL_ERROR]\x1b[0m: Error Message:");
+    eprintln!("{msg}")
   }};
 }
 
@@ -60,7 +75,6 @@ enum ArgsSubcommand {
 // TODO: report the correct position of errors, right now some errors have the wrong position
 // TODO: prettify compiler code
 // TODO: make indexing out of bounds error at compile time
-
 
 fn main() {
   let args = get_args();
@@ -171,7 +185,7 @@ fn main() {
       }
     },
     ArgsSubcommand::Run => {
-      let mut interpreter = Interpreter::new();
+      let mut interpreter = Interpreter::new(&args.so);
       interpreter.define_std();
 
       match interpreter.interpret(&stmts) {
@@ -196,6 +210,7 @@ fn get_args() -> Params {
 
   let mut subcommand = None;
   let mut source_path = None;
+  // TODO: check if shared_libraries does in fact exists
   let mut so = Vec::new();
 
   while let Some(arg) = args.next() {

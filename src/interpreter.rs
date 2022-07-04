@@ -1,3 +1,5 @@
+use std::process;
+
 use crate::error::{
   RuntimeError,
   RuntimeResult as Result,
@@ -23,9 +25,9 @@ use crate::runtime::{
 use crate::{
   ignore_return,
   info,
+  utils,
 };
 
-#[derive(Clone)]
 pub struct Interpreter {
   variables: Variables<Literal>,
   // Functions can return something, so we need to store the return type.
@@ -37,6 +39,8 @@ pub struct Interpreter {
   return_value: ReturnValue<Literal>,
 
   state_stack: StateStack,
+
+  shared_libraries: Vec<crate::libloading::Library>,
 }
 
 impl Interpreter {
@@ -77,7 +81,7 @@ impl Interpreter {
             Ok(n) => n,
             Err(_) => {
               info!(ERR, "`{param:?}` is not able to be converted into an integer.");
-              std::process::exit(1);
+              process::exit(1);
             },
           };
           Some(Literal::Integer(as_int))
@@ -87,7 +91,12 @@ impl Interpreter {
     );
   }
 
-  pub fn new() -> Self {
+  pub fn new(shared_libraries: &[String]) -> Self {
+    let shared_libraries = shared_libraries
+      .iter()
+      .map(|path| unsafe { crate::libloading::Library::new(path).unwrap() })
+      .collect();
+
     Self {
       variables: Variables::new(),
       functions: Variables::new(),
@@ -95,6 +104,7 @@ impl Interpreter {
       ignore_return: false,
       return_value: None,
       state_stack: StateStack::new(),
+      shared_libraries,
     }
   }
 
@@ -169,8 +179,22 @@ impl Interpreter {
         );
         Ok(())
       },
-      StmtKind::FuncExtern { .. } => {
-        todo!("Function externs is not currently supported in interpretation mode");
+      StmtKind::FuncExtern { name, args, ret_ty } => {
+        let arg_types: Vec<_> = args.iter().map(|(_, ty)| ty.clone()).collect();
+        self.functions.declare(
+          &func_name(name, &arg_types),
+          self.indent_level,
+          Function::External(
+            unsafe { utils::get_sym_from_multiple_so(&self.shared_libraries, name) }
+              .unwrap_or_else(|| {
+                info!(ERR, "External function `{name}` not found!");
+                process::exit(1);
+              }),
+            arg_types.len(),
+            ret_ty.clone(),
+          ),
+        );
+        Ok(())
       },
       StmtKind::Ret { expr } => {
         if !self.state_stack.contains(State::Function) {
@@ -301,6 +325,17 @@ impl Interpreter {
               None => unreachable!("User defined function returned nothing"),
             }
           },
+          Function::External(func, arg_len, ret_ty) => {
+            if params.len() != arg_len {
+              unreachable!("User defined function called with wrong number of arguments");
+            }
+
+            match unsafe { utils::call_func_sym(self, func, params, ret_ty) } {
+              Some(value) => Ok(value),
+              None if !self.ignore_return => unreachable!("Native function returned nothing"),
+              None => Ok(Literal::Integer(1656)),
+            }
+          },
         }
       },
       ExprKind::Index { array, index } => {
@@ -350,7 +385,13 @@ impl Interpreter {
     right: Expr,
   ) -> Result<Literal> {
     let left = self.interpret_expr(&left)?;
-    let right_lit = self.clone().interpret_expr(&right)?;
+
+    // Since the only thing that can change (at this time) when interpreting an expr
+    // is variables we clone only the variables to act like a short circuit op
+    let prev_variables = self.variables.clone();
+    let right_lit = self.interpret_expr(&right)?;
+    self.variables = prev_variables;
+
     match op {
       TokenKind::And if right_lit.is_same_variant(&left) => {
         if !left.is_truthy() {
@@ -380,14 +421,14 @@ impl Interpreter {
       (Literal::Array(array), Literal::Integer(index)) => {
         if index < 0 || index >= array.len() as i64 {
           eprintln!("Index out of bounds.");
-          std::process::exit(1);
+          process::exit(1);
         }
         Ok(array[index as usize].clone())
       },
       (Literal::String(string), Literal::Integer(index)) => {
         if index < 0 || index >= string.len() as i64 {
           eprintln!("Index out of bounds.");
-          std::process::exit(1);
+          process::exit(1);
         }
         Ok(Literal::String(string[index as usize..index as usize + 1].to_string()))
       },
@@ -415,14 +456,14 @@ impl Interpreter {
             (Literal::Array(array), Literal::Integer(index)) => {
               if index < 0 || index >= array.len() as i64 {
                 eprintln!("Index out of bounds.");
-                std::process::exit(1);
+                process::exit(1);
               }
               *array.get_mut(index as usize).unwrap() = right.clone();
             },
             (Literal::String(string), Literal::Integer(index)) => {
               if index < 0 || index >= string.len() as i64 {
                 eprintln!("Index out of bounds.");
-                std::process::exit(1);
+                process::exit(1);
               }
               string.replace_range(
                 index as usize..index as usize + right.to_string().len(),

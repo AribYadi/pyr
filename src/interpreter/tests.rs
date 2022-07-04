@@ -17,7 +17,7 @@ fn interpret_expr() {
     let expr = parser.expression().unwrap();
     let mut resolver = Resolver::new();
     resolver.resolve_expr(&expr)?;
-    let mut interpreter = Interpreter::new();
+    let mut interpreter = Interpreter::new(&[]);
     interpreter.interpret_expr(&expr)
   }
 
@@ -106,7 +106,7 @@ fn interpret_stmt() {
     let mut parser = Parser::new(input);
     let stmt = parser.statement();
     assert!(stmt.is_ok(), "input: {input:?}, err: {stmt}", stmt = stmt.unwrap_err().kind);
-    let mut interpreter = Interpreter::new();
+    let mut interpreter = Interpreter::new(&[]);
     interpreter.interpret_stmt(&stmt.unwrap())
   }
 
@@ -141,7 +141,7 @@ fn interpret_stmt() {
 
 //     let mut parser = Parser::new(input);
 //     let expr = parser.expression().unwrap();
-//     let mut interpreter = Interpreter::new();
+//     let mut interpreter = Interpreter::new(&[]);
 //     interpreter.interpret_print(&expr, &mut buf).unwrap();
 //     assert_eq!(buf, expected.as_bytes());
 //   }
@@ -156,7 +156,7 @@ fn interpret_stmt() {
 fn interpret_variables() {
   let mut resolver = Resolver::new();
   resolver.define_std();
-  let mut interpreter = Interpreter::new();
+  let mut interpreter = Interpreter::new(&[]);
   interpreter.define_std();
 
   macro_rules! interpret_expr {
@@ -198,7 +198,7 @@ fn interpret_variables() {
 
   resolver = Resolver::new();
   resolver.define_std();
-  interpreter = Interpreter::new();
+  interpreter = Interpreter::new(&[]);
   interpreter.define_std();
 
   let result = interpret_stmt!(unindent(
@@ -223,7 +223,7 @@ fn interpret_variables() {
 fn interpret_function() {
   let mut resolver = Resolver::new();
   resolver.define_std();
-  let mut interpreter = Interpreter::new();
+  let mut interpreter = Interpreter::new(&[]);
   interpreter.define_std();
 
   macro_rules! interpret_stmt {
@@ -268,7 +268,7 @@ fn interpret_function() {
 fn interpret_array() {
   let mut resolver = Resolver::new();
   resolver.define_std();
-  let mut interpreter = Interpreter::new();
+  let mut interpreter = Interpreter::new(&[]);
   interpreter.define_std();
 
   macro_rules! interpret_expr {
