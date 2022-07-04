@@ -6,6 +6,7 @@ on:
       - "**.md"
       - "docs/**"
       - ".github/workflows/deploy_docs.yml"
+      - ".github/workflows/todos.yml"
   pull_request:
 
 name: Continuous integration
