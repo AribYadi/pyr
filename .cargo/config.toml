@@ -1,2 +1,4 @@
 [alias]
-lint = "clippy --features clippy"
+ncheck  = "check  --features clippy"
+ntest   = "test   --features clippy"
+nclippy = "clippy --features clippy"
