@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="language-reference/literals.html"><strong aria-hidden="true">2.</strong> Literals</a></li><li class="chapter-item expanded "><a href="language-reference/keywords.html"><strong aria-hidden="true">3.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="language-reference/arithmetic.html"><strong aria-hidden="true">4.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="language-reference/comparison.html"><strong aria-hidden="true">5.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="language-reference/bitwise.html"><strong aria-hidden="true">6.</strong> Bitwise</a></li><li class="chapter-item expanded "><a href="language-reference/truthiness.html"><strong aria-hidden="true">7.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="language-reference/operator-precedence.html"><strong aria-hidden="true">8.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="language-reference/variables.html"><strong aria-hidden="true">9.</strong> Variable</a></li><li class="chapter-item expanded "><a href="language-reference/functions.html"><strong aria-hidden="true">10.</strong> Functions</a></li><li class="chapter-item expanded "><a href="language-reference/comments.html"><strong aria-hidden="true">11.</strong> Comments</a></li><li class="chapter-item expanded "><a href="language-reference/escape-sequences.html"><strong aria-hidden="true">12.</strong> Supported Escape Sequences</a></li><li class="chapter-item expanded affix "><li class="part-title">Standard Library</li><li class="chapter-item expanded "><a href="std/functions.html"><strong aria-hidden="true">13.</strong> Functions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded "><a href="cli.html"><strong aria-hidden="true">2.</strong> CLI</a></li><li class="chapter-item expanded affix "><li class="part-title">Language Reference</li><li class="chapter-item expanded "><a href="language-reference/literals.html"><strong aria-hidden="true">3.</strong> Literals</a></li><li class="chapter-item expanded "><a href="language-reference/keywords.html"><strong aria-hidden="true">4.</strong> Keywords</a></li><li class="chapter-item expanded "><a href="language-reference/arithmetic.html"><strong aria-hidden="true">5.</strong> Arithmetic</a></li><li class="chapter-item expanded "><a href="language-reference/comparison.html"><strong aria-hidden="true">6.</strong> Comparison</a></li><li class="chapter-item expanded "><a href="language-reference/bitwise.html"><strong aria-hidden="true">7.</strong> Bitwise</a></li><li class="chapter-item expanded "><a href="language-reference/truthiness.html"><strong aria-hidden="true">8.</strong> Truthiness</a></li><li class="chapter-item expanded "><a href="language-reference/operator-precedence.html"><strong aria-hidden="true">9.</strong> Operator Precedence</a></li><li class="chapter-item expanded "><a href="language-reference/variables.html"><strong aria-hidden="true">10.</strong> Variable</a></li><li class="chapter-item expanded "><a href="language-reference/functions.html"><strong aria-hidden="true">11.</strong> Functions</a></li><li class="chapter-item expanded "><a href="language-reference/comments.html"><strong aria-hidden="true">12.</strong> Comments</a></li><li class="chapter-item expanded "><a href="language-reference/escape-sequences.html"><strong aria-hidden="true">13.</strong> Supported Escape Sequences</a></li><li class="chapter-item expanded affix "><li class="part-title">Standard Library</li><li class="chapter-item expanded "><a href="std/functions.html"><strong aria-hidden="true">14.</strong> Functions</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -160,6 +160,50 @@ clang foo.o -o foo
 <p>We have proved a <a href="https://en.wikipedia.org/wiki/Turing_completeness">Turing Completeness</a> for Pyr by implementing <a href="https://en.wikipedia.org/wiki/Rule_110">Rule 110</a> which you can see <a href="./examples/rule110.pyr">here</a>.</p>
 <h2 id="license"><a class="header" href="#license">License</a></h2>
 <p>Pyr is under the license of <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache-2.0</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="command-line-interface"><a class="header" href="#command-line-interface">Command Line Interface</a></h1>
+<p><code>pyr [OPTIONS] &lt;SUBCOMMAND&gt; [SUBCOMMAND_OPTIONS] &lt;source_file&gt;</code></p>
+<ul>
+<li><a href="cli.html#command-line-interface">Command Line Interface</a>
+<ul>
+<li><a href="cli.html#options">Options</a>
+<ul>
+<li><a href="cli.html#--help---h"><code>--help</code> | <code>-h</code></a></li>
+<li><a href="cli.html#--link---l"><code>--link</code> | <code>-l</code></a></li>
+</ul>
+</li>
+<li><a href="cli.html#subcommand">Subcommand</a>
+<ul>
+<li><a href="cli.html#run">Run</a></li>
+<li><a href="cli.html#compile">Compile</a>
+<ul>
+<li><a href="cli.html#options-1">Options</a>
+<ul>
+<li><a href="cli.html#--out---o"><code>--out</code> | <code>-o</code></a></li>
+<li><a href="cli.html#--exe---e"><code>--exe</code> | <code>-e</code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="options"><a class="header" href="#options">Options</a></h2>
+<h3 id="--help---h"><a class="header" href="#--help---h"><code>--help</code> | <code>-h</code></a></h3>
+<p>Prints the help message.</p>
+<h3 id="--link---l"><a class="header" href="#--link---l"><code>--link</code> | <code>-l</code></a></h3>
+<p>Links a dynamic/shared library.</p>
+<h2 id="subcommand"><a class="header" href="#subcommand">Subcommand</a></h2>
+<h3 id="run"><a class="header" href="#run">Run</a></h3>
+<p>Run/Interprets the program line by line.</p>
+<h3 id="compile"><a class="header" href="#compile">Compile</a></h3>
+<p>Compiles the program into an object file.</p>
+<h4 id="options-1"><a class="header" href="#options-1">Options</a></h4>
+<h5 id="--out---o"><a class="header" href="#--out---o"><code>--out</code> | <code>-o</code></a></h5>
+<p>Specifies the output file name.</p>
+<h5 id="--exe---e"><a class="header" href="#--exe---e"><code>--exe</code> | <code>-e</code></a></h5>
+<p>Links the object file into an executable.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="literals"><a class="header" href="#literals">Literals</a></h2>
 <p>Pyr currently supports the following literals:</p>
 <ul>
@@ -223,6 +267,7 @@ Note: Currently, arrays cannot be converted to strings.</p>
 <li><a href="language-reference/keywords.html#func"><code>func</code></a></li>
 <li><a href="language-reference/keywords.html#ret"><code>ret</code></a></li>
 <li><a href="language-reference/keywords.html#break"><code>break</code></a></li>
+<li><a href="language-reference/keywords.html#extern"><code>extern</code></a></li>
 </ul>
 </li>
 </ul>
@@ -287,6 +332,12 @@ print(square(2)) # prints 4
 <pre><code class="language-python">while true:
   print(&quot;hello&quot;)
   break
+</code></pre>
+<h3 id="extern"><a class="header" href="#extern"><code>extern</code></a></h3>
+<p><code>extern</code> brings an external function into the current scope.</p>
+<pre><code class="language-python">extern func exit(status: int)
+
+exit(0)
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="arithmetic"><a class="header" href="#arithmetic">Arithmetic</a></h2>
 <ul>
