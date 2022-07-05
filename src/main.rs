@@ -53,15 +53,16 @@ macro_rules! info {
     let msg = format!($($msg)*);
     println!("\x1b[2;96m[INFO]\x1b[0m: {msg}");
   }};
-  // TODO: print llvm error using this
-  (INTR_ERR, $($msg:tt)*) => {{
+  (INTR_ERR | NO_EXIT, $($msg:tt)*) => {
     let msg = format!($($msg)*);
     eprintln!("\x1b[90m[INTERNAL_ERROR]\x1b[0m: An internal error has occured!");
     eprintln!("\x1b[90m[INTERNAL_ERROR]\x1b[0m: This is not an error with your program but rather with `pyr` itself.");
     eprintln!("\x1b[90m[INTERNAL_ERROR]\x1b[0m: Report it at <https://github.com/AribYadi/pyr/issues>");
     eprintln!("\x1b[90m[INTERNAL_ERROR]\x1b[0m: Error Message:");
     eprintln!("{msg}");
-
+  };
+  (INTR_ERR, $($msg:tt)*) => {{
+    info!(INTR_ERR | NO_EXIT, $($msg)*);
     std::process::exit(1);
   }};
 }

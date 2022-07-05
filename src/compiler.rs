@@ -6,6 +6,7 @@ use std::ffi::{
   CStr,
   CString,
 };
+use std::mem::MaybeUninit;
 use std::os::raw::c_char;
 use std::{
   process,
@@ -14,7 +15,6 @@ use std::{
 
 use llvm::analysis::{
   LLVMVerifierFailureAction,
-  LLVMVerifyFunction,
   LLVMVerifyModule,
 };
 use llvm::target::*;
@@ -1846,22 +1846,32 @@ impl Compiler {
     LLVMDeleteBasicBlock(self.get_unused_bb());
 
     LLVMBuildRet(self.builder, LLVMConstInt(LLVMInt32TypeInContext(self.ctx), 0, 0));
+
+    #[cfg(debug_assertions)]
+    LLVMPrintModuleToFile(self.module, self.cstring("out-llvm.ll"), ptr::null_mut());
+
+    let mut err = MaybeUninit::uninit();
+    let code = LLVMVerifyModule(
+      self.module,
+      LLVMVerifierFailureAction::LLVMReturnStatusAction,
+      err.as_mut_ptr(),
+    );
+    let err = err.assume_init();
+
+    if code != 0 && !err.is_null() {
+      info!(INTR_ERR | NO_EXIT, "LLVM Module verification has failed");
+      let cstr = CStr::from_ptr(err as *const _);
+      eprintln!("{}", cstr.to_string_lossy());
+      LLVMDisposeMessage(err);
+      process::exit(1);
+    }
+
     for func in &self.funcs {
-      LLVMVerifyFunction(*func, LLVMVerifierFailureAction::LLVMAbortProcessAction);
       LLVMRunFunctionPassManager(self.fpm, *func);
     }
 
     #[cfg(debug_assertions)]
-    {
-      LLVMDumpModule(self.module);
-      LLVMPrintModuleToFile(self.module, self.cstring("tmp.ll"), ptr::null_mut());
-    }
-
-    LLVMVerifyModule(
-      self.module,
-      LLVMVerifierFailureAction::LLVMAbortProcessAction,
-      ptr::null_mut(),
-    );
+    LLVMPrintModuleToFile(self.module, self.cstring("out-llvm.ll"), ptr::null_mut());
   }
 
   pub unsafe fn compile_to_obj(mut self, output_file: &str, stmts: &[Stmt]) {
