@@ -43,7 +43,7 @@ macro_rules! max_params_len {
 macro_rules! info {
   (ERR, $($msg:tt)*) => {{
     let msg = format!($($msg)*);
-    eprintln!("\x1b[1;31m[ERR]\x1b[0m : {msg}");
+    eprintln!("\x1b[1;31m[ERR]\x1b[0m: {msg}");
   }};
   (WARN, $($msg:tt)*) => {{
     let msg = format!($($msg)*);
@@ -68,7 +68,7 @@ macro_rules! info {
 struct Params {
   subcommand: ArgsSubcommand,
   source_path: String,
-  so: Vec<String>,
+  shared_libraries: Vec<String>,
 }
 
 enum ArgsSubcommand {
@@ -168,7 +168,7 @@ fn main() {
           .arg("-o")
           .arg(&exe_file)
           .arg(&obj_file)
-          .args(args.so.iter())
+          .args(args.shared_libraries.iter())
           .output()
         {
           Ok(output) => output,
@@ -176,7 +176,7 @@ fn main() {
             info!(
               ERR,
               "Failed to run `clang -o {exe_file} {obj_file} {so}`: {err}",
-              so = args.so.join(" ")
+              so = args.shared_libraries.join(" ")
             );
             process::exit(1);
           },
@@ -191,7 +191,7 @@ fn main() {
       }
     },
     ArgsSubcommand::Run => {
-      let mut interpreter = Interpreter::new(&args.so);
+      let mut interpreter = Interpreter::new(&args.shared_libraries);
       interpreter.define_std();
 
       match interpreter.interpret(&stmts) {
@@ -216,8 +216,7 @@ fn get_args() -> Params {
 
   let mut subcommand = None;
   let mut source_path = None;
-  // TODO: check if shared_libraries does in fact exists
-  let mut so = Vec::new();
+  let mut shared_libraries = Vec::new();
 
   while let Some(arg) = args.next() {
     if arg.starts_with('-') {
@@ -234,7 +233,7 @@ fn get_args() -> Params {
 
             process::exit(1);
           }
-          so.push(args.next().unwrap());
+          shared_libraries.push(args.next().unwrap());
           continue;
         },
         _ => {
@@ -299,7 +298,12 @@ fn get_args() -> Params {
     process::exit(1);
   }
 
-  Params { subcommand: subcommand.unwrap(), source_path: source_path.unwrap(), so }
+  for so in shared_libraries.iter().filter(|path| !std::path::Path::new(path).exists()) {
+    info!(ERR, "File `{so}` does not exists.");
+    process::exit(1);
+  }
+
+  Params { subcommand: subcommand.unwrap(), source_path: source_path.unwrap(), shared_libraries }
 }
 
 fn print_help() {
