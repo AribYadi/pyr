@@ -375,7 +375,8 @@ impl Parser<'_> {
           Tok::String => {
             let text = text[1..text.len() - 1].to_string();
             let text = if text.contains('\\') {
-              crate::utils::unescape(text).map_err(|e| ParseError::new(e, span.clone()))?
+              crate::utils::unescape(text)
+                .map_err(|(err, start)| ParseError::new(err, span.start + start..span.end))?
             } else {
               text
             };
@@ -418,6 +419,7 @@ impl Parser<'_> {
 
         let mut len = None;
         let mut exprs = Vec::new();
+
         while self.peek != Tok::RightBracket {
           exprs.push(self.parse_expr(0, Tok::Eof)?);
           if self.peek != Tok::Comma {
@@ -425,11 +427,11 @@ impl Parser<'_> {
               self.consume(Tok::Semicolon)?;
               len = Some(rc!(self.parse_expr(0, Tok::Eof)?))
             }
-            self.consume_delimiter(Tok::RightBracket)?;
             break;
           }
           self.consume(Tok::Comma)?;
         }
+        self.consume_delimiter(Tok::RightBracket)?;
 
         let span_end = self.lexer.span().end;
 

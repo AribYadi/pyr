@@ -135,6 +135,8 @@ impl Resolver {
         self.state_stack.push(State::Function);
 
         for stmt in body {
+          self.resolve_stmt(stmt)?;
+
           // Check if return value is some and if it is match it to the return type.
           if self.return_value.is_some() && ret_ty.is_some() && self.return_value != *ret_ty {
             return Err(RuntimeError::new(
@@ -146,8 +148,6 @@ impl Resolver {
               stmt.span.clone(),
             ));
           }
-
-          self.resolve_stmt(stmt)?;
         }
 
         self.state_stack.pop(State::Function);
@@ -160,7 +160,10 @@ impl Resolver {
               self.return_value.clone().into(),
               ret_ty.clone().into(),
             ),
-            stmt.span.clone(),
+            match body.last() {
+              Some(stmt) => stmt.span.clone(),
+              _ => stmt.span.clone(),
+            },
           ));
         }
 
@@ -320,7 +323,6 @@ impl Resolver {
         }
       },
     }
-    .map_err(|e| RuntimeError::new(e.kind, expr.span.clone()))
   }
 
   fn resolve_prefix_op(&mut self, op: &TokenKind, right: &Expr) -> Result<ValueType> {

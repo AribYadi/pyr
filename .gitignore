@@ -8,3 +8,4 @@
 **/run_bench.sh
 **/*.o
 **/*.exe
+tmp.pyr

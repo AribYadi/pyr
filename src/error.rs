@@ -62,13 +62,13 @@ impl ParseError {
 
 #[derive(Error, Debug, Clone, PartialEq)]
 pub enum RuntimeErrorKind {
-  #[error("cannot apply prefix operator `{1}` using `{0}`")]
+  #[error("cannot apply prefix operator `{1}` to `{0}`")]
   CannotApplyPrefix(Expr, TokenKind),
   #[error("cannot apply infix operator `{1}` to `{0}` and `{2}`")]
   CannotApplyInfix(Expr, TokenKind, Expr),
   #[error("undefined variable `{0}` in the current scope")]
   UndefinedVariable(String),
-  #[error("undefined function `{0}` in the current scope with params of type `{param_types}`", param_types = .1.iter().map(ToString::to_string).collect::<Vec<_>>().join("`, type `"))]
+  #[error("undefined function `{0}` in the current scope with params of `({param_types})`", param_types = .1.iter().map(ToString::to_string).collect::<Vec<_>>().join(", "))]
   UndefinedFunctionWithParams(String, Vec<ValueType>),
   #[error("`{0}` returns nothing but is used as an expression")]
   FunctionReturnsNothing(String),
