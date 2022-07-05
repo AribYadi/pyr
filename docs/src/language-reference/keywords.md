@@ -11,6 +11,7 @@ Keywords in Pyr are as follows:
   - [`func`](#func)
   - [`ret`](#ret)
   - [`break`](#break)
+  - [`extern`](#extern)
 
 ### `if`
 
@@ -107,4 +108,14 @@ print(square(2)) # prints 4
 while true:
   print("hello")
   break
+```
+
+### `extern`
+
+`extern` brings an external function into the current scope.
+
+```python
+extern func exit(status: int)
+
+exit(0)
 ```
