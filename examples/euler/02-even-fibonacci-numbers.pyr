@@ -1,3 +1,5 @@
+# vim: syntax=python
+
 MAX=4000000
 
 sum = 0

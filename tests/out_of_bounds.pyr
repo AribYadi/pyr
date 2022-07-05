@@ -1,4 +1,5 @@
 ### tester-ignore ###
+# vim: syntax=python
 
 arr = int[1]
 print(arr[1]) # Uh oh, arr has length 1, so this will cause undefined behavior

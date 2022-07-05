@@ -1,3 +1,5 @@
+# vim: syntax=python
+
 func foo(bar: string, baz: string):
   print(bar + baz + "\n")
 

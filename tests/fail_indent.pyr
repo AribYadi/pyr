@@ -1,2 +1,4 @@
+# vim: syntax=python
+
 if true:
 print("123")

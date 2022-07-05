@@ -1,3 +1,5 @@
+# vim: syntax=python
+
 print("1 == 1: " + (1 == 1) + "\n") # prints "1 == 1: 1"
 print("1 == 0: " + (1 == 0) + "\n") # prints "1 == 0: 0"
 print("1 != 0: " + (1 != 0) + "\n") # prints "1 != 0: 1"

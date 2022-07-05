@@ -1,3 +1,5 @@
+# vim: syntax=python
+
 foo = 256
 if foo:
   print("Broken! `256` is not supposed to be true!\n")

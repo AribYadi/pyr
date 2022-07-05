@@ -1,3 +1,5 @@
+# vim: syntax=python
+
 func foo(x: string) -> string:
   ret x + " " + x + "!\n"
 

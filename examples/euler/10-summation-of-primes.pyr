@@ -1,5 +1,7 @@
 ### tester-ignore ###
-# To slow for ci, gonna optimize later
+# Too slow for ci, gonna optimize later
+
+# vim: syntax=python
 
 N=2000000
 

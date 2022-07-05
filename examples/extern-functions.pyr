@@ -1,5 +1,7 @@
 ### tester-ignore ###
-# because we need to link a dynamic library to this program
+# Because we need to link a dynamic library to this program
+
+# vim: syntax=python
 
 extern func add(a: int, b: int) -> int
 

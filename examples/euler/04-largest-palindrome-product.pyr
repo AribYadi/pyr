@@ -1,3 +1,5 @@
+# vim: syntax=python
+
 START=100
 END=999
 

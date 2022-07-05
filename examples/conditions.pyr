@@ -1,3 +1,5 @@
+# vim: syntax=python
+
 if true:
   if 2 <= 2: print("hello2\n") # prints hello2
   print("hello\n") # prints hello
