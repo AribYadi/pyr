@@ -20,7 +20,10 @@ while i < BOARD_SIZE - 2:
   # Render the board
   j = 0
   while j < BOARD_SIZE:
-    print(" #"[board[j]])
+    if board[j]:
+      print("\x1b[47m \x1b[0m")
+    else:
+      print("\x1b[40m \x1b[0m")
     j = j + 1
   print("\n")
   
