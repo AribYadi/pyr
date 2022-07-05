@@ -1,5 +1,3 @@
-use std::process;
-
 use thiserror::Error;
 
 use crate::info;
@@ -56,7 +54,6 @@ pub unsafe fn call_func_sym(
 
   if sym.clone().into_raw().is_null() {
     info!(INTR_ERR, "`call_func_sym`'s `sym` is null");
-    process::exit(1);
   }
 
   let mut cstrs = Vec::new();
@@ -83,7 +80,7 @@ pub unsafe fn call_func_sym(
 
   unsafe fn from_void_ptr(interpreter: &mut Interpreter, ty: ValueType, ptr: VoidPtr) -> Literal {
     match ty {
-      ValueType::Void => unreachable!("ValueType::Void are not supposed to be created"),
+      ValueType::Void => info!(INTR_ERR, "ValueType::Void are not supposed to be created"),
       ValueType::String => {
         let ptr = ptr as *const c_char;
         let cstr = CStr::from_ptr(ptr);
@@ -97,7 +94,7 @@ pub unsafe fn call_func_sym(
       ValueType::Array(elems_ty, len) => {
         let len = match interpreter.interpret_expr(&len).unwrap() {
           Literal::Integer(len) => len,
-          _ => unreachable!("Resolver didn't resolve the len of an array type"),
+          _ => info!(INTR_ERR, "Resolver didn't resolve the array length type"),
         };
         let c_vec = c_vec::CVec::new(ptr as *mut *const c_void, len as usize);
         let elems = c_vec
@@ -130,7 +127,7 @@ pub unsafe fn call_func_sym(
               Some(from_void_ptr(interpreter, ret_ty?, ptr))
             },
           )*
-          _ => unreachable!()
+          _ => info!(INTR_ERR, "Parser didn't limit parameters length")
         }
       })
     };
@@ -143,7 +140,6 @@ pub unsafe fn call_func_sym(
     let _ = &mut params_as_ptr;
     gen_match!(1);
     info!(INTR_ERR, "pyr has been built with feature \"clippy\"");
-    process::exit(1);
   }
 
   #[cfg(not(feature = "clippy"))]

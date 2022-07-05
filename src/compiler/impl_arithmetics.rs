@@ -29,7 +29,7 @@ impl ValueWrapper {
       impl_arithmetics_for_runtime! {
         compiler, self, other;
         (ValueType::Integer, ValueType::Integer) => |self_: Self, other_: Self| (LLVMBuildAdd(compiler.builder, self_.v, other_.v, compiler.cstring("")), ValueType::Integer, false, true);
-        (ValueType::String, ValueType::Array(_, _)) | (ValueType::Array(_, _), ValueType::String) => |_, _| unreachable!("Resolver didn't type check infix operator `+`");
+        (ValueType::String, ValueType::Array(_, _)) | (ValueType::Array(_, _), ValueType::String) => |_, _| info!(INTR_ERR, "Resolver didn't type check infix operator `+`");
         (ValueType::String, _) | (_, ValueType::String) => |left: Self, right: Self| {
           let (left, left_len) = utils::runtime_string_of(compiler, left);
           let (right, right_len) = utils::runtime_string_of(compiler, right);
@@ -79,7 +79,7 @@ impl ValueWrapper {
           Self::new_string(compiler, &[self.to_string(), other.to_string()].concat())
         },
         #[allow(unreachable_patterns)]
-        _ => unreachable!("Resolver didn't type check infix operator `+`"),
+        _ => info!(INTR_ERR, "Resolver didn't type check infix operator `+`"),
       }
     }
   }
@@ -95,7 +95,7 @@ impl ValueWrapper {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, self.get_as_integer() - other.get_as_integer())
         },
-        _ => unreachable!("Resolver didn't type check infix operator `-`"),
+        _ => info!(INTR_ERR, "Resolver didn't type check infix operator `-`"),
       }
     }
   }
@@ -191,7 +191,7 @@ impl ValueWrapper {
           }
           Self::new_string(compiler, &string)
         },
-        _ => unreachable!("Resolver didn't type check infix operator `*`"),
+        _ => info!(INTR_ERR, "Resolver didn't type check infix operator `*`"),
       }
     }
   }
@@ -207,7 +207,7 @@ impl ValueWrapper {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, self.get_as_integer() / other.get_as_integer())
         },
-        _ => unreachable!("Resolver didn't type check infix operator `/`"),
+        _ => info!(INTR_ERR, "Resolver didn't type check infix operator `/`"),
       }
     }
   }
@@ -228,7 +228,7 @@ impl ValueWrapper {
 
       match self.ty {
         ValueType::Integer => Self::new_integer(compiler, -self.get_as_integer()),
-        _ => unreachable!("Resolver didn't type check prefix operator `-`"),
+        _ => info!(INTR_ERR, "Resolver didn't type check prefix operator `-`"),
       }
     }
   }
@@ -279,7 +279,7 @@ impl ValueWrapper {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, (self.get_as_integer() < other.get_as_integer()) as i64)
         },
-        _ => unreachable!("Resolver didn't type check infix operator `<`"),
+        _ => info!(INTR_ERR, "Resolver didn't type check infix operator `<`"),
       }
     }
   }
@@ -298,7 +298,7 @@ impl ValueWrapper {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, (self.get_as_integer() <= other.get_as_integer()) as i64)
         },
-        _ => unreachable!("Resolver didn't type check infix operator `<=`"),
+        _ => info!(INTR_ERR, "Resolver didn't type check infix operator `<=`"),
       }
     }
   }
@@ -317,7 +317,7 @@ impl ValueWrapper {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, (self.get_as_integer() > other.get_as_integer()) as i64)
         },
-        _ => unreachable!("Resolver didn't type check infix operator `>`"),
+        _ => info!(INTR_ERR, "Resolver didn't type check infix operator `>`"),
       }
     }
   }
@@ -336,7 +336,7 @@ impl ValueWrapper {
         (ValueType::Integer, ValueType::Integer) => {
           Self::new_integer(compiler, (self.get_as_integer() >= other.get_as_integer()) as i64)
         },
-        _ => unreachable!("Resolver didn't type check infix operator `>=`"),
+        _ => info!(INTR_ERR, "Resolver didn't type check infix operator `>=`"),
       }
     }
   }
@@ -396,7 +396,7 @@ impl ValueWrapper {
           Self::new_integer(compiler, (self.get_as_string() == other.get_as_string()) as i64)
         },
         (ValueType::Array(_, _), _) | (_, ValueType::Array(_, _)) => {
-          unreachable!("Array are always runtime values")
+          info!(INTR_ERR, "Found array that is not a runtime value")
         },
         _ => Self::new_integer(compiler, 0),
       }
@@ -458,7 +458,7 @@ impl ValueWrapper {
           Self::new_integer(compiler, (self.get_as_string() != other.get_as_string()) as i64)
         },
         (ValueType::Array(_, _), _) | (_, ValueType::Array(_, _)) => {
-          unreachable!("Array are always runtime values")
+          info!(INTR_ERR, "Found array that is not a runtime value")
         },
         _ => Self::new_integer(compiler, 1),
       }
@@ -695,7 +695,7 @@ impl ValueWrapper {
           Self::new_integer(compiler, self.get_as_integer().pow(other.get_as_integer() as u32))
         },
 
-        _ => unreachable!("Resolver didn't type check infix operator `^`"),
+        _ => info!(INTR_ERR, "Resolver didn't type check infix operator `^`"),
       }
     }
   }
@@ -715,7 +715,7 @@ impl ValueWrapper {
           Self::new_integer(compiler, self.get_as_integer() % other.get_as_integer())
         },
 
-        _ => unreachable!("Resolver didn't type check infix operator `%`"),
+        _ => info!(INTR_ERR, "Resolver didn't type check infix operator `%`"),
       }
     }
   }
@@ -735,7 +735,7 @@ impl ValueWrapper {
           Self::new_integer(compiler, self.get_as_integer() << other.get_as_integer())
         },
 
-        _ => unreachable!("Resolver didn't type check infix operator `<<`"),
+        _ => info!(INTR_ERR, "Resolver didn't type check infix operator `<<`"),
       }
     }
   }
@@ -755,7 +755,7 @@ impl ValueWrapper {
           Self::new_integer(compiler, self.get_as_integer() >> other.get_as_integer())
         },
 
-        _ => unreachable!("Resolver didn't type check infix operator `>>`"),
+        _ => info!(INTR_ERR, "Resolver didn't type check infix operator `>>`"),
       }
     }
   }
@@ -775,7 +775,7 @@ impl ValueWrapper {
           Self::new_integer(compiler, self.get_as_integer() & other.get_as_integer())
         },
 
-        _ => unreachable!("Resolver didn't type check infix operator `&`"),
+        _ => info!(INTR_ERR, "Resolver didn't type check infix operator `&`"),
       }
     }
   }
@@ -795,7 +795,7 @@ impl ValueWrapper {
           Self::new_integer(compiler, self.get_as_integer() | other.get_as_integer())
         },
 
-        _ => unreachable!("Resolver didn't type check infix operator `|`"),
+        _ => info!(INTR_ERR, "Resolver didn't type check infix operator `|`"),
       }
     }
   }

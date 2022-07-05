@@ -154,7 +154,9 @@ impl ValueWrapper {
         return false;
       }
       match &self.ty {
-        ValueType::Void => unreachable!("Void should not be used as a value"),
+        ValueType::Void => {
+          info!(INTR_ERR, "`is_truthy` has been called on a value with type of void");
+        },
         ValueType::Integer => self.get_as_integer() == 1,
         ValueType::String => !self.get_as_string().is_empty(),
         ValueType::Array(_, len) => len.kind == ExprKind::Integer(0),
@@ -166,7 +168,9 @@ impl ValueWrapper {
     if self.is_runtime() {
       let i64_ty = LLVMInt64TypeInContext(compiler.ctx);
       match &self.ty {
-        ValueType::Void => unreachable!("Void should not be used as a value"),
+        ValueType::Void => {
+          info!(INTR_ERR, "`new_is_truthy` has been called on a value with type of void");
+        },
         ValueType::Integer => {
           let self_ = self.load(compiler);
           let v = LLVMBuildICmp(
@@ -227,13 +231,15 @@ impl std::fmt::Display for ValueWrapper {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     unsafe {
       if self.is_runtime() {
-        unreachable!("Runtime value cannot be formatted.");
+        info!(INTR_ERR, "`to_string` has been called on a runtime value");
       }
       match self.ty {
-        ValueType::Void => unreachable!("Void should not be used as a value"),
+        ValueType::Void => {
+          info!(INTR_ERR, "`to_string` has been called on a value with type of void");
+        },
         ValueType::Integer => write!(f, "{}", self.get_as_integer()),
         ValueType::String => write!(f, "{}", self.get_as_string()),
-        ValueType::Array(_, _) => unreachable!("Array are and should always be runtime values"),
+        ValueType::Array(_, _) => info!(INTR_ERR, "Array was found not to be a runtime value"),
       }
     }
   }
@@ -260,7 +266,9 @@ mod utils {
       let i64_type = LLVMInt64TypeInContext(compiler.ctx);
 
       match &value.ty {
-        ValueType::Void => unreachable!("Void should not be used as a value"),
+        ValueType::Void => {
+          info!(INTR_ERR, "`runtime_string_of` has been called on a value with type of void");
+        },
         ValueType::String => {
           let v = utils::gep_string_ptr(compiler, value);
           let ptr_len = LLVMBuildCall2(
@@ -308,7 +316,7 @@ mod utils {
         },
         // TODO: add support for arrays
         ValueType::Array(_, _) => {
-          unreachable!("Resolver didn't resolve array to string conversion")
+          info!(INTR_ERR, "Resolver didn't resolve array to string conversion");
         },
       }
     }
@@ -1375,7 +1383,7 @@ impl Compiler {
             LLVMBuildBr(self.builder, break_label);
             LLVMPositionBuilderAtEnd(self.builder, self.get_unused_bb());
           } else {
-            unreachable!("Resolver didn't catch break stmt outside of loop");
+            info!(INTR_ERR, "Resolver didn't caught break outside of loop statements");
           }
         },
         StmtKind::Block { stmts } => {
@@ -1394,7 +1402,7 @@ impl Compiler {
         ExprKind::String(s) => ValueWrapper::new_string(self, s),
         ExprKind::Identifier(name) => match self.variables.get(name) {
           Some(val) => val.load(self),
-          None => unreachable!("Resolver didn't resolve variable correctly"),
+          None => info!(INTR_ERR, "Resolver didn't resolve variable getting correctly"),
         },
         ExprKind::Array(ty, elems, len) => {
           let i64_type = LLVMInt64TypeInContext(self.ctx);
@@ -1563,14 +1571,14 @@ impl Compiler {
           let FuncDesc { arg_len, ret_ty, local_vars, external } =
             match self.function_descs.get(&func_name) {
               Some(func_desc) => func_desc,
-              None => unreachable!("Resolver didn't resolve function correctly"),
+              None => info!(INTR_ERR, "Resolver didn't resolve function getting correctly"),
             };
           if external {
             func_name = name.to_string();
           }
 
           if params.len() != arg_len {
-            unreachable!("Function call has wrong number of arguments");
+            info!(INTR_ERR, "Resolver didn't resolve function parameters correctly");
           }
 
           let (func, func_ty) = self.get_func(&func_name).unwrap();
@@ -1608,7 +1616,9 @@ impl Compiler {
               is_runtime: true,
             },
             false if self.ignore_return => ValueWrapper::new_integer(self, 1656),
-            false => unreachable!("Function call has no return type"),
+            false => {
+              info!(INTR_ERR, "Resolver didn't resolve function return type as void correctly")
+            },
           }
         },
         ExprKind::Index { array, index } => {
@@ -1656,7 +1666,7 @@ impl Compiler {
       TokenKind::Minus => right.neg(self),
       TokenKind::Bang => right.not(self),
 
-      _ => unreachable!("{op} is not a prefix operator"),
+      _ => info!(INTR_ERR, "`{op}` is not a prefix operator"),
     }
   }
 
@@ -1684,7 +1694,7 @@ impl Compiler {
       TokenKind::Ampersand => left.band(self, right),
       TokenKind::Pipe => left.bor(self, right),
 
-      _ => unreachable!("{op} is not an infix operator"),
+      _ => info!(INTR_ERR, "`{op}` is not an infix operator"),
     }
   }
 
@@ -1698,12 +1708,10 @@ impl Compiler {
       TokenKind::And => ValueWrapper::and(self, left, right),
       TokenKind::Or => ValueWrapper::or(self, left, right),
 
-      _ => unreachable!("{op} is not a short circuit operator"),
+      _ => info!(INTR_ERR, "`{op}` is not a short circuit operator"),
     }
   }
 
-  //
-  // indexed     is_array
   fn compile_index(&mut self, array: ValueWrapper, index: ValueWrapper) -> (ValueWrapper, bool) {
     unsafe {
       let array_ty = array.ty.clone();
@@ -1757,7 +1765,7 @@ impl Compiler {
           )
         },
 
-        _ => unreachable!("Resolver didn't resolve indexing correctly"),
+        _ => info!(INTR_ERR, "Resolver didn't resolve immutable indexing correctly"),
       }
     }
   }
@@ -1819,11 +1827,11 @@ impl Compiler {
               );
             },
 
-            _ => unreachable!("Resolver didn't resolve indexing correctly"),
+            _ => info!(INTR_ERR, "Resolver didn't resolve mutable indexing correctly"),
           }
         },
 
-        _ => unreachable!("Resolver didn't resolve assignment correctly"),
+        _ => info!(INTR_ERR, "Resolver didn't resolve assignment correctly"),
       }
 
       right

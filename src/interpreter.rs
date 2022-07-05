@@ -60,7 +60,7 @@ impl Interpreter {
         |_, params| {
           let param = match params[0] {
             Literal::Integer(n) => n,
-            _ => unreachable!(),
+            _ => info!(INTR_ERR, "Resolver didn't resolve function parameters correctly"),
           };
           Some(Literal::Integer(f64::sqrt(param as f64) as i64))
         },
@@ -75,7 +75,7 @@ impl Interpreter {
         |_, params| {
           let param = match &params[0] {
             Literal::String(s) => s,
-            _ => unreachable!(),
+            _ => info!(INTR_ERR, "Resolver didn't resolve function parameters correctly"),
           };
           let as_int = match param.parse() {
             Ok(n) => n,
@@ -198,7 +198,7 @@ impl Interpreter {
       },
       StmtKind::Ret { expr } => {
         if !self.state_stack.contains(State::Function) {
-          unreachable!("Resolver didn't catch return outside of function");
+          info!(INTR_ERR, "Resolver didn't catch return outside of function");
         }
 
         if let Some(expr) = expr {
@@ -213,7 +213,7 @@ impl Interpreter {
       },
       StmtKind::Break => {
         if !self.state_stack.contains(State::Loop) {
-          unreachable!("Resolver didn't catch break outside of loop");
+          info!(INTR_ERR, "Resolver didn't catch break outside of loop");
         }
 
         self.state_stack.pop_until(State::Loop);
@@ -229,7 +229,7 @@ impl Interpreter {
       ExprKind::Integer(n) => Ok(Literal::Integer(*n)),
       ExprKind::Identifier(name) => match self.variables.get(name) {
         Some(val) => Ok(val),
-        None => unreachable!("Resolver didn't resolve variable correctly"),
+        None => info!(INTR_ERR, "Resolver didn't resolve variable getting correctly"),
       },
       ExprKind::Array(_, elems, len) => {
         let mut values = Vec::new();
@@ -248,7 +248,7 @@ impl Interpreter {
             values.push(val);
           }
         } else {
-          unreachable!("Resolver didn't resolve array len type");
+          info!(INTR_ERR, "Resolver didn't resolve array length type");
         }
 
         Ok(Literal::Array(values))
@@ -280,23 +280,26 @@ impl Interpreter {
           })?;
         let func = match self.functions.get(&func_name(name, &param_types)) {
           Some(func) => func,
-          None => unreachable!("Resolver didn't resolve function correctly"),
+          None => info!(INTR_ERR, "Resolver didn't resolve function getting correctly"),
         };
 
         match func {
           Function::Native(func, arg_len) => {
             if params.len() != arg_len {
-              unreachable!("Native function called with wrong number of arguments");
+              info!(INTR_ERR, "Resolver didn't resolve the length of parameters for functions");
             }
             match func(self, params) {
               Some(value) => Ok(value),
-              None if !self.ignore_return => unreachable!("Native function returned nothing"),
+              None if !self.ignore_return => info!(
+                INTR_ERR,
+                "Resolver didn't resolve the return type as void of functions correctly"
+              ),
               None => Ok(Literal::Integer(1656)),
             }
           },
           Function::UserDefined(args, body, _) => {
             if params.len() != args.len() {
-              unreachable!("User defined function called with wrong number of arguments");
+              info!(INTR_ERR, "Resolver didn't resolve the length of parameters for functions");
             }
 
             self.start_block();
@@ -322,17 +325,23 @@ impl Interpreter {
             match return_value {
               Some(value) => Ok(value),
               None if self.ignore_return => Ok(Literal::Integer(1656)),
-              None => unreachable!("User defined function returned nothing"),
+              None => info!(
+                INTR_ERR,
+                "Resolver didn't resolve the return type as void of functions correctly"
+              ),
             }
           },
           Function::External(func, arg_len, ret_ty) => {
             if params.len() != arg_len {
-              unreachable!("User defined function called with wrong number of arguments");
+              info!(INTR_ERR, "Resolver didn't resolve the length of parameters for functions");
             }
 
             match unsafe { utils::call_func_sym(self, func, params, ret_ty) } {
               Some(value) => Ok(value),
-              None if !self.ignore_return => unreachable!("Native function returned nothing"),
+              None if !self.ignore_return => info!(
+                INTR_ERR,
+                "Resolver didn't resolve the return type as void of functions correctly"
+              ),
               None => Ok(Literal::Integer(1656)),
             }
           },
@@ -351,7 +360,7 @@ impl Interpreter {
       TokenKind::Minus => Ok(-right),
       TokenKind::Bang => Ok(!right),
 
-      _ => unreachable!("{op} is not a prefix operator"),
+      _ => info!(INTR_ERR, "`{op}` is not a prefix operator"),
     }
   }
 
@@ -374,7 +383,7 @@ impl Interpreter {
       TokenKind::Ampersand => Ok(left & right),
       TokenKind::Pipe => Ok(left | right),
 
-      _ => unreachable!("{op} is not an infix operator"),
+      _ => info!(INTR_ERR, "`{op}` is not an infix operator"),
     }
   }
 
@@ -412,7 +421,7 @@ impl Interpreter {
       TokenKind::Or if left.is_truthy() => Ok(Literal::Integer(1)),
       TokenKind::Or => Ok(Literal::Integer(self.interpret_expr(&right)?.is_truthy() as i64)),
 
-      _ => unreachable!("{op} is not a short circuit operator"),
+      _ => info!(INTR_ERR, "`{op}` is not a short circuit operator"),
     }
   }
 
@@ -433,7 +442,7 @@ impl Interpreter {
         Ok(Literal::String(string[index as usize..index as usize + 1].to_string()))
       },
 
-      _ => unreachable!("Resolver didn't resolve indexing correctly"),
+      _ => info!(INTR_ERR, "Resolver didn't resolve immutable indexing correctly"),
     }
   }
 
@@ -449,20 +458,20 @@ impl Interpreter {
           let index = self.interpret_expr(index)?;
           let array = match self.variables.get_mut(name) {
             Some(value) => value,
-            None => unreachable!("Resolver didn't resolve indexing correctly"),
+            None => info!(INTR_ERR, "Resolver didn't resolve indexing's variable correctly"),
           };
 
           match (array, index) {
             (Literal::Array(array), Literal::Integer(index)) => {
               if index < 0 || index >= array.len() as i64 {
-                eprintln!("Index out of bounds.");
+                info!(ERR, "Index out of bounds.");
                 process::exit(1);
               }
               *array.get_mut(index as usize).unwrap() = right.clone();
             },
             (Literal::String(string), Literal::Integer(index)) => {
               if index < 0 || index >= string.len() as i64 {
-                eprintln!("Index out of bounds.");
+                info!(ERR, "Index out of bounds.");
                 process::exit(1);
               }
               string.replace_range(
@@ -471,14 +480,14 @@ impl Interpreter {
               );
             },
 
-            _ => unreachable!("Resolver didn't resolve indexing correctly"),
+            _ => info!(INTR_ERR, "Resolver didn't resolve mutable indexing correctly"),
           }
         }
 
         Ok(right)
       },
 
-      _ => unreachable!("Resolver didn't resolve assignment correctly"),
+      _ => info!(INTR_ERR, "Resolver didn't resolve assignment correctly"),
     }
   }
 }

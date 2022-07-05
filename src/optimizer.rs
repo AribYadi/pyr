@@ -1,3 +1,4 @@
+use crate::info;
 use crate::parser::syntax::{
   Expr,
   ExprKind,
@@ -133,7 +134,7 @@ impl Optimizer {
               ExprKind::ShortCircuitOp { op: *op, left: rc!(left), right: rc!(right) }
             },
 
-            _ => unreachable!(),
+            _ => info!(INTR_ERR, "Exhaustive match of infix ops in `optimize_expr`"),
           }
         },
         ExprKind::FuncCall { name, params } => {
@@ -278,7 +279,7 @@ impl Optimizer {
       TokenKind::Or if self.is_truthy(&left).unwrap() => ExprKind::Integer(1),
       TokenKind::Or => ExprKind::Integer(self.is_truthy(&right).unwrap() as i64),
 
-      _ => unreachable!(),
+      _ => info!(INTR_ERR, "Exhaustive match of short circuit ops in `optimize_short_circuit`"),
     }
   }
 

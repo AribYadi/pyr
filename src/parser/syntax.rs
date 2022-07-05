@@ -9,6 +9,7 @@ use logos::{
 use once_cell::sync::Lazy;
 
 use crate::error::Span;
+use crate::info;
 use crate::runtime::{
   ReturnValue,
   ValueType,
@@ -239,7 +240,7 @@ impl Operator for TokenKind {
   fn prefix_bp(&self) -> ((), u8) {
     match self {
       TokenKind::Minus | TokenKind::Bang => ((), 12),
-      _ => unreachable!("{self} is not a prefix operator"),
+      _ => info!(INTR_ERR, "Exhaustive match of prefix ops in `prefix_bp`"),
     }
   }
 
@@ -258,7 +259,7 @@ impl Operator for TokenKind {
       TokenKind::Star | TokenKind::Slash | TokenKind::Percent => (15, 16),
       TokenKind::Caret => (18, 17),
 
-      _ => unreachable!("{self} is not an infix operator"),
+      _ => info!(INTR_ERR, "Exhaustive match of infix ops in `infix_bp`"),
     }
   }
 }

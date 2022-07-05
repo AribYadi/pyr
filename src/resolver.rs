@@ -3,7 +3,6 @@ use crate::error::{
   RuntimeErrorKind,
   RuntimeResult as Result,
 };
-use crate::ignore_return;
 use crate::parser::syntax::{
   Expr,
   ExprKind,
@@ -19,6 +18,10 @@ use crate::runtime::{
   StateStack,
   ValueType,
   Variables,
+};
+use crate::{
+  ignore_return,
+  info,
 };
 
 // Resolves variables, functions, and type checks before interpreting.
@@ -60,7 +63,7 @@ impl Resolver {
 
   fn end_block(&mut self) {
     if self.indent_level == 0 {
-      unreachable!("end_block() called without start_block()");
+      info!(INTR_ERR, "`end_block` called without `start_block`");
     }
     self.variables.remove_all_with_indent(self.indent_level);
     self.functions.remove_all_with_indent(self.indent_level);

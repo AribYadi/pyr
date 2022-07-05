@@ -8,10 +8,13 @@ use crate::error::{
   ParseErrorKind,
   ParseResult as Result,
 };
-use crate::max_params_len;
 use crate::runtime::{
   ReturnValue,
   ValueType,
+};
+use crate::{
+  info,
+  max_params_len,
 };
 
 use self::syntax::{
@@ -385,7 +388,8 @@ impl Parser<'_> {
           Tok::Identifier => Ok(Expr::new(ExprKind::Identifier(text), span)),
           Tok::True => Ok(Expr::new(ExprKind::Integer(1), span)),
           Tok::False => Ok(Expr::new(ExprKind::Integer(0), span)),
-          _ => unreachable!(),
+
+          _ => info!(INTR_ERR, "Exhaustive match of literals in `parse_expr`"),
         }
       },
       Tok::LeftParen => {

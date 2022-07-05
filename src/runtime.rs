@@ -1,6 +1,7 @@
 use std::ffi::c_void;
 use std::rc::Rc;
 
+use crate::info;
 use crate::interpreter::Interpreter;
 use crate::parser::syntax::{
   Expr,
@@ -164,7 +165,7 @@ impl std::fmt::Display for Literal {
       //   "{elems}",
       //   elems = elems.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
       // ),
-      Literal::Array(_) => unreachable!("Resolver didn't resolve array to string conversion"),
+      Literal::Array(_) => info!(INTR_ERR, "Resolver didn't resolve array to string conversion"),
     }
   }
 }

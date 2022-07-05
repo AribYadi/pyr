@@ -11,6 +11,8 @@ use std::ops::{
   Sub,
 };
 
+use crate::info;
+
 use super::Literal;
 
 impl Add for Literal {
@@ -23,7 +25,7 @@ impl Add for Literal {
       (_, Literal::String(s)) => Literal::String([self.to_string(), s].concat()),
       #[allow(unreachable_patterns)]
       _ => {
-        unreachable!("Resolver didn't type check infix operator `+`");
+        info!(INTR_ERR, "Resolver didn't type check infix operator `+`");
       },
     }
   }
@@ -36,7 +38,7 @@ impl Sub for Literal {
     match (self, rhs) {
       (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l - r),
       _ => {
-        unreachable!("Resolver didn't type check infix operator `-`");
+        info!(INTR_ERR, "Resolver didn't type check infix operator `-`");
       },
     }
   }
@@ -56,7 +58,7 @@ impl Mul for Literal {
         Literal::String(string)
       },
       _ => {
-        unreachable!("Resolver didn't type check infix operator `*`");
+        info!(INTR_ERR, "Resolver didn't type check infix operator `*`");
       },
     }
   }
@@ -69,7 +71,7 @@ impl Div for Literal {
     match (self, rhs) {
       (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l / r),
       _ => {
-        unreachable!("Resolver didn't type check infix operator `/`");
+        info!(INTR_ERR, "Resolver didn't type check infix operator `/`");
       },
     }
   }
@@ -81,7 +83,7 @@ impl Neg for Literal {
   fn neg(self) -> Self::Output {
     match self {
       Literal::Integer(n) => Literal::Integer(-n),
-      _ => unreachable!("Resolver didn't type check prefix operator `-`"),
+      _ => info!(INTR_ERR, "Resolver didn't type check prefix operator `-`"),
     }
   }
 }
@@ -97,7 +99,7 @@ impl Literal {
     match (self, rhs) {
       (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer((l < r) as i64),
       _ => {
-        unreachable!("Resolver didn't type check infix operator `<`");
+        info!(INTR_ERR, "Resolver didn't type check infix operator `<`");
       },
     }
   }
@@ -106,7 +108,7 @@ impl Literal {
     match (self, rhs) {
       (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer((l <= r) as i64),
       _ => {
-        unreachable!("Resolver didn't type check infix operator `<=`");
+        info!(INTR_ERR, "Resolver didn't type check infix operator `<=`");
       },
     }
   }
@@ -115,7 +117,7 @@ impl Literal {
     match (self, rhs) {
       (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer((l > r) as i64),
       _ => {
-        unreachable!("Resolver didn't type check infix operator `>`");
+        info!(INTR_ERR, "Resolver didn't type check infix operator `>`");
       },
     }
   }
@@ -124,7 +126,7 @@ impl Literal {
     match (self, rhs) {
       (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer((l >= r) as i64),
       _ => {
-        unreachable!("Resolver didn't type check infix operator `>=`");
+        info!(INTR_ERR, "Resolver didn't type check infix operator `>=`");
       },
     }
   }
@@ -151,7 +153,7 @@ impl Literal {
         Literal::Integer(f64::powi(l as f64, r as i32) as i64)
       },
       _ => {
-        unreachable!("Resolver didn't type check infix operator `^`");
+        info!(INTR_ERR, "Resolver didn't type check infix operator `^`");
       },
     }
   }
@@ -160,7 +162,7 @@ impl Literal {
     match (self, rhs) {
       (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l % r),
       _ => {
-        unreachable!("Resolver didn't type check infix operator `%`");
+        info!(INTR_ERR, "Resolver didn't type check infix operator `%`");
       },
     }
   }
@@ -173,7 +175,7 @@ impl Shl for Literal {
     match (self, rhs) {
       (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l << r),
       _ => {
-        unreachable!("Resolver didn't type check infix operator `<<`");
+        info!(INTR_ERR, "Resolver didn't type check infix operator `<<`");
       },
     }
   }
@@ -186,7 +188,7 @@ impl Shr for Literal {
     match (self, rhs) {
       (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l >> r),
       _ => {
-        unreachable!("Resolver didn't type check infix operator `>>`");
+        info!(INTR_ERR, "Resolver didn't type check infix operator `>>`");
       },
     }
   }
@@ -199,7 +201,7 @@ impl BitAnd for Literal {
     match (self, rhs) {
       (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l & r),
       _ => {
-        unreachable!("Resolver didn't type check infix operator `&`");
+        info!(INTR_ERR, "Resolver didn't type check infix operator `&`");
       },
     }
   }
@@ -212,7 +214,7 @@ impl BitOr for Literal {
     match (self, rhs) {
       (Literal::Integer(l), Literal::Integer(r)) => Literal::Integer(l | r),
       _ => {
-        unreachable!("Resolver didn't type check infix operator `|`");
+        info!(INTR_ERR, "Resolver didn't type check infix operator `|`");
       },
     }
   }
