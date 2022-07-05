@@ -2,12 +2,12 @@
 :stdout 0:
 
 :end:
-:stderr 334:
-[1;31m[ERR][0m : A runtime error has been found!
-[1;31m[ERR][0m :  -> fail_func_scope.pyr:4:1
-[1;31m[ERR][0m :  -> undefined variable `bar` in the current scope
-[1;31m[ERR][0m : A runtime error has been found!
-[1;31m[ERR][0m :  -> fail_func_scope.pyr:7:7
-[1;31m[ERR][0m :  -> undefined variable `foo` in the current scope
+:stderr 328:
+[1;31m[ERR][0m: A runtime error has been found!
+[1;31m[ERR][0m:  -> fail_func_scope.pyr:6:1
+[1;31m[ERR][0m:  -> undefined variable `bar` in the current scope
+[1;31m[ERR][0m: A runtime error has been found!
+[1;31m[ERR][0m:  -> fail_func_scope.pyr:9:7
+[1;31m[ERR][0m:  -> undefined variable `foo` in the current scope
 
 :end:

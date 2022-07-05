@@ -2,12 +2,12 @@
 :stdout 0:
 
 :end:
-:stderr 337:
-[1;31m[ERR][0m : A runtime error has been found!
-[1;31m[ERR][0m :  -> call_void_func.pyr:4:1
-[1;31m[ERR][0m :  -> `foo` returns nothing but is used as an expression
-[1;31m[ERR][0m : A runtime error has been found!
-[1;31m[ERR][0m :  -> call_void_func.pyr:5:7
-[1;31m[ERR][0m :  -> undefined variable `bar` in the current scope
+:stderr 331:
+[1;31m[ERR][0m: A runtime error has been found!
+[1;31m[ERR][0m:  -> call_void_func.pyr:6:1
+[1;31m[ERR][0m:  -> `foo` returns nothing but is used as an expression
+[1;31m[ERR][0m: A runtime error has been found!
+[1;31m[ERR][0m:  -> call_void_func.pyr:7:7
+[1;31m[ERR][0m:  -> undefined variable `bar` in the current scope
 
 :end:
