@@ -3,6 +3,7 @@
 # Overview
 
 - [Overview](./README.md)
+- [CLI](./cli.md)
 
 # Language Reference
 
