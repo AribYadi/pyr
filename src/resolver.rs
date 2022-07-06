@@ -251,11 +251,15 @@ impl Resolver {
         Ok(ValueType::Array(bx!(ty.clone()), len))
       },
 
-      ExprKind::PrefixOp { op, right } => self.resolve_prefix_op(op, right),
-      ExprKind::InfixOp { op, left, right } => self.resolve_infix_op(op, left, right),
-      ExprKind::ShortCircuitOp { op, left, right } => {
-        self.resolve_short_circuit_op(op, left, right)
-      },
+      ExprKind::PrefixOp { op, right } => self
+        .resolve_prefix_op(op, right)
+        .map_err(|err| RuntimeError::new(err.kind, expr.span.clone())),
+      ExprKind::InfixOp { op, left, right } => self
+        .resolve_infix_op(op, left, right)
+        .map_err(|err| RuntimeError::new(err.kind, expr.span.clone())),
+      ExprKind::ShortCircuitOp { op, left, right } => self
+        .resolve_short_circuit_op(op, left, right)
+        .map_err(|err| RuntimeError::new(err.kind, expr.span.clone())),
       ExprKind::FuncCall { name, params } => {
         let param_types =
           params.iter().map(|expr| self.resolve_expr(expr)).collect::<Result<Vec<_>>>()?;

@@ -82,6 +82,8 @@ enum ArgsSubcommand {
 // TODO: allow function to take variadic arguments
 // TODO: prettify compiler code
 // TODO: make indexing out of bounds error at compile time
+// TODO: write more clear tests and examples
+// TODO: allow for jit-compiling llvm code
 
 fn main() {
   let args = get_args();
